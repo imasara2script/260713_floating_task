@@ -5,30 +5,214 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            background-color: #f0f0f0;
+            padding: 16px;
+            background-color: #f8f9fa;
+            color: #333;
         }
-        h1 { color: #333; }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            background-color: #007bff;
-            color: white;
+        h1 { font-size: 20px; margin-bottom: 16px; }
+        .card {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        /* Full Screen Styles */
+        #manager-view { display: none; }
+        .input-group { display: flex; gap: 8px; margin-bottom: 16px; }
+        input[type="text"] {
+            flex-grow: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        .btn {
+            padding: 8px 16px;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; padding: 4px 8px; font-size: 12px; }
+        .task-list { list-style: none; padding: 0; }
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .task-item:last-child { border-bottom: none; }
+        .task-text { flex-grow: 1; margin: 0 8px; }
+        .task-text.completed { text-decoration: line-through; color: #888; }
+
+        /* Floating View Styles */
+        #floating-view { display: none; }
+        .floating-header { font-size: 16px; font-weight: bold; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .floating-task-item { display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+        .floating-task-item span { flex-grow: 1; margin-left: 8px; }
+
+        .nav-btn {
+            margin-top: 20px;
+            width: 100%;
+            background-color: #6c757d;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <h1>Floating Task</h1>
-    <p>HTML + JS Interface</p>
-    <button onclick="Android.startFloatingWindow()">Start Floating Window</button>
+
+    <!-- 管理画面 (全画面) -->
+    <div id="manager-view">
+        <h1>デイリータスク管理</h1>
+        <div class="card">
+            <div class="input-group">
+                <input type="text" id="taskInput" placeholder="新しいタスクを入力...">
+                <button class="btn btn-primary" onclick="addTask()">追加</button>
+            </div>
+            <ul id="managerTaskList" class="task-list"></ul>
+        </div>
+        <button class="btn nav-btn" onclick="Android.startFloatingWindow()">フローティング表示を開始</button>
+        <div id="alarmStatus" style="margin-top: 10px; font-size: 12px;"></div>
+    </div>
+
+    <!-- フローティング画面 -->
+    <div id="floating-view">
+        <div class="floating-header">
+            <span>未完了タスク</span>
+            <button class="btn btn-primary" style="padding: 2px 8px; font-size: 12px;" onclick="openFullScreen()">全画面</button>
+        </div>
+        <div id="floatingTaskList"></div>
+    </div>
+
+    <script>
+        let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            render();
+            // 他のWebView(Service/Activity)に通知するために少しラグをおいてイベントを発生させる
+            window.dispatchEvent(new Event('storage'));
+        }
+
+        function openFullScreen() {
+            if (typeof Android !== 'undefined' && Android.openMainActivity) {
+                Android.openMainActivity();
+            }
+        }
+
+        function addTask() {
+            const input = document.getElementById('taskInput');
+            const text = input.value.trim();
+            if (text) {
+                tasks.push({ id: Date.now(), text: text, completed: false });
+                input.value = '';
+                saveTasks();
+            }
+        }
+
+        function toggleTask(id) {
+            tasks = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+            saveTasks();
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            saveTasks();
+        }
+
+        function editTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                const newText = prompt('タスクを編集:', task.text);
+                if (newText !== null && newText.trim() !== '') {
+                    tasks = tasks.map(t => t.id === id ? { ...t, text: newText.trim() } : t);
+                    saveTasks();
+                }
+            }
+        }
+
+        function render() {
+            const pendingTasks = tasks.filter(t => !t.completed);
+
+            if (typeof Android !== 'undefined' && Android.updatePendingTaskCount) {
+                Android.updatePendingTaskCount(pendingTasks.length);
+            }
+
+            // マネージャー画面の描画
+            const managerList = document.getElementById('managerTaskList');
+            if (managerList) {
+                managerList.innerHTML = tasks.map(t => `
+                    <li class="task-item">
+                        <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">
+                        <span class="task-text ${t.completed ? 'completed' : ''}" onclick="editTask(${t.id})">${t.text}</span>
+                        <button class="btn btn-danger" onclick="deleteTask(${t.id})">削除</button>
+                    </li>
+                `).join('');
+            }
+
+            // フローティング画面の描画 (未完了のみ)
+            const floatingList = document.getElementById('floatingTaskList');
+            if (floatingList) {
+                if (pendingTasks.length === 0) {
+                    floatingList.innerHTML = '<p style="color:#888; font-size:12px;">未完了のタスクはありません</p>';
+                    // 未完了タスクがない場合、サービス側に通知して非表示にするなどの処理が可能
+                    if (mode === 'floating' && typeof Android !== 'undefined' && Android.onTasksEmpty) {
+                        Android.onTasksEmpty();
+                    }
+                } else {
+                    floatingList.innerHTML = pendingTasks.map(t => `
+                        <div class="floating-task-item">
+                            <input type="checkbox" onchange="toggleTask(${t.id})">
+                            <span>${t.text}</span>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        // 表示モードの切り替え
+        function setViewMode(mode) {
+            document.getElementById('manager-view').style.display = (mode === 'manager') ? 'block' : 'none';
+            document.getElementById('floating-view').style.display = (mode === 'floating') ? 'block' : 'none';
+            if (mode === 'manager') {
+                document.body.style.backgroundColor = '#f8f9fa';
+                updateAlarmStatus();
+            } else {
+                document.body.style.backgroundColor = 'white';
+                document.body.style.padding = '8px';
+            }
+            render();
+        }
+
+        window.addEventListener('storage', () => {
+            const newTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+            if (JSON.stringify(newTasks) !== JSON.stringify(tasks)) {
+                tasks = newTasks;
+                render();
+            }
+        });
+
+        function updateAlarmStatus() {
+            if (typeof Android !== 'undefined' && Android.checkExactAlarmPermission) {
+                const hasPermission = Android.checkExactAlarmPermission();
+                const statusEl = document.getElementById('alarmStatus');
+                if (statusEl) {
+                    if (hasPermission) {
+                        statusEl.innerHTML = "✅ 毎日 AM 0:00 の自動起動が有効です";
+                        statusEl.style.color = "green";
+                    } else {
+                        statusEl.innerHTML = "⚠️ 正確なアラーム権限が必要です";
+                        statusEl.style.color = "orange";
+                    }
+                }
+            }
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode') || 'manager';
+        setViewMode(mode);
+    </script>
 </body>
 </html>
