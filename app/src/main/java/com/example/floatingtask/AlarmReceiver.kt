@@ -18,7 +18,9 @@ class AlarmReceiver : BroadcastReceiver() {
             // AM0時の処理: フローティングサービスを開始
             // オーバーレイ権限がある場合のみ開始可能
             if (Settings.canDrawOverlays(context)) {
-                val serviceIntent = Intent(context, FloatingWindowService::class.java)
+                val serviceIntent = Intent(context, FloatingWindowService::class.java).apply {
+                    putExtra("TRIGGER_RESET", true)
+                }
                 context.startForegroundService(serviceIntent)
             }
             

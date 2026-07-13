@@ -35,6 +35,7 @@
             font-weight: 500;
         }
         .btn-primary { background-color: #007bff; color: white; }
+        .btn-edit { background-color: #ffc107; color: #333; padding: 4px 8px; font-size: 12px; margin-right: 4px; }
         .btn-danger { background-color: #dc3545; color: white; padding: 4px 8px; font-size: 12px; }
         .task-list { list-style: none; padding: 0; }
         .task-item {
@@ -44,14 +45,36 @@
             border-bottom: 1px solid #eee;
         }
         .task-item:last-child { border-bottom: none; }
-        .task-text { flex-grow: 1; margin: 0 8px; }
+        .task-text { flex-grow: 1; margin: 0 8px; cursor: pointer; }
+        .task-text:hover { color: #007bff; }
         .task-text.completed { text-decoration: line-through; color: #888; }
 
         /* Floating View Styles */
         #floating-view { display: none; }
         .floating-header { font-size: 16px; font-weight: bold; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .floating-task-item { display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #eee; font-size: 14px; }
-        .floating-task-item span { flex-grow: 1; margin-left: 8px; }
+        .floating-task-item span { flex-grow: 1; margin-left: 8px; cursor: pointer; display: block; }
+        .floating-task-item span:hover { color: #007bff; }
+
+        /* History Styles */
+        #history-view { display: none; }
+        .history-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .history-date { color: #888; font-size: 12px; }
+
+        .tab-container { display: flex; gap: 8px; margin-bottom: 16px; }
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            background: #eee;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .tab-btn.active { background: #007bff; color: white; }
 
         .nav-btn {
             margin-top: 20px;
@@ -59,22 +82,63 @@
             background-color: #6c757d;
             color: white;
         }
+
+        /* Custom Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 300px;
+        }
+        .modal-title { font-weight: bold; margin-bottom: 12px; }
+        .modal-input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
     </style>
 </head>
 <body>
 
     <!-- 管理画面 (全画面) -->
     <div id="manager-view">
-        <h1>デイリータスク管理</h1>
-        <div class="card">
-            <div class="input-group">
-                <input type="text" id="taskInput" placeholder="新しいタスクを入力...">
-                <button class="btn btn-primary" onclick="addTask()">追加</button>
-            </div>
-            <ul id="managerTaskList" class="task-list"></ul>
+        <div class="tab-container">
+            <button id="tab-tasks" class="tab-btn active" onclick="switchTab('tasks')">タスク</button>
+            <button id="tab-history" class="tab-btn" onclick="switchTab('history')">履歴</button>
         </div>
-        <button class="btn nav-btn" onclick="Android.startFloatingWindow()">フローティング表示を開始</button>
-        <div id="alarmStatus" style="margin-top: 10px; font-size: 12px;"></div>
+
+        <div id="tasks-content">
+            <h1>デイリータスク管理</h1>
+            <div class="card">
+                <div class="input-group">
+                    <input type="text" id="taskInput" placeholder="新しいタスクを入力...">
+                    <button class="btn btn-primary" onclick="addTask()">追加</button>
+                </div>
+                <ul id="managerTaskList" class="task-list"></ul>
+            </div>
+            <button class="btn nav-btn" onclick="Android.startFloatingWindow()">フローティング表示を開始</button>
+            <div id="alarmStatus" style="margin-top: 10px; font-size: 12px;"></div>
+        </div>
+
+        <div id="history-content" style="display: none;">
+            <h1>完了履歴</h1>
+            <div class="card" id="historyList"></div>
+            <button class="btn btn-danger" style="margin-top: 10px; width: 100%;" onclick="clearHistory()">履歴を削除</button>
+        </div>
     </div>
 
     <!-- フローティング画面 -->
@@ -86,14 +150,91 @@
         <div id="floatingTaskList"></div>
     </div>
 
+    <!-- Custom Modal -->
+    <div id="customModal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="modalTitle" class="modal-title"></div>
+            <input type="text" id="modalInput" class="modal-input" style="display: none;">
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal()">キャンセル</button>
+                <button id="modalConfirmBtn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode') || 'manager';
+
         let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+        let history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+
+        function checkDailyReset() {
+            const lastReset = localStorage.getItem('lastResetDate');
+            const today = new Date().toDateString();
+
+            if (lastReset !== today) {
+                tasks = tasks.map(t => ({ ...t, completed: false }));
+                localStorage.setItem('lastResetDate', today);
+                saveTasks();
+            } else {
+                refreshData();
+            }
+        }
+
+        function refreshData() {
+            tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+            history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+            render();
+        }
 
         function saveTasks() {
             localStorage.setItem('tasks', JSON.stringify(tasks));
+            localStorage.setItem('taskHistory', JSON.stringify(history));
             render();
-            // 他のWebView(Service/Activity)に通知するために少しラグをおいてイベントを発生させる
-            window.dispatchEvent(new Event('storage'));
+            if (typeof Android !== 'undefined' && Android.onDataChanged) {
+                Android.onDataChanged();
+            }
+        }
+
+        function switchTab(tab) {
+            document.getElementById('tasks-content').style.display = (tab === 'tasks') ? 'block' : 'none';
+            document.getElementById('history-content').style.display = (tab === 'history') ? 'block' : 'none';
+            document.getElementById('tab-tasks').classList.toggle('active', tab === 'tasks');
+            document.getElementById('tab-history').classList.toggle('active', tab === 'history');
+            if (tab === 'history') renderHistory();
+        }
+
+        function showModal(title, options = {}) {
+            const modal = document.getElementById('customModal');
+            const titleEl = document.getElementById('modalTitle');
+            const inputEl = document.getElementById('modalInput');
+            const confirmBtn = document.getElementById('modalConfirmBtn');
+
+            titleEl.textContent = title;
+            inputEl.style.display = options.showInput ? 'block' : 'none';
+            if (options.showInput) inputEl.value = options.inputValue || '';
+
+            confirmBtn.onclick = () => {
+                if (options.onConfirm) options.onConfirm(inputEl.value);
+                closeModal();
+            };
+
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('customModal').style.display = 'none';
+        }
+
+        function clearHistory() {
+            showModal('履歴をすべて削除しますか？', {
+                onConfirm: () => {
+                    history = [];
+                    saveTasks();
+                    renderHistory();
+                }
+            });
         }
 
         function openFullScreen() {
@@ -113,70 +254,113 @@
         }
 
         function toggleTask(id) {
-            tasks = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+            tasks = tasks.map(t => {
+                if (t.id === id) {
+                    const newState = !t.completed;
+                    if (newState) {
+                        history.unshift({
+                            id: Date.now(),
+                            taskId: t.id,
+                            text: t.text,
+                            completedAt: new Date().toLocaleString()
+                        });
+                        if (history.length > 50) history.pop();
+                    }
+                    return { ...t, completed: newState };
+                }
+                return t;
+            });
             saveTasks();
         }
 
         function deleteTask(id) {
-            tasks = tasks.filter(t => t.id !== id);
-            saveTasks();
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                showModal(`「${task.text}」のタスクを削除しますか？`, {
+                    onConfirm: () => {
+                        tasks = tasks.filter(t => t.id !== id);
+                        saveTasks();
+                    }
+                });
+            }
         }
 
         function editTask(id) {
             const task = tasks.find(t => t.id === id);
             if (task) {
-                const newText = prompt('タスクを編集:', task.text);
-                if (newText !== null && newText.trim() !== '') {
-                    tasks = tasks.map(t => t.id === id ? { ...t, text: newText.trim() } : t);
-                    saveTasks();
-                }
+                showModal('タスク名を編集:', {
+                    showInput: true,
+                    inputValue: task.text,
+                    onConfirm: (newText) => {
+                        if (newText && newText.trim() !== '') {
+                            tasks = tasks.map(t => t.id === id ? { ...t, text: newText.trim() } : t);
+                            saveTasks();
+                        }
+                    }
+                });
             }
+        }
+
+        function renderHistory() {
+            const historyList = document.getElementById('historyList');
+            if (!historyList) return;
+
+            if (history.length === 0) {
+                historyList.innerHTML = '<p style="color:#888; text-align:center;">履歴はありません</p>';
+                return;
+            }
+
+            historyList.innerHTML = history.map(h => `
+                <div class="history-item">
+                    <div>${h.text}</div>
+                    <div class="history-date">${h.completedAt}</div>
+                </div>
+            `).join('');
         }
 
         function render() {
             const pendingTasks = tasks.filter(t => !t.completed);
 
             if (typeof Android !== 'undefined' && Android.updatePendingTaskCount) {
-                Android.updatePendingTaskCount(pendingTasks.length);
+                try {
+                    Android.updatePendingTaskCount(pendingTasks.length);
+                } catch(e) {}
             }
 
-            // マネージャー画面の描画
             const managerList = document.getElementById('managerTaskList');
             if (managerList) {
                 managerList.innerHTML = tasks.map(t => `
                     <li class="task-item">
                         <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">
                         <span class="task-text ${t.completed ? 'completed' : ''}" onclick="editTask(${t.id})">${t.text}</span>
+                        <button class="btn btn-edit" onclick="editTask(${t.id})">編集</button>
                         <button class="btn btn-danger" onclick="deleteTask(${t.id})">削除</button>
                     </li>
                 `).join('');
             }
 
-            // フローティング画面の描画 (未完了のみ)
             const floatingList = document.getElementById('floatingTaskList');
             if (floatingList) {
                 if (pendingTasks.length === 0) {
                     floatingList.innerHTML = '<p style="color:#888; font-size:12px;">未完了のタスクはありません</p>';
-                    // 未完了タスクがない場合、サービス側に通知して非表示にするなどの処理が可能
-                    if (mode === 'floating' && typeof Android !== 'undefined' && Android.onTasksEmpty) {
-                        Android.onTasksEmpty();
-                    }
                 } else {
                     floatingList.innerHTML = pendingTasks.map(t => `
                         <div class="floating-task-item">
                             <input type="checkbox" onchange="toggleTask(${t.id})">
-                            <span>${t.text}</span>
+                            <span onclick="editTask(${t.id})">${t.text}</span>
                         </div>
                     `).join('');
                 }
             }
+            if (document.getElementById('history-content').style.display === 'block') {
+                renderHistory();
+            }
         }
 
-        // 表示モードの切り替え
-        function setViewMode(mode) {
-            document.getElementById('manager-view').style.display = (mode === 'manager') ? 'block' : 'none';
-            document.getElementById('floating-view').style.display = (mode === 'floating') ? 'block' : 'none';
-            if (mode === 'manager') {
+        function setViewMode(m) {
+            document.getElementById('manager-view').style.display = (m === 'manager') ? 'block' : 'none';
+            document.getElementById('floating-view').style.display = (m === 'floating') ? 'block' : 'none';
+            if (m === 'manager') {
                 document.body.style.backgroundColor = '#f8f9fa';
                 updateAlarmStatus();
             } else {
@@ -188,10 +372,10 @@
 
         window.addEventListener('storage', () => {
             const newTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-            if (JSON.stringify(newTasks) !== JSON.stringify(tasks)) {
-                tasks = newTasks;
-                render();
-            }
+            const newHistory = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+            tasks = newTasks;
+            history = newHistory;
+            render();
         });
 
         function updateAlarmStatus() {
@@ -200,7 +384,7 @@
                 const statusEl = document.getElementById('alarmStatus');
                 if (statusEl) {
                     if (hasPermission) {
-                        statusEl.innerHTML = "✅ 毎日 AM 0:00 の自動起動が有効です";
+                        statusEl.innerHTML = "✅ 毎日 AM 0:00 の自動リセット・通知が有効です";
                         statusEl.style.color = "green";
                     } else {
                         statusEl.innerHTML = "⚠️ 正確なアラーム権限が必要です";
@@ -210,8 +394,7 @@
             }
         }
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const mode = urlParams.get('mode') || 'manager';
+        checkDailyReset();
         setViewMode(mode);
     </script>
 </body>

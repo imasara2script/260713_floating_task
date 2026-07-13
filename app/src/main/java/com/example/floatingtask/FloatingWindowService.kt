@@ -52,11 +52,22 @@ class FloatingWindowService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.getBooleanExtra("TRIGGER_RESET", false) == true) {
+            val webView: WebView? = floatingView?.findViewById(R.id.floatingWebView)
+            webView?.evaluateJavascript("checkDailyReset();", null)
+        }
+
         when (intent?.action) {
             "ACTION_HIDE" -> hideFloatingWindow()
             "ACTION_SHOW" -> showFloatingWindow()
+            "ACTION_REFRESH" -> refreshWebView()
         }
         return START_STICKY
+    }
+
+    private fun refreshWebView() {
+        val webView: WebView? = floatingView?.findViewById(R.id.floatingWebView)
+        webView?.evaluateJavascript("refreshData();", null)
     }
 
     private fun hideFloatingWindow() {
@@ -90,6 +101,7 @@ class FloatingWindowService : Service() {
         // WebViewの設定
         val webView: WebView = floatingView!!.findViewById(R.id.floatingWebView)
         webView.webViewClient = WebViewClient()
+        webView.webChromeClient = android.webkit.WebChromeClient()
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
 
@@ -104,8 +116,16 @@ class FloatingWindowService : Service() {
             @JavascriptInterface
             fun updatePendingTaskCount(count: Int) {
                 if (count == 0) {
-                    hideFloatingWindow()
+                    val handler = android.os.Handler(android.os.Looper.getMainLooper())
+                    handler.post { hideFloatingWindow() }
                 }
+            }
+
+            @JavascriptInterface
+            fun onDataChanged() {
+                // MainActivityに通知
+                val intent = Intent("com.example.floatingtask.DATA_CHANGED")
+                sendBroadcast(intent)
             }
         }, "Android")
 

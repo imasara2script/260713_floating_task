@@ -21,6 +21,13 @@ class MainActivity : AppCompatActivity() {
 
     private var pendingTaskCount = 0
 
+    private val dataChangeReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val webView: WebView = findViewById(R.id.webView)
+            webView.evaluateJavascript("refreshData();", null)
+        }
+    }
+
     // 他のアプリの上に重ねて表示する権限を要求するためのランチャー
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -44,6 +51,7 @@ class MainActivity : AppCompatActivity() {
 
         val webView: WebView = findViewById(R.id.webView)
         webView.webViewClient = WebViewClient()
+        webView.webChromeClient = android.webkit.WebChromeClient()
         
         webView.settings.apply {
             javaScriptEnabled = true
@@ -90,12 +98,24 @@ class MainActivity : AppCompatActivity() {
             fun updatePendingTaskCount(count: Int) {
                 pendingTaskCount = count
             }
+
+            @JavascriptInterface
+            fun onDataChanged() {
+                runOnUiThread {
+                    val intent = Intent(this@MainActivity, FloatingWindowService::class.java)
+                    intent.action = "ACTION_REFRESH"
+                    startService(intent)
+                }
+            }
         }, "Android")
 
         webView.loadUrl("file:///android_asset/index.html")
 
         // 毎日AM0時のアラームをスケジュール
         AlarmScheduler.scheduleMidnightAlarm(this)
+
+        registerReceiver(dataChangeReceiver, android.content.IntentFilter("com.example.floatingtask.DATA_CHANGED"), 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Context.RECEIVER_EXPORTED else 0)
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -104,12 +124,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(dataChangeReceiver)
+    }
+
     override fun onResume() {
         super.onResume()
         // 全画面表示中はフローティングウィンドウを隠す
         val intent = Intent(this, FloatingWindowService::class.java)
         intent.action = "ACTION_HIDE"
         startService(intent)
+
+        // 日付を跨いでいた場合、リセットを確認する。そうでない場合もデータを同期する。
+        val webView: WebView = findViewById(R.id.webView)
+        webView.evaluateJavascript("checkDailyReset();", null)
     }
 
     override fun onPause() {
