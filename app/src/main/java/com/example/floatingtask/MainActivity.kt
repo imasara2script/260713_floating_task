@@ -100,6 +100,13 @@ class MainActivity : AppCompatActivity() {
             }
 
             @JavascriptInterface
+            fun setIntervalAlarm(minutes: Int) {
+                runOnUiThread {
+                    AlarmScheduler.scheduleIntervalAlarm(this@MainActivity, minutes)
+                }
+            }
+
+            @JavascriptInterface
             fun onDataChanged() {
                 runOnUiThread {
                     val intent = Intent(this@MainActivity, FloatingWindowService::class.java)
@@ -111,8 +118,9 @@ class MainActivity : AppCompatActivity() {
 
         webView.loadUrl("file:///android_asset/index.html")
 
-        // 毎日AM0時のアラームをスケジュール
+        // 毎日AM0時のリセットと正午のチェックをスケジュール
         AlarmScheduler.scheduleMidnightAlarm(this)
+        AlarmScheduler.scheduleNoonAlarm(this)
 
         registerReceiver(dataChangeReceiver, android.content.IntentFilter("com.example.floatingtask.DATA_CHANGED"), 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Context.RECEIVER_EXPORTED else 0)

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="300dp"
-    android:layout_height="400dp"
+    android:layout_width="280dp"
+    android:layout_height="32dp"
     android:background="@android:color/white"
     android:elevation="8dp">
 
@@ -13,10 +13,13 @@
     <!-- 閉じるボタンの例（必要に応じて） -->
     <Button
         android:id="@+id/closeButton"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
         android:layout_gravity="top|right"
         android:text="×"
         android:background="#88000000"
-        android:textColor="@android:color/white" />
+        android:textColor="@android:color/white"
+        android:padding="0dp"
+        android:minWidth="0dp"
+        android:minHeight="0dp" />
 </FrameLayout>
