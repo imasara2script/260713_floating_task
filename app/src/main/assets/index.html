@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Task Manager</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -44,11 +45,12 @@
         .task-item {
             display: flex;
             align-items: center;
-            padding: 8px 0;
+            padding: 8px;
             border-bottom: 1px solid #eee;
+            border-radius: 8px;
         }
         .task-item.dragging { opacity: 0.5; }
-        .task-item.timer-active { background-color: #fff9e6; border-radius: 8px; margin-bottom: 4px; border-bottom: none; padding: 8px; }
+        .task-item.timer-active { background-color: #fff9e6; margin-bottom: 4px; border-bottom: none; }
         .timer-badge {
             font-size: 12px;
             background: #ffc107;
@@ -75,8 +77,9 @@
         }
         .btn-icon { padding: 4px 8px; font-size: 16px; background: none; border: none; cursor: pointer; }
         .task-item:last-child { border-bottom: none; }
-        .task-text { flex-grow: 1; margin: 0 8px; cursor: pointer; }
-        .task-text:hover { color: #007bff; }
+        .task-text { flex-grow: 1; margin: 0 8px; }
+        .task-text.editable { cursor: pointer; }
+        .task-text.editable:hover { color: #007bff; }
         .task-text.completed { text-decoration: line-through; color: #888; }
 
         /* Floating View Styles */
@@ -104,6 +107,7 @@
             margin-left: 4px;
             flex-grow: 1;
             min-width: 0;
+            font-size: 13px; /* 少し小さくしてより多くの文字を表示 */
         }
         .floating-task-counter {
             font-size: 11px;
@@ -212,21 +216,38 @@
         </div>
 
         <div id="tasks-content">
-            <h1>デイリータスク管理</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h1 style="margin: 0;">デイリータスク管理</h1>
+                <button id="btn-toggle-edit" class="btn btn-secondary" onclick="toggleEditMode()" style="padding: 4px 12px; font-size: 14px;">リストを編集</button>
+            </div>
             <div class="card">
-                <div class="input-group">
-                    <input type="text" id="taskInput" placeholder="新しいタスクを入力...">
-                    <button class="btn btn-primary" onclick="addTask()">追加</button>
+                <!-- タスク追加フォーム (初期は非表示) -->
+                <div id="addTaskForm" style="display: none; border-bottom: 1px solid #eee; padding-bottom: 16px; margin-bottom: 16px;">
+                    <div class="input-group" style="margin-bottom: 12px;">
+                        <input type="text" id="taskInput" placeholder="新しいタスク名を入力..." onkeydown="if(event.key==='Enter') addTask()" aria-label="新しいタスク名">
+                    </div>
+                    <div class="timer-group" style="margin-bottom: 12px;">
+                        <label for="timerUnit" style="color: #666;">タイマー：</label>
+                        <select id="timerUnit" onchange="toggleTimerInput()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white;">
+                            <option value="none">無し</option>
+                            <option value="min">分後</option>
+                            <option value="hour">時間後</option>
+                        </select>
+                        <input type="number" id="timerValue" class="timer-input" placeholder="数" min="1" style="display: none; padding: 6px;" aria-label="タイマー時間">
+                        <div style="margin-left: auto; display: flex; gap: 8px;">
+                            <button class="btn btn-secondary" onclick="toggleAddTaskForm()" style="padding: 6px 12px;">キャンセル</button>
+                            <button class="btn btn-primary" onclick="addTask()" style="padding: 6px 12px;">追加</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="timer-group">
-                    <span>タイマー設定:</span>
-                    <input type="number" id="timerValue" class="timer-input" placeholder="数" min="1">
-                    <select id="timerUnit" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
-                        <option value="min">分後</option>
-                        <option value="hour">時間後</option>
-                    </select>
-                    <button class="btn btn-secondary" onclick="addTimerTask()">タイマー追加</button>
+
+                <!-- 普段表示される追加ボタン -->
+                <div id="addTaskTrigger" style="margin-bottom: 8px;">
+                    <button class="btn" onclick="toggleAddTaskForm()" style="width: 100%; border: 2px dashed #007bff; background: transparent; color: #007bff; font-weight: bold; padding: 12px; border-radius: 8px;">
+                        ＋ 新しいタスクを追加
+                    </button>
                 </div>
+
                 <ul id="managerTaskList" class="task-list"></ul>
             </div>
             <button class="btn nav-btn" onclick="Android.startFloatingWindow()">フローティング表示を開始</button>
@@ -282,8 +303,16 @@
         let history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
         let currentFloatingIndex = 0;
         let draggingElement = null;
+        let isEditMode = false;
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            render();
+        }
 
         function handleTouchStart(e) {
+            // 編集モードでない場合はドラッグ不可
+            if (!isEditMode) return;
             // ドラッグハンドル以外からのタッチは無視
             if (!e.target.classList.contains('drag-handle')) return;
 
@@ -332,11 +361,24 @@
                     .map(li => parseInt(li.getAttribute('data-id')));
 
                 const newTasks = [];
+                const taskMap = new Map(tasks.map(t => [t.id, t]));
+
                 newOrderIds.forEach(id => {
-                    const task = tasks.find(t => t.id === id);
-                    if (task) newTasks.push(task);
+                    const task = taskMap.get(id);
+                    if (task) {
+                        newTasks.push(task);
+                        taskMap.delete(id);
+                    }
                 });
+                // 万が一DOMになかったタスクがあれば末尾に残す
+                taskMap.forEach(task => newTasks.push(task));
+
                 tasks = newTasks;
+                draggingElement = null; // saveTasksの前のrenderでスキップされないように先にnullにする
+
+                // 完了済みが混ざっている状態で保存されるため、isEditModeを抜けた時に
+                // 並べ替えがリセットされないように考慮が必要ですが、
+                // tasks配列自体が真の順序となる。
                 saveTasks();
             }
             draggingElement = null;
@@ -424,42 +466,70 @@
             }
         }
 
-        function addTask() {
-            const input = document.getElementById('taskInput');
-            const text = input.value.trim();
-            if (text) {
-                tasks.push({ id: Date.now(), text: text, completed: false });
-                input.value = '';
-                saveTasks();
+        function toggleAddTaskForm() {
+            const form = document.getElementById('addTaskForm');
+            const trigger = document.getElementById('addTaskTrigger');
+            const isHidden = form.style.display === 'none';
+
+            form.style.display = isHidden ? 'block' : 'none';
+            trigger.style.display = isHidden ? 'none' : 'block';
+
+            if (isHidden) {
+                document.getElementById('taskInput').focus();
             }
         }
 
-        function addTimerTask() {
+        function toggleTimerInput() {
+            const unit = document.getElementById('timerUnit').value;
+            const input = document.getElementById('timerValue');
+            input.style.display = (unit === 'none') ? 'none' : 'inline-block';
+        }
+
+        function addTask() {
             const input = document.getElementById('taskInput');
+            const text = input.value.trim();
             const valInput = document.getElementById('timerValue');
             const unitSelect = document.getElementById('timerUnit');
 
-            const text = input.value.trim();
-            const value = parseInt(valInput.value);
+            if (text) {
+                const id = Date.now();
+                const newTask = { id: id, text: text, completed: false };
 
-            if (text && value > 0) {
-                const durationMs = value * (unitSelect.value === 'min' ? 60000 : 3600000);
-                tasks.push({
-                    id: Date.now(),
-                    text: text,
-                    completed: false,
-                    startTime: Date.now(),
-                    durationMs: durationMs
-                });
+                if (unitSelect.value !== 'none') {
+                    const value = parseInt(valInput.value);
+                    if (!isNaN(value) && value > 0) {
+                        const durationMs = value * (unitSelect.value === 'min' ? 60000 : 3600000);
+                        newTask.startTime = Date.now();
+                        newTask.durationMs = durationMs;
+
+                        if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
+                            Android.setTimerAlarm(id, text, durationMs);
+                        }
+                    } else {
+                        // タイマー設定が不完全な場合はタイマーなしとして扱うか、
+                        // ユーザーに知らせる（ここでは警告を出して中断する）
+                        alert("タイマーの時間を入力してください。");
+                        valInput.focus();
+                        return;
+                    }
+                }
+
+                tasks.unshift(newTask);
                 input.value = '';
                 valInput.value = '';
+                unitSelect.value = 'none';
+                toggleTimerInput();
                 saveTasks();
+                toggleAddTaskForm(); // フォームを閉じる
             }
         }
 
         function repeatTimer(id) {
             tasks = tasks.map(t => {
                 if (t.id === id && t.durationMs) {
+                    if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
+                        Android.setTimerAlarm(t.id, t.text, t.durationMs);
+                    }
                     return { ...t, startTime: Date.now(), completed: false };
                 }
                 return t;
@@ -504,6 +574,7 @@
         }
 
         function deleteTask(id) {
+            if (!isEditMode) return;
             const task = tasks.find(t => t.id === id);
             if (task) {
                 showModal(`「${task.text}」のタスクを削除しますか？`, {
@@ -516,6 +587,7 @@
         }
 
         function editTask(id) {
+            if (!isEditMode) return;
             const task = tasks.find(t => t.id === id);
             if (task) {
                 showModal('タスク名を編集:', {
@@ -549,25 +621,30 @@
         }
 
         function render() {
-            // ソート: タイマー付き(未完了)を優先、その中で残り時間が短い順、次に通常の未完了、最後に完了済み
-            const sortedTasks = [...tasks].sort((a, b) => {
-                if (a.completed !== b.completed) return a.completed ? 1 : -1;
+            if (draggingElement) return; // ドラッグ操作中はDOMを書き換えない
 
-                const aIsTimer = a.durationMs && !a.completed;
-                const bIsTimer = b.durationMs && !b.completed;
+            const btnToggleEdit = document.getElementById('btn-toggle-edit');
+            if (btnToggleEdit) {
+                btnToggleEdit.style.display = (mode === 'manager') ? 'inline-block' : 'none';
+                // 編集モードの状態をボタンに反映
+                btnToggleEdit.textContent = isEditMode ? '編集終了' : 'リストを編集';
+                btnToggleEdit.classList.toggle('btn-secondary', !isEditMode);
+                btnToggleEdit.classList.toggle('btn-primary', isEditMode);
+            }
 
-                if (aIsTimer && bIsTimer) {
-                    const aEnd = a.startTime + a.durationMs;
-                    const bEnd = b.startTime + b.durationMs;
-                    return aEnd - bEnd;
-                }
-                if (aIsTimer) return -1;
-                if (bIsTimer) return 1;
+            // 1. 管理画面用：編集モード中は生の順序を表示し、通常時は完了済みを下にまとめる
+            const managerTasks = isEditMode ? tasks : [
+                ...tasks.filter(t => !t.completed),
+                ...tasks.filter(t => t.completed)
+            ];
 
-                return b.id - a.id; // 新しい順
+            // 2. フローティング表示用：タイマー付きを最優先、その中で手動順序を維持
+            const pendingTasks = tasks.filter(t => !t.completed).sort((a, b) => {
+                const aIsTimer = !!a.durationMs;
+                const bIsTimer = !!b.durationMs;
+                if (aIsTimer !== bIsTimer) return aIsTimer ? -1 : 1;
+                return 0; // 同一カテゴリ内では tasks 配列の順序を維持
             });
-
-            const pendingTasks = sortedTasks.filter(t => !t.completed);
 
             if (currentFloatingIndex >= pendingTasks.length) {
                 currentFloatingIndex = Math.max(0, pendingTasks.length - 1);
@@ -581,20 +658,22 @@
 
             const managerList = document.getElementById('managerTaskList');
             if (managerList) {
-                managerList.innerHTML = sortedTasks.map((t, index) => {
+                managerList.innerHTML = managerTasks.map((t, index) => {
                     const isTimer = !!t.durationMs;
                     const remainingText = isTimer ? getRemainingTimeText(t) : '';
                     const isExpired = isTimer && (t.startTime + t.durationMs <= Date.now());
 
                     return `
                     <li class="task-item ${isTimer && !t.completed ? 'timer-active' : ''}" data-id="${t.id}">
-                        <span class="drag-handle">☰</span>
+                        ${isEditMode ? '<span class="drag-handle">☰</span>' : ''}
                         <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">
                         ${isTimer && !t.completed ? `<span class="timer-badge ${isExpired ? 'timer-expired' : ''}">${remainingText}</span>` : ''}
-                        <span class="task-text ${t.completed ? 'completed' : ''}" onclick="editTask(${t.id})">${t.text}</span>
+                        <span class="task-text ${t.completed ? 'completed' : ''} ${isEditMode ? 'editable' : ''}" onclick="${isEditMode ? `editTask(${t.id})` : ''}">${t.text}</span>
                         ${isTimer ? `<button class="btn-icon" onclick="repeatTimer(${t.id})" title="リピート">🔄</button>` : ''}
-                        <button class="btn-icon" onclick="editTask(${t.id})" title="編集">✏️</button>
-                        <button class="btn-icon" onclick="deleteTask(${t.id})" title="削除">🗑️</button>
+                        ${isEditMode ? `
+                            <button class="btn-icon" onclick="editTask(${t.id})" title="編集">✏️</button>
+                            <button class="btn-icon" onclick="deleteTask(${t.id})" title="削除">🗑️</button>
+                        ` : ''}
                     </li>
                 `}).join('');
             }
@@ -617,11 +696,11 @@
                     const isExpired = isTimer && (t.startTime + t.durationMs <= Date.now());
 
                     floatingContent.innerHTML = `
-                        <input type="checkbox" onchange="toggleTask(${t.id})">
-                        ${isTimer ? `<span class="timer-badge ${isExpired ? 'timer-expired' : ''}" style="margin:0 4px; font-size:10px; max-width: 80px; overflow: hidden; white-space: nowrap; flex-shrink: 0;">${remainingText}</span>` : ''}
-                        <span class="floating-task-text">${t.text}</span>
+                        <input type="checkbox" onchange="toggleTask(${t.id})" style="flex-shrink: 0;">
+                        ${isTimer ? `<span class="timer-badge ${isExpired ? 'timer-expired' : ''}" style="margin:0 4px; font-size:10px; max-width: 60px; overflow: hidden; white-space: nowrap; flex-shrink: 0;">${remainingText}</span>` : ''}
+                        <span class="floating-task-text" style="flex-grow: 1; min-width: 0;">${t.text}</span>
                         ${isTimer ? `<button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size:14px; padding:0 2px; margin-right:2px; flex-shrink: 0;">🔄</button>` : ''}
-                        ${pendingTasks.length > 1 ? `<span class="floating-task-counter" style="font-size:9px; flex-shrink: 0;">(${currentFloatingIndex + 1}/${pendingTasks.length})</span>` : ''}
+                        ${pendingTasks.length > 1 ? `<span class="floating-task-counter" style="font-size:9px; flex-shrink: 0; margin-right: 4px;">(${currentFloatingIndex + 1}/${pendingTasks.length})</span>` : ''}
                     `;
                 }
             }
@@ -632,6 +711,7 @@
 
         // 定期的にUIを更新（タイマー表示のため）
         setInterval(() => {
+            if (draggingElement) return;
             const hasActiveTimers = tasks.some(t => t.durationMs && !t.completed);
             if (hasActiveTimers) {
                 render();

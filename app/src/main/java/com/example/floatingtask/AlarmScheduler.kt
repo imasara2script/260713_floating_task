@@ -40,7 +40,27 @@ object AlarmScheduler {
         }
 
         val triggerAt = System.currentTimeMillis() + minutes * 60 * 1000
+        setExactAlarm(alarmManager, triggerAt, pendingIntent)
+    }
 
+    fun scheduleTimerAlarm(context: Context, taskId: Long, taskText: String, triggerAt: Long) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            action = "ACTION_TIMER_EXPIRED"
+            putExtra("EXTRA_TASK_ID", taskId)
+            putExtra("EXTRA_TASK_TEXT", taskText)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            taskId.toInt(), // requestCodeとしてtaskIdを使用（重複を許容するため、本来はもっと慎重に選ぶべきだがユニークなはず）
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        setExactAlarm(alarmManager, triggerAt, pendingIntent)
+    }
+
+    private fun setExactAlarm(alarmManager: AlarmManager, triggerAt: Long, pendingIntent: PendingIntent) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (alarmManager.canScheduleExactAlarms()) {
                 alarmManager.setExactAndAllowWhileIdle(

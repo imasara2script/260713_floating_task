@@ -107,6 +107,14 @@ class MainActivity : AppCompatActivity() {
             }
 
             @JavascriptInterface
+            fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long) {
+                runOnUiThread {
+                    val triggerAt = System.currentTimeMillis() + durationMs
+                    AlarmScheduler.scheduleTimerAlarm(this@MainActivity, taskId, taskText, triggerAt)
+                }
+            }
+
+            @JavascriptInterface
             fun onDataChanged() {
                 runOnUiThread {
                     val intent = Intent(this@MainActivity, FloatingWindowService::class.java)
