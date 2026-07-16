@@ -3,6 +3,7 @@ package com.example.floatingtask
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -10,7 +11,6 @@ import android.provider.Settings
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -20,22 +20,22 @@ import androidx.core.view.WindowInsetsCompat
 class MainActivity : AppCompatActivity() {
 
     private var pendingTaskCount = 0
+    private var isPageLoaded = false
 
     private val dataChangeReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val webView: WebView = findViewById(R.id.webView)
-            webView.evaluateJavascript("refreshData();", null)
+            if (isPageLoaded) {
+                webView.evaluateJavascript("refreshData();", null)
+            }
         }
     }
 
-    // 他のアプリの上に重ねて表示する権限を要求するためのランチャー
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
         if (Settings.canDrawOverlays(this)) {
             startFloatingService()
-        } else {
-            Toast.makeText(this, "フローティング表示には権限が必要です", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -45,98 +45,46 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
+        // 初回起動時などにオーバーレイ権限をチェック
+        if (!Settings.canDrawOverlays(this)) {
+            showOverlayPermissionDialog()
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) {}.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            val requestPermissionLauncher = registerForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { isGranted: Boolean -> }
+            requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
 
         val webView: WebView = findViewById(R.id.webView)
-        webView.webViewClient = WebViewClient()
-        webView.webChromeClient = android.webkit.WebChromeClient()
-        
-        webView.settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true
+        webView.settings.javaScriptEnabled = true
+        webView.settings.domStorageEnabled = true
+        webView.addJavascriptInterface(WebAppInterface(this), "Android")
+
+        webView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                isPageLoaded = true
+                webView.evaluateJavascript("checkDailyReset();", null)
+            }
         }
-
-        // HTML/JSから "Android.startFloatingWindow()" で呼び出せるようにインターフェースを登録
-        webView.addJavascriptInterface(object {
-            @JavascriptInterface
-            fun startFloatingWindow() {
-                runOnUiThread {
-                    checkOverlayPermissionAndStart()
-                }
-            }
-
-            @JavascriptInterface
-            fun checkExactAlarmPermission(): Boolean {
-                val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-                return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    alarmManager.canScheduleExactAlarms()
-                } else {
-                    true
-                }
-            }
-
-            @JavascriptInterface
-            fun openExactAlarmSettings() {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                        data = Uri.parse("package:$packageName")
-                    }
-                    startActivity(intent)
-                }
-            }
-
-            @JavascriptInterface
-            fun openMainActivity() {
-                val intent = Intent(this@MainActivity, MainActivity::class.java)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                startActivity(intent)
-            }
-
-            @JavascriptInterface
-            fun updatePendingTaskCount(count: Int) {
-                pendingTaskCount = count
-            }
-
-            @JavascriptInterface
-            fun setIntervalAlarm(minutes: Int) {
-                runOnUiThread {
-                    AlarmScheduler.scheduleIntervalAlarm(this@MainActivity, minutes)
-                }
-            }
-
-            @JavascriptInterface
-            fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long) {
-                runOnUiThread {
-                    val triggerAt = System.currentTimeMillis() + durationMs
-                    AlarmScheduler.scheduleTimerAlarm(this@MainActivity, taskId, taskText, triggerAt)
-                }
-            }
-
-            @JavascriptInterface
-            fun onDataChanged() {
-                runOnUiThread {
-                    val intent = Intent(this@MainActivity, FloatingWindowService::class.java)
-                    intent.action = "ACTION_REFRESH"
-                    startService(intent)
-                }
-            }
-        }, "Android")
+        webView.webChromeClient = android.webkit.WebChromeClient()
 
         webView.loadUrl("file:///android_asset/index.html")
-
-        // 毎日AM0時のリセットと正午のチェックをスケジュール
-        AlarmScheduler.scheduleMidnightAlarm(this)
-        AlarmScheduler.scheduleNoonAlarm(this)
-
-        registerReceiver(dataChangeReceiver, android.content.IntentFilter("com.example.floatingtask.DATA_CHANGED"), 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Context.RECEIVER_EXPORTED else 0)
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
+        }
+
+        // ブロードキャストレシーバーの登録
+        val filter = IntentFilter("com.example.floatingtask.DATA_CHANGED")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(dataChangeReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(dataChangeReceiver, filter)
         }
     }
 
@@ -145,26 +93,95 @@ class MainActivity : AppCompatActivity() {
         unregisterReceiver(dataChangeReceiver)
     }
 
+    inner class WebAppInterface(private val mContext: Context) {
+        @JavascriptInterface
+        fun startFloatingWindow() {
+            checkOverlayPermissionAndStart()
+        }
+
+        @JavascriptInterface
+        fun onDataChanged() {
+            val intent = Intent("com.example.floatingtask.DATA_CHANGED")
+            intent.setPackage(mContext.packageName)
+            mContext.sendBroadcast(intent)
+        }
+
+        @JavascriptInterface
+        fun openMainActivity() {
+            val intent = Intent(mContext, MainActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            mContext.startActivity(intent)
+        }
+
+        @JavascriptInterface
+        fun updatePendingTaskCount(count: Int) {
+            pendingTaskCount = count
+            // 必要に応じてネイティブ側でバッジ表示などの処理
+        }
+
+        @JavascriptInterface
+        fun checkBatteryOptimizationExempt(): Boolean {
+            val powerManager = mContext.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            return powerManager.isIgnoringBatteryOptimizations(mContext.packageName)
+        }
+
+        @JavascriptInterface
+        fun requestBatteryOptimizationExemption() {
+            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+            intent.data = Uri.parse("package:${mContext.packageName}")
+            mContext.startActivity(intent)
+        }
+
+        @JavascriptInterface
+        fun checkExactAlarmPermission(): Boolean {
+            val alarmManager = mContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                alarmManager.canScheduleExactAlarms()
+            } else {
+                true
+            }
+        }
+
+        @JavascriptInterface
+        fun openExactAlarmSettings() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                intent.data = Uri.parse("package:${mContext.packageName}")
+                mContext.startActivity(intent)
+            }
+        }
+
+        @JavascriptInterface
+        fun setIntervalAlarm(minutes: Int) {
+            val prefs = mContext.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            prefs.edit().putInt("recheckInterval", minutes).apply()
+
+            if (minutes > 0) {
+                AlarmScheduler.scheduleIntervalAlarm(mContext, minutes)
+            } else {
+                AlarmScheduler.cancelIntervalAlarm(mContext)
+            }
+        }
+
+        @JavascriptInterface
+        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long) {
+            AlarmScheduler.scheduleTimerAlarm(mContext, taskId, taskText, durationMs)
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         // 全画面表示中はフローティングウィンドウを隠す
-        val intent = Intent(this, FloatingWindowService::class.java)
-        intent.action = "ACTION_HIDE"
-        startService(intent)
+        if (Settings.canDrawOverlays(this)) {
+            val intent = Intent(this, FloatingWindowService::class.java)
+            intent.action = "ACTION_HIDE"
+            startService(intent)
+        }
 
         // 日付を跨いでいた場合、リセットを確認する。そうでない場合もデータを同期する。
-        val webView: WebView = findViewById(R.id.webView)
-        webView.evaluateJavascript("checkDailyReset();", null)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        // アプリがバックグラウンドに回った時にフローティングウィンドウの表示を再開検討
-        // ただし、未完了タスクがある場合のみ
-        if (pendingTaskCount > 0) {
-            val intent = Intent(this, FloatingWindowService::class.java)
-            intent.action = "ACTION_SHOW"
-            startService(intent)
+        if (isPageLoaded) {
+            val webView: WebView = findViewById(R.id.webView)
+            webView.evaluateJavascript("checkDailyReset();", null)
         }
     }
 
@@ -182,6 +199,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun startFloatingService() {
         val intent = Intent(this, FloatingWindowService::class.java)
+        intent.action = "ACTION_SHOW"
         startForegroundService(intent)
+    }
+
+    private fun showOverlayPermissionDialog() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("権限が必要です")
+            .setMessage("このアプリを動作させるには「他のアプリの上に重ねて表示」権限を許可する必要があります。設定画面から許可してください。")
+            .setPositiveButton("設定へ") { _, _ ->
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                startActivity(intent)
+            }
+            .setNegativeButton("キャンセル", null)
+            .setCancelable(false)
+            .show()
     }
 }

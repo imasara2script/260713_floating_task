@@ -212,7 +212,7 @@
     <div id="manager-view">
         <div class="tab-container">
             <button id="tab-tasks" class="tab-btn active" onclick="switchTab('tasks')">タスク</button>
-            <button id="tab-history" class="tab-btn" onclick="switchTab('history')">履歴</button>
+            <button id="tab-settings" class="tab-btn" onclick="switchTab('settings')">設定</button>
         </div>
 
         <div id="tasks-content">
@@ -250,25 +250,43 @@
 
                 <ul id="managerTaskList" class="task-list"></ul>
             </div>
-            <button class="btn nav-btn" onclick="Android.startFloatingWindow()">フローティング表示を開始</button>
-            <div id="alarmStatus" style="margin-top: 10px; font-size: 12px;"></div>
-
-            <div style="margin-top: 20px; font-size: 14px;">
-                <label for="intervalSelect">未完了時の再表示間隔:</label>
-                <select id="intervalSelect" onchange="updateInterval()" style="padding: 4px; border-radius: 4px; border: 1px solid #ddd;">
-                    <option value="0">なし</option>
-                    <option value="1">1分ごと</option>
-                    <option value="10">10分ごと</option>
-                    <option value="30">30分ごと</option>
-                    <option value="60">1時間ごと</option>
-                </select>
-            </div>
         </div>
 
-        <div id="history-content" style="display: none;">
-            <h1>完了履歴</h1>
-            <div class="card" id="historyList"></div>
-            <button class="btn btn-danger" style="margin-top: 10px; width: 100%;" onclick="clearHistory()">履歴を削除</button>
+        <div id="settings-content" style="display: none;">
+            <h1>設定</h1>
+
+            <div class="card" style="margin-bottom: 16px;">
+                <button class="btn btn-primary" style="width: 100%; margin-bottom: 12px;" onclick="Android.startFloatingWindow()">フローティング表示を開始</button>
+
+                <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                    <div id="battery-status-text" style="font-size: 13px; margin-bottom: 8px;">🔋 バッテリー最適化の状態を確認中...</div>
+                    <button id="btn-request-battery" class="btn btn-secondary" onclick="requestBatteryExemption()" style="width: 100%; font-size: 14px; display: none;">バッテリー最適化を解除する</button>
+                </div>
+
+                <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                    <div id="alarmStatus" style="font-size: 13px; margin-bottom: 8px;">⏰ アラーム権限の状態を確認中...</div>
+                    <button id="btn-request-alarm" class="btn btn-secondary" onclick="Android.openExactAlarmSettings()" style="width: 100%; font-size: 14px; display: none;">アラーム権限を許可する</button>
+                </div>
+
+                <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
+                    <label for="intervalSelect" style="display: block; margin-bottom: 8px;">未完了時の再表示間隔:</label>
+                    <select id="intervalSelect" onchange="updateInterval()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white;">
+                        <option value="0">なし</option>
+                        <option value="1">1分ごと</option>
+                        <option value="10">10分ごと</option>
+                        <option value="30">30分ごと</option>
+                        <option value="60">1時間ごと</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 16px;">
+                <button class="btn btn-secondary" style="width: 100%;" onclick="showHistory()">履歴を表示</button>
+                <div id="historySection" style="display: none; margin-top: 12px;">
+                    <div id="historyList"></div>
+                    <button class="btn btn-danger" style="margin-top: 12px; width: 100%;" onclick="clearHistory()">履歴を削除</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -400,14 +418,30 @@
                 tasks = tasks.map(t => ({ ...t, completed: false }));
                 localStorage.setItem('lastResetDate', today);
                 saveTasks();
-            } else {
-                refreshData();
             }
+
+            // 端末再起動時などのアラーム再登録チェック
+            tasks.forEach(t => {
+                if (t.durationMs && !t.completed) {
+                    const remaining = (t.startTime + t.durationMs) - Date.now();
+                    if (remaining > 0) {
+                        // まだ終了していないタイマーがあれば再登録
+                        if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
+                            Android.setTimerAlarm(t.id, t.text, remaining);
+                        }
+                    }
+                }
+            });
+
+            // 常に最新の状態（バッテリー最適化等）を確認するために呼び出す
+            refreshData();
         }
 
         function refreshData() {
             tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
             history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+            updateBatteryStatus();
+            updateAlarmStatus();
             render();
         }
 
@@ -422,10 +456,20 @@
 
         function switchTab(tab) {
             document.getElementById('tasks-content').style.display = (tab === 'tasks') ? 'block' : 'none';
-            document.getElementById('history-content').style.display = (tab === 'history') ? 'block' : 'none';
+            document.getElementById('settings-content').style.display = (tab === 'settings') ? 'block' : 'none';
             document.getElementById('tab-tasks').classList.toggle('active', tab === 'tasks');
-            document.getElementById('tab-history').classList.toggle('active', tab === 'history');
-            if (tab === 'history') renderHistory();
+            document.getElementById('tab-settings').classList.toggle('active', tab === 'settings');
+            if (tab === 'settings') {
+                updateBatteryStatus();
+                updateAlarmStatus();
+            }
+        }
+
+        function showHistory() {
+            const section = document.getElementById('historySection');
+            const isHidden = section.style.display === 'none';
+            section.style.display = isHidden ? 'block' : 'none';
+            if (isHidden) renderHistory();
         }
 
         function showModal(title, options = {}) {
@@ -433,14 +477,34 @@
             const titleEl = document.getElementById('modalTitle');
             const inputEl = document.getElementById('modalInput');
             const confirmBtn = document.getElementById('modalConfirmBtn');
+            const cancelBtn = modal.querySelector('.modal-actions button:first-child');
 
             titleEl.textContent = title;
             inputEl.style.display = options.showInput ? 'block' : 'none';
             if (options.showInput) inputEl.value = options.inputValue || '';
 
+            // キャンセルボタンの表示制御
+            cancelBtn.style.display = options.hideCancel ? 'none' : 'inline-block';
+
             confirmBtn.onclick = () => {
-                if (options.onConfirm) options.onConfirm(inputEl.value);
                 closeModal();
+                if (options.onConfirm) options.onConfirm(inputEl.value);
+            };
+
+            cancelBtn.onclick = () => {
+                closeModal();
+                if (options.onCancel) options.onCancel();
+            };
+
+            // 背景（グレーのエリア）クリックで閉じる
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    if (options.hideCancel) {
+                        if (confirmBtn.onclick) confirmBtn.onclick();
+                    } else {
+                        if (cancelBtn.onclick) cancelBtn.onclick();
+                    }
+                }
             };
 
             modal.style.display = 'flex';
@@ -482,7 +546,11 @@
         function toggleTimerInput() {
             const unit = document.getElementById('timerUnit').value;
             const input = document.getElementById('timerValue');
-            input.style.display = (unit === 'none') ? 'none' : 'inline-block';
+            const isVisible = (unit !== 'none');
+            input.style.display = isVisible ? 'inline-block' : 'none';
+            if (isVisible) {
+                input.focus();
+            }
         }
 
         function addTask() {
@@ -491,37 +559,47 @@
             const valInput = document.getElementById('timerValue');
             const unitSelect = document.getElementById('timerUnit');
 
-            if (text) {
-                const id = Date.now();
-                const newTask = { id: id, text: text, completed: false };
-
-                if (unitSelect.value !== 'none') {
-                    const value = parseInt(valInput.value);
-                    if (!isNaN(value) && value > 0) {
-                        const durationMs = value * (unitSelect.value === 'min' ? 60000 : 3600000);
-                        newTask.startTime = Date.now();
-                        newTask.durationMs = durationMs;
-
-                        if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-                            Android.setTimerAlarm(id, text, durationMs);
-                        }
-                    } else {
-                        // タイマー設定が不完全な場合はタイマーなしとして扱うか、
-                        // ユーザーに知らせる（ここでは警告を出して中断する）
-                        alert("タイマーの時間を入力してください。");
-                        valInput.focus();
-                        return;
+            if (!text) {
+                showModal('タスク名を入力してください', {
+                    hideCancel: true,
+                    onConfirm: () => {
+                        input.focus();
                     }
-                }
-
-                tasks.unshift(newTask);
-                input.value = '';
-                valInput.value = '';
-                unitSelect.value = 'none';
-                toggleTimerInput();
-                saveTasks();
-                toggleAddTaskForm(); // フォームを閉じる
+                });
+                return;
             }
+
+            const id = Date.now();
+            const newTask = { id: id, text: text, completed: false };
+
+            if (unitSelect.value !== 'none') {
+                const value = parseInt(valInput.value);
+                if (!isNaN(value) && value > 0) {
+                    const durationMs = value * (unitSelect.value === 'min' ? 60000 : 3600000);
+                    newTask.startTime = Date.now();
+                    newTask.durationMs = durationMs;
+
+                    if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
+                        Android.setTimerAlarm(id, text, durationMs);
+                    }
+                } else {
+                    showModal('タイマーの時間を入力してください', {
+                        hideCancel: true,
+                        onConfirm: () => {
+                            valInput.focus();
+                        }
+                    });
+                    return;
+                }
+            }
+
+            tasks.unshift(newTask);
+            input.value = '';
+            valInput.value = '';
+            unitSelect.value = 'none';
+            toggleTimerInput();
+            saveTasks();
+            toggleAddTaskForm(); // フォームを閉じる
         }
 
         function repeatTimer(id) {
@@ -704,7 +782,7 @@
                     `;
                 }
             }
-            if (document.getElementById('history-content').style.display === 'block') {
+            if (document.getElementById('settings-content').style.display === 'block') {
                 renderHistory();
             }
         }
@@ -724,14 +802,41 @@
             if (m === 'manager') {
                 document.body.style.backgroundColor = '#f8f9fa';
                 updateAlarmStatus();
+                updateBatteryStatus(); // バッテリー状態の更新
                 // 保存されている間隔を反映
                 const savedInterval = localStorage.getItem('recheckInterval') || '0';
-                document.getElementById('intervalSelect').value = savedInterval;
+                const intervalSelect = document.getElementById('intervalSelect');
+                if (intervalSelect) intervalSelect.value = savedInterval;
             } else {
                 document.body.style.backgroundColor = 'white';
                 document.body.style.padding = '0';
             }
             render();
+        }
+
+        function requestBatteryExemption() {
+            if (typeof Android !== 'undefined' && Android.requestBatteryOptimizationExemption) {
+                Android.requestBatteryOptimizationExemption();
+            }
+        }
+
+        function updateBatteryStatus() {
+            if (typeof Android !== 'undefined' && Android.checkBatteryOptimizationExempt) {
+                const isExempt = Android.checkBatteryOptimizationExempt();
+                const textEl = document.getElementById('battery-status-text');
+                const btnEl = document.getElementById('btn-request-battery');
+                if (textEl && btnEl) {
+                    if (isExempt) {
+                        textEl.innerHTML = "✅ バッテリー最適化の除外設定：有効";
+                        textEl.style.color = "green";
+                        btnEl.style.display = "none";
+                    } else {
+                        textEl.innerHTML = "⚠️ バッテリー最適化により動作が制限される可能性があります";
+                        textEl.style.color = "orange";
+                        btnEl.style.display = "inline-block";
+                    }
+                }
+            }
         }
 
         function updateInterval() {
@@ -754,13 +859,16 @@
             if (typeof Android !== 'undefined' && Android.checkExactAlarmPermission) {
                 const hasPermission = Android.checkExactAlarmPermission();
                 const statusEl = document.getElementById('alarmStatus');
+                const btnEl = document.getElementById('btn-request-alarm');
                 if (statusEl) {
                     if (hasPermission) {
                         statusEl.innerHTML = "✅ 毎日 AM 0:00 の自動リセット・通知が有効です";
                         statusEl.style.color = "green";
+                        if (btnEl) btnEl.style.display = "none";
                     } else {
-                        statusEl.innerHTML = "⚠️ 正確なアラーム権限が必要です";
+                        statusEl.innerHTML = "⚠️ 正確なアラーム権限が必要です（AM 0:00 の自動リセットに影響します）";
                         statusEl.style.color = "orange";
+                        if (btnEl) btnEl.style.display = "block";
                     }
                 }
             }

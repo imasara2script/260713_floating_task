@@ -5,7 +5,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.provider.Settings
 import java.util.Calendar
 
 object AlarmScheduler {
@@ -43,7 +42,21 @@ object AlarmScheduler {
         setExactAlarm(alarmManager, triggerAt, pendingIntent)
     }
 
-    fun scheduleTimerAlarm(context: Context, taskId: Long, taskText: String, triggerAt: Long) {
+    fun cancelIntervalAlarm(context: Context) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            action = "ACTION_INTERVAL_CHECK"
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            2,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.cancel(pendingIntent)
+    }
+
+    fun scheduleTimerAlarm(context: Context, taskId: Long, taskText: String, durationMs: Long) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = "ACTION_TIMER_EXPIRED"
@@ -52,11 +65,12 @@ object AlarmScheduler {
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            taskId.toInt(), // requestCodeとしてtaskIdを使用（重複を許容するため、本来はもっと慎重に選ぶべきだがユニークなはず）
+            taskId.toInt(), // requestCodeとしてtaskIdを使用
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val triggerAt = System.currentTimeMillis() + durationMs
         setExactAlarm(alarmManager, triggerAt, pendingIntent)
     }
 
@@ -84,10 +98,10 @@ object AlarmScheduler {
         }
     }
 
-    private fun scheduleAlarmAt(context: Context, hour: Int, minute: Int, action: String, requestCode: Int) {
+    private fun scheduleAlarmAt(context: Context, hour: Int, minute: Int, actionStr: String, requestCode: Int) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java).apply {
-            this.action = action
+            action = actionStr
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,

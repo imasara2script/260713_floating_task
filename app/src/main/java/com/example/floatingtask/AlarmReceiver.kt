@@ -14,7 +14,7 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.d("AlarmReceiver", "Alarm received! Action: ${intent.action}")
 
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == "android.intent.action.QUICKBOOT_POWERON") {
             // 端末起動時にアラームを再設定
             AlarmScheduler.scheduleMidnightAlarm(context)
             AlarmScheduler.scheduleNoonAlarm(context)
@@ -24,6 +24,15 @@ class AlarmReceiver : BroadcastReceiver() {
             val minutes = prefs.getInt("recheckInterval", 0)
             if (minutes > 0) {
                 AlarmScheduler.scheduleIntervalAlarm(context, minutes)
+            }
+
+            // タイマーの復元は WebView 起動時の checkDailyReset() で行われるため、
+            // ここで FloatingWindowService を起動して WebView をロードさせる
+            if (Settings.canDrawOverlays(context)) {
+                val serviceIntent = Intent(context, FloatingWindowService::class.java).apply {
+                    action = "ACTION_SHOW"
+                }
+                context.startForegroundService(serviceIntent)
             }
         } else if (intent.action == "ACTION_TIMER_EXPIRED") {
             val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: "タイマー終了"

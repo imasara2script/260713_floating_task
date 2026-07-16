@@ -76,6 +76,9 @@ class FloatingWindowService : Service() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun showFloatingWindow() {
+        if (!android.provider.Settings.canDrawOverlays(this)) {
+            return
+        }
         if (floatingView != null) {
             floatingView?.visibility = View.VISIBLE
             return
