@@ -167,6 +167,33 @@ class MainActivity : AppCompatActivity() {
         fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long) {
             AlarmScheduler.scheduleTimerAlarm(mContext, taskId, taskText, durationMs)
         }
+
+        @JavascriptInterface
+        fun updateFloatingSettings(x: Int, y: Int, width: Int, height: Int, scale: Float) {
+            val prefs = mContext.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            prefs.edit().apply {
+                putInt("floatX", x)
+                putInt("floatY", y)
+                putInt("floatWidth", width)
+                putInt("floatHeight", height)
+                putFloat("floatScale", scale)
+                apply()
+            }
+            // サービスが実行中なら更新を通知
+            val intent = Intent(mContext, FloatingWindowService::class.java)
+            intent.action = "ACTION_UPDATE_SETTINGS"
+            mContext.startService(intent)
+        }
+
+        @JavascriptInterface
+        fun getDisplayMetrics(): String {
+            val metrics = mContext.resources.displayMetrics
+            val json = org.json.JSONObject()
+            json.put("widthPixels", metrics.widthPixels)
+            json.put("heightPixels", metrics.heightPixels)
+            json.put("density", metrics.density)
+            return json.toString()
+        }
     }
 
     override fun onResume() {
@@ -182,6 +209,14 @@ class MainActivity : AppCompatActivity() {
         if (isPageLoaded) {
             val webView: WebView = findViewById(R.id.webView)
             webView.evaluateJavascript("checkDailyReset();", null)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // アプリがバックグラウンドに回った時、未完了タスクがあれば表示する
+        if (pendingTaskCount > 0 && Settings.canDrawOverlays(this)) {
+            startFloatingService()
         }
     }
 

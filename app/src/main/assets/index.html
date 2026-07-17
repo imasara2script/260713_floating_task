@@ -52,12 +52,13 @@
         .task-item.dragging { opacity: 0.5; }
         .task-item.timer-active { background-color: #fff9e6; margin-bottom: 4px; border-bottom: none; }
         .timer-badge {
-            font-size: 12px;
+            font-size: 11px;
             background: #ffc107;
             padding: 2px 6px;
             border-radius: 4px;
             margin-right: 8px;
             font-weight: bold;
+            white-space: nowrap;
         }
         .timer-expired {
             background: #dc3545 !important;
@@ -107,7 +108,7 @@
             margin-left: 4px;
             flex-grow: 1;
             min-width: 0;
-            font-size: 13px; /* 少し小さくしてより多くの文字を表示 */
+            font-size: 12px; /* さらに少し小さく */
         }
         .floating-task-counter {
             font-size: 11px;
@@ -158,6 +159,46 @@
             font-size: 14px;
         }
         .history-date { color: #888; font-size: 12px; }
+
+        /* Calendar Styles */
+        .calendar-container { margin-top: 10px; }
+        .calendar-month { text-align: center; font-weight: bold; margin-bottom: 10px; }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            border: 1px solid #eee;
+        }
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-size: 12px;
+            background: #fff;
+        }
+        .calendar-header {
+            background: #f0f0f0;
+            font-weight: bold;
+            height: 30px;
+        }
+        .has-mark::after {
+            content: attr(data-mark);
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            opacity: 0.5;
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+        .other-month { color: #ccc; }
 
         .tab-container { display: flex; gap: 8px; margin-bottom: 16px; }
         .tab-btn {
@@ -212,6 +253,7 @@
     <div id="manager-view">
         <div class="tab-container">
             <button id="tab-tasks" class="tab-btn active" onclick="switchTab('tasks')">タスク</button>
+            <button id="tab-history" class="tab-btn" onclick="switchTab('history')">履歴</button>
             <button id="tab-settings" class="tab-btn" onclick="switchTab('settings')">設定</button>
         </div>
 
@@ -252,6 +294,18 @@
             </div>
         </div>
 
+        <div id="history-content" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h1 id="history-title" style="margin: 0;">完了履歴</h1>
+                <button id="btn-back-history" class="btn btn-secondary" onclick="renderHistory()" style="display: none; padding: 4px 12px; font-size: 14px;">戻る</button>
+            </div>
+            <div id="calendar-view" style="display: none; margin-bottom: 20px;"></div>
+            <div class="card">
+                <div id="historyList"></div>
+                <button id="btn-clear-history" class="btn btn-danger" style="margin-top: 12px; width: 100%;" onclick="clearHistory()">履歴を削除</button>
+            </div>
+        </div>
+
         <div id="settings-content" style="display: none;">
             <h1>設定</h1>
 
@@ -269,26 +323,58 @@
                 </div>
 
                 <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
-                    <label for="intervalSelect" style="display: block; margin-bottom: 8px;">未完了時の再表示間隔:</label>
-                    <select id="intervalSelect" onchange="updateInterval()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white;">
-                        <option value="0">なし</option>
-                        <option value="1">1分ごと</option>
-                        <option value="10">10分ごと</option>
-                        <option value="30">30分ごと</option>
-                        <option value="60">1時間ごと</option>
-                    </select>
+                    <label for="calendarMarkInput" style="display: block; margin-bottom: 8px;">カレンダーのマーク (記号や絵文字):</label>
+                    <input type="text" id="calendarMarkInput" placeholder="例: ⭕, ✔, ⭐" onchange="updateCalendarMark()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
                 </div>
-            </div>
 
-            <div class="card" style="margin-bottom: 16px;">
-                <button class="btn btn-secondary" style="width: 100%;" onclick="showHistory()">履歴を表示</button>
-                <div id="historySection" style="display: none; margin-top: 12px;">
-                    <div id="historyList"></div>
-                    <button class="btn btn-danger" style="margin-top: 12px; width: 100%;" onclick="clearHistory()">履歴を削除</button>
+                <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
+                    <h3 style="font-size: 15px; margin: 0 0 12px 0;">フローティングウィンドウ設定</h3>
+
+                    <div style="margin-bottom: 12px;">
+                        <label for="intervalSelect" style="display: block; margin-bottom: 8px;">未完了時の再表示間隔:</label>
+                        <select id="intervalSelect" onchange="updateInterval()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white;">
+                            <option value="0">なし</option>
+                            <option value="1">1分ごと</option>
+                            <option value="10">10分ごと</option>
+                            <option value="30">30分ごと</option>
+                            <option value="60">1時間ごと</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                        <div style="flex: 1;">
+                            <label id="labelFloatX" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;">位置 (X) <span style="font-size: 10px; color: #888;">(ドラッグ)</span>:</label>
+                            <input type="number" id="floatX" onchange="saveFloatingSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label id="labelFloatY" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;">位置 (Y) <span style="font-size: 10px; color: #888;">(ドラッグ)</span>:</label>
+                            <input type="number" id="floatY" onchange="saveFloatingSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                        <div style="flex: 1;">
+                            <label id="labelFloatWidth" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;">横幅 (px) <span style="font-size: 10px; color: #888;">(ドラッグ)</span>:</label>
+                            <input type="number" id="floatWidth" onchange="saveFloatingSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label id="labelFloatHeight" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;">縦幅 (px) <span style="font-size: 10px; color: #888;">(ドラッグ)</span>:</label>
+                            <input type="number" id="floatHeight" onchange="saveFloatingSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <label style="display: block; margin-bottom: 4px;">表示倍率:</label>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                        <input type="range" id="floatScale" min="0.5" max="2.0" step="0.1" oninput="document.getElementById('scaleVal').innerText = this.value; saveFloatingSettings()" style="flex-grow: 1;">
+                        <span id="scaleVal" style="width: 30px;">1.0</span>
+                    </div>
+
+                    <button class="btn btn-secondary" style="width: 100%; font-size: 13px;" onclick="resetFloatingSettings()">設定をデフォルトに戻す</button>
                 </div>
             </div>
         </div>
     </div>
+
 
     <!-- フローティング画面 -->
     <div id="floating-view">
@@ -319,9 +405,12 @@
 
         let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
         let history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+        let calendarMark = localStorage.getItem('calendarMark') || '⭕';
         let currentFloatingIndex = 0;
         let draggingElement = null;
         let isEditMode = false;
+        let currentCalendarDate = new Date();
+        let currentCalendarTaskId = null;
 
         function toggleEditMode() {
             isEditMode = !isEditMode;
@@ -456,20 +545,22 @@
 
         function switchTab(tab) {
             document.getElementById('tasks-content').style.display = (tab === 'tasks') ? 'block' : 'none';
+            document.getElementById('history-content').style.display = (tab === 'history') ? 'block' : 'none';
             document.getElementById('settings-content').style.display = (tab === 'settings') ? 'block' : 'none';
             document.getElementById('tab-tasks').classList.toggle('active', tab === 'tasks');
+            document.getElementById('tab-history').classList.toggle('active', tab === 'history');
             document.getElementById('tab-settings').classList.toggle('active', tab === 'settings');
             if (tab === 'settings') {
                 updateBatteryStatus();
                 updateAlarmStatus();
             }
+            if (tab === 'history') {
+                renderHistory();
+            }
         }
 
         function showHistory() {
-            const section = document.getElementById('historySection');
-            const isHidden = section.style.display === 'none';
-            section.style.display = isHidden ? 'block' : 'none';
-            if (isHidden) renderHistory();
+            switchTab('history');
         }
 
         function showModal(title, options = {}) {
@@ -481,7 +572,10 @@
 
             titleEl.textContent = title;
             inputEl.style.display = options.showInput ? 'block' : 'none';
-            if (options.showInput) inputEl.value = options.inputValue || '';
+            if (options.showInput) {
+                inputEl.value = options.inputValue || '';
+                inputEl.type = options.inputType || 'text';
+            }
 
             // キャンセルボタンの表示制御
             cancelBtn.style.display = options.hideCancel ? 'none' : 'inline-block';
@@ -608,6 +702,15 @@
                     if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
                         Android.setTimerAlarm(t.id, t.text, t.durationMs);
                     }
+                    // 履歴にリピートを記録
+                    history.unshift({
+                        id: Date.now(),
+                        taskId: t.id,
+                        text: t.text + ' (リピート)',
+                        completedAt: new Date().toISOString()
+                    });
+                    if (history.length > 500) history.pop();
+
                     return { ...t, startTime: Date.now(), completed: false };
                 }
                 return t;
@@ -618,7 +721,7 @@
         function getRemainingTimeText(t) {
             if (!t.durationMs) return '';
             const remaining = (t.startTime + t.durationMs) - Date.now();
-            if (remaining <= 0) return '時間です！';
+            if (remaining <= 0) return '0秒';
 
             const mins = Math.floor(remaining / 60000);
             const secs = Math.floor((remaining % 60000) / 1000);
@@ -631,6 +734,17 @@
             return `${mins}分${secs}秒`;
         }
 
+        function getTotalTimeText(t) {
+            if (!t.durationMs) return '';
+            const mins = Math.floor(t.durationMs / 60000);
+            if (mins >= 60) {
+                const hours = Math.floor(mins / 60);
+                const rMins = mins % 60;
+                return rMins > 0 ? `${hours}時間${rMins}分` : `${hours}時間`;
+            }
+            return `${mins}分`;
+        }
+
         function toggleTask(id) {
             tasks = tasks.map(t => {
                 if (t.id === id) {
@@ -640,15 +754,55 @@
                             id: Date.now(),
                             taskId: t.id,
                             text: t.text,
-                            completedAt: new Date().toLocaleString()
+                            completedAt: new Date().toISOString()
                         });
-                        if (history.length > 50) history.pop();
+                        if (history.length > 500) history.pop();
+
+                        // 連続実行回数の更新 (タイマーなしタスクのみ)
+                        if (!t.durationMs) {
+                            const today = new Date().toDateString();
+                            const yesterday = new Date(Date.now() - 86400000).toDateString();
+                            if (t.lastCompletedDate === yesterday) {
+                                t.streak = (t.streak || 0) + 1;
+                            } else if (t.lastCompletedDate !== today) {
+                                t.streak = 1;
+                            }
+                            t.lastCompletedDate = today;
+                        }
                     }
                     return { ...t, completed: newState };
                 }
                 return t;
             });
             saveTasks();
+        }
+
+        function editStreak(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            showModal('連続実行回数を変更:', {
+                showInput: true,
+                inputType: 'number',
+                inputValue: task.streak || 0,
+                onConfirm: (val) => {
+                    const newStreak = parseInt(val);
+                    if (!isNaN(newStreak)) {
+                        tasks = tasks.map(t => {
+                            if (t.id === id) {
+                                const today = new Date().toDateString();
+                                const yesterday = new Date(Date.now() - 86400000).toDateString();
+                                return {
+                                    ...t,
+                                    streak: newStreak,
+                                    lastCompletedDate: t.completed ? today : yesterday
+                                };
+                            }
+                            return t;
+                        });
+                        saveTasks();
+                    }
+                }
+            });
         }
 
         function deleteTask(id) {
@@ -681,9 +835,100 @@
             }
         }
 
+        function renderCalendar(targetTaskId, date = new Date()) {
+            const calendarView = document.getElementById('calendar-view');
+            const historyTitle = document.getElementById('history-title');
+            const backBtn = document.getElementById('btn-back-history');
+            const task = tasks.find(t => t.id === targetTaskId);
+
+            if (!task || task.durationMs) {
+                calendarView.style.display = 'none';
+                return;
+            }
+
+            currentCalendarTaskId = targetTaskId;
+            currentCalendarDate = date;
+
+            calendarView.style.display = 'block';
+            historyTitle.innerHTML = `「${task.text}」の履歴 ${!task.durationMs ? `<span class="streak-badge" onclick="editStreak(${task.id})" style="cursor:pointer; font-size:14px; background:#e9ecef; padding:2px 8px; border-radius:4px; margin-left:8px; color:#495057; font-weight:normal;" title="クリックして回数を編集">🔥 ${task.streak || 0}</span>` : ''}`;
+            backBtn.style.display = 'inline-block';
+
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+
+            const taskCompletions = history
+                .filter(h => h.taskId === targetTaskId)
+                .map(h => new Date(h.completedAt).toDateString());
+
+            let html = `
+                <div class="calendar-month" style="display: flex; justify-content: space-between; align-items: center;">
+                    <button class="btn-icon" onclick="changeMonth(-1)">◀</button>
+                    <span>${year}年 ${month + 1}月</span>
+                    <button class="btn-icon" onclick="changeMonth(1)">▶</button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="calendar-day calendar-header">日</div>
+                    <div class="calendar-day calendar-header">月</div>
+                    <div class="calendar-day calendar-header">火</div>
+                    <div class="calendar-day calendar-header">水</div>
+                    <div class="calendar-day calendar-header">木</div>
+                    <div class="calendar-day calendar-header">金</div>
+                    <div class="calendar-day calendar-header">土</div>
+            `;
+
+            // 空白埋め
+            for (let i = 0; i < firstDay.getDay(); i++) {
+                html += '<div class="calendar-day other-month"></div>';
+            }
+
+            for (let d = 1; d <= lastDay.getDate(); d++) {
+                const dateObj = new Date(year, month, d);
+                const hasMark = taskCompletions.includes(dateObj.toDateString());
+                html += `<div class="calendar-day ${hasMark ? 'has-mark' : ''}" data-mark="${calendarMark}">${d}</div>`;
+            }
+
+            html += '</div>';
+            calendarView.innerHTML = html;
+        }
+
+        function changeMonth(offset) {
+            const newDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + offset, 1);
+            renderCalendar(currentCalendarTaskId, newDate);
+        }
+
+        function renderTaskHistory(taskId) {
+            const historyList = document.getElementById('historyList');
+            const filteredHistory = history.filter(h => h.taskId === taskId);
+
+            switchTab('history');
+            renderCalendar(taskId);
+
+            if (filteredHistory.length === 0) {
+                historyList.innerHTML = '<p style="color:#888; text-align:center;">このタスクの履歴はありません</p>';
+                return;
+            }
+
+            historyList.innerHTML = filteredHistory.map(h => `
+                <div class="history-item">
+                    <div>${h.text}</div>
+                    <div class="history-date">${new Date(h.completedAt).toLocaleString()}</div>
+                </div>
+            `).join('');
+        }
+
         function renderHistory() {
             const historyList = document.getElementById('historyList');
+            const calendarView = document.getElementById('calendar-view');
+            const historyTitle = document.getElementById('history-title');
+            const backBtn = document.getElementById('btn-back-history');
+
             if (!historyList) return;
+
+            calendarView.style.display = 'none';
+            historyTitle.textContent = '完了履歴';
+            backBtn.style.display = 'none';
 
             if (history.length === 0) {
                 historyList.innerHTML = '<p style="color:#888; text-align:center;">履歴はありません</p>';
@@ -693,7 +938,7 @@
             historyList.innerHTML = history.map(h => `
                 <div class="history-item">
                     <div>${h.text}</div>
-                    <div class="history-date">${h.completedAt}</div>
+                    <div class="history-date">${new Date(h.completedAt).toLocaleString()}</div>
                 </div>
             `).join('');
         }
@@ -710,18 +955,16 @@
                 btnToggleEdit.classList.toggle('btn-primary', isEditMode);
             }
 
-            // 1. 管理画面用：編集モード中は生の順序を表示し、通常時は完了済みを下にまとめる
             const managerTasks = isEditMode ? tasks : [
                 ...tasks.filter(t => !t.completed),
                 ...tasks.filter(t => t.completed)
             ];
 
-            // 2. フローティング表示用：タイマー付きを最優先、その中で手動順序を維持
             const pendingTasks = tasks.filter(t => !t.completed).sort((a, b) => {
                 const aIsTimer = !!a.durationMs;
                 const bIsTimer = !!b.durationMs;
                 if (aIsTimer !== bIsTimer) return aIsTimer ? -1 : 1;
-                return 0; // 同一カテゴリ内では tasks 配列の順序を維持
+                return 0;
             });
 
             if (currentFloatingIndex >= pendingTasks.length) {
@@ -739,14 +982,16 @@
                 managerList.innerHTML = managerTasks.map((t, index) => {
                     const isTimer = !!t.durationMs;
                     const remainingText = isTimer ? getRemainingTimeText(t) : '';
+                    const totalText = isTimer ? getTotalTimeText(t) : '';
                     const isExpired = isTimer && (t.startTime + t.durationMs <= Date.now());
+                    const timerDisplay = (isTimer && !t.completed) ? `${remainingText} / ${totalText}` : '';
 
                     return `
                     <li class="task-item ${isTimer && !t.completed ? 'timer-active' : ''}" data-id="${t.id}">
                         ${isEditMode ? '<span class="drag-handle">☰</span>' : ''}
                         <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">
-                        ${isTimer && !t.completed ? `<span class="timer-badge ${isExpired ? 'timer-expired' : ''}">${remainingText}</span>` : ''}
-                        <span class="task-text ${t.completed ? 'completed' : ''} ${isEditMode ? 'editable' : ''}" onclick="${isEditMode ? `editTask(${t.id})` : ''}">${t.text}</span>
+                        ${isTimer && !t.completed ? `<span class="timer-badge ${isExpired ? 'timer-expired' : ''}">${timerDisplay}</span>` : ''}
+                        <span class="task-text ${t.completed ? 'completed' : ''} ${isEditMode ? 'editable' : ''}" onclick="${isEditMode ? `editTask(${t.id})` : `renderTaskHistory(${t.id})`}">${t.text}</span>
                         ${isTimer ? `<button class="btn-icon" onclick="repeatTimer(${t.id})" title="リピート">🔄</button>` : ''}
                         ${isEditMode ? `
                             <button class="btn-icon" onclick="editTask(${t.id})" title="編集">✏️</button>
@@ -765,18 +1010,21 @@
                     const t = pendingTasks[currentFloatingIndex];
                     const controls = document.querySelector('.floating-controls');
                     controls.style.display = 'flex';
-                    // 1つの場合は切り替えボタンを隠す
                     const nextBtn = controls.querySelector('.nav-btn-small');
                     nextBtn.style.display = pendingTasks.length > 1 ? 'flex' : 'none';
 
                     const isTimer = !!t.durationMs;
                     const remainingText = isTimer ? getRemainingTimeText(t) : '';
+                    const totalText = isTimer ? getTotalTimeText(t) : '';
                     const isExpired = isTimer && (t.startTime + t.durationMs <= Date.now());
+                    const timerDisplay = isTimer ? `${remainingText} / ${totalText}` : '';
 
                     floatingContent.innerHTML = `
                         <input type="checkbox" onchange="toggleTask(${t.id})" style="flex-shrink: 0;">
-                        ${isTimer ? `<span class="timer-badge ${isExpired ? 'timer-expired' : ''}" style="margin:0 4px; font-size:10px; max-width: 60px; overflow: hidden; white-space: nowrap; flex-shrink: 0;">${remainingText}</span>` : ''}
-                        <span class="floating-task-text" style="flex-grow: 1; min-width: 0;">${t.text}</span>
+                        <div style="flex-grow: 1; min-width: 0; display: flex; align-items: center; overflow: hidden;">
+                            ${isTimer ? `<span class="timer-badge ${isExpired ? 'timer-expired' : ''}" style="margin:0 4px 0 2px; font-size:9px; padding: 1px 4px; flex-shrink: 0;">${timerDisplay}</span>` : ''}
+                            <span class="floating-task-text" style="margin-left: 0;">${t.text}</span>
+                        </div>
                         ${isTimer ? `<button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size:14px; padding:0 2px; margin-right:2px; flex-shrink: 0;">🔄</button>` : ''}
                         ${pendingTasks.length > 1 ? `<span class="floating-task-counter" style="font-size:9px; flex-shrink: 0; margin-right: 4px;">(${currentFloatingIndex + 1}/${pendingTasks.length})</span>` : ''}
                     `;
@@ -807,11 +1055,128 @@
                 const savedInterval = localStorage.getItem('recheckInterval') || '0';
                 const intervalSelect = document.getElementById('intervalSelect');
                 if (intervalSelect) intervalSelect.value = savedInterval;
+
+                // カレンダーのマークを反映
+                const markInput = document.getElementById('calendarMarkInput');
+                if (markInput) markInput.value = calendarMark;
+
+                // フローティング設定を反映
+                loadFloatingSettings();
             } else {
                 document.body.style.backgroundColor = 'white';
                 document.body.style.padding = '0';
+
+                // 倍率適用
+                const scale = localStorage.getItem('floatScale') || '1.0';
+                document.body.style.transform = `scale(${scale})`;
+                document.body.style.transformOrigin = 'top left';
+                document.body.style.width = (100 / parseFloat(scale)) + '%';
+                document.body.style.height = (100 / parseFloat(scale)) + '%';
             }
             render();
+        }
+
+        function loadFloatingSettings() {
+            const x = localStorage.getItem('floatX') || '100';
+            const y = localStorage.getItem('floatY') || '100';
+            const width = localStorage.getItem('floatWidth') || '300';
+            const height = localStorage.getItem('floatHeight') || '32';
+            const scale = localStorage.getItem('floatScale') || '1.0';
+
+            if (document.getElementById('floatX')) document.getElementById('floatX').value = x;
+            if (document.getElementById('floatY')) document.getElementById('floatY').value = y;
+            if (document.getElementById('floatWidth')) document.getElementById('floatWidth').value = width;
+            if (document.getElementById('floatHeight')) document.getElementById('floatHeight').value = height;
+            if (document.getElementById('floatScale')) {
+                document.getElementById('floatScale').value = scale;
+                document.getElementById('scaleVal').innerText = scale;
+            }
+
+            setupDraggableLabel('labelFloatX', 'floatX');
+            setupDraggableLabel('labelFloatY', 'floatY');
+            setupDraggableLabel('labelFloatWidth', 'floatWidth');
+            setupDraggableLabel('labelFloatHeight', 'floatHeight');
+        }
+
+        function setupDraggableLabel(labelId, inputId) {
+            const label = document.getElementById(labelId);
+            const input = document.getElementById(inputId);
+            let startY, startVal;
+
+            const onMove = (e) => {
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const delta = startY - clientY;
+                input.value = Math.max(0, startVal + delta);
+                saveFloatingSettings();
+            };
+
+            const onEnd = () => {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onEnd);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onEnd);
+            };
+
+            label.onmousedown = label.ontouchstart = (e) => {
+                startY = e.touches ? e.touches[0].clientY : e.clientY;
+                startVal = parseInt(input.value) || 0;
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onEnd);
+                document.addEventListener('touchmove', onMove, { passive: false });
+                document.addEventListener('touchend', onEnd);
+                if (e.cancelable) e.preventDefault();
+            };
+        }
+
+        function saveFloatingSettings() {
+            const x = document.getElementById('floatX').value;
+            const y = document.getElementById('floatY').value;
+            const width = document.getElementById('floatWidth').value;
+            const height = document.getElementById('floatHeight').value;
+            const scale = document.getElementById('floatScale').value;
+
+            localStorage.setItem('floatX', x);
+            localStorage.setItem('floatY', y);
+            localStorage.setItem('floatWidth', width);
+            localStorage.setItem('floatHeight', height);
+            localStorage.setItem('floatScale', scale);
+
+            if (typeof Android !== 'undefined' && Android.updateFloatingSettings) {
+                Android.updateFloatingSettings(parseInt(x), parseInt(y), parseInt(width), parseInt(height), parseFloat(scale));
+            }
+        }
+
+        function resetFloatingSettings() {
+            let defaultX = 100;
+            let defaultY = 100;
+            let defaultWidth = 300;
+            let defaultHeight = 32;
+            let defaultScale = 1.0;
+
+            if (typeof Android !== 'undefined' && Android.getDisplayMetrics) {
+                try {
+                    const metrics = JSON.parse(Android.getDisplayMetrics());
+                    const density = metrics.density || 1;
+                    const screenWidth = metrics.widthPixels / density;
+
+                    // 画面幅に合わせたデフォルト値を計算
+                    defaultWidth = Math.floor(screenWidth * 0.9); // 画面幅の90%
+                    defaultX = Math.floor((screenWidth - defaultWidth) / 2); // 中央
+                    defaultY = 100; // 上部から少し下
+                    defaultHeight = 32;
+                } catch(e) {
+                    console.error("Failed to get display metrics", e);
+                }
+            }
+
+            document.getElementById('floatX').value = defaultX;
+            document.getElementById('floatY').value = defaultY;
+            document.getElementById('floatWidth').value = defaultWidth;
+            document.getElementById('floatHeight').value = defaultHeight;
+            document.getElementById('floatScale').value = defaultScale;
+            document.getElementById('scaleVal').innerText = defaultScale;
+
+            saveFloatingSettings();
         }
 
         function requestBatteryExemption() {
@@ -845,6 +1210,12 @@
             if (typeof Android !== 'undefined' && Android.setIntervalAlarm) {
                 Android.setIntervalAlarm(parseInt(interval));
             }
+        }
+
+        function updateCalendarMark() {
+            const mark = document.getElementById('calendarMarkInput').value || '⭕';
+            calendarMark = mark;
+            localStorage.setItem('calendarMark', mark);
         }
 
         window.addEventListener('storage', () => {

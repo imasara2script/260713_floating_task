@@ -61,8 +61,42 @@ class FloatingWindowService : Service() {
             "ACTION_HIDE" -> hideFloatingWindow()
             "ACTION_SHOW" -> showFloatingWindow()
             "ACTION_REFRESH" -> refreshWebView()
+            "ACTION_UPDATE_SETTINGS" -> applySettings()
         }
         return START_STICKY
+    }
+
+    private fun applySettings() {
+        val view = floatingView ?: return
+        val params = view.layoutParams as WindowManager.LayoutParams
+        val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+
+        val x = prefs.getInt("floatX", 100)
+        val y = prefs.getInt("floatY", 100)
+        val width = prefs.getInt("floatWidth", 300)
+        val height = prefs.getInt("floatHeight", 32)
+        val scale = prefs.getFloat("floatScale", 1.0f)
+
+        // サイズ設定 (倍率考慮)
+        val finalWidth = (width * scale).toInt()
+        val finalHeight = (height * scale).toInt()
+        params.width = finalWidth
+        params.height = finalHeight
+
+        // 画面境界内に収める
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val screenHeight = displayMetrics.heightPixels
+
+        params.gravity = Gravity.TOP or Gravity.START
+        params.x = x.coerceIn(0, (screenWidth - finalWidth).coerceAtLeast(0))
+        params.y = y.coerceIn(0, (screenHeight - finalHeight).coerceAtLeast(0))
+
+        windowManager.updateViewLayout(view, params)
+        
+        // WebView内にもリロードを促す
+        val webView: WebView = view.findViewById(R.id.floatingWebView)
+        webView.evaluateJavascript("location.reload();", null)
     }
 
     private fun refreshWebView() {
@@ -72,6 +106,36 @@ class FloatingWindowService : Service() {
 
     private fun hideFloatingWindow() {
         floatingView?.visibility = View.GONE
+    }
+
+    private fun removeFloatingWindow() {
+        if (floatingView != null) {
+            windowManager.removeView(floatingView)
+            floatingView = null
+        }
+    }
+
+    private fun applySettingsToParams(params: WindowManager.LayoutParams) {
+        val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        val x = prefs.getInt("floatX", 100)
+        val y = prefs.getInt("floatY", 100)
+        val width = prefs.getInt("floatWidth", 300)
+        val height = prefs.getInt("floatHeight", 32)
+        val scale = prefs.getFloat("floatScale", 1.0f)
+
+        val finalWidth = (width * scale).toInt()
+        val finalHeight = (height * scale).toInt()
+        params.width = finalWidth
+        params.height = finalHeight
+
+        // 画面境界内に収める
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val screenHeight = displayMetrics.heightPixels
+
+        params.gravity = Gravity.TOP or Gravity.START
+        params.x = x.coerceIn(0, (screenWidth - finalWidth).coerceAtLeast(0))
+        params.y = y.coerceIn(0, (screenHeight - finalHeight).coerceAtLeast(0))
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -100,6 +164,8 @@ class FloatingWindowService : Service() {
         params.gravity = Gravity.TOP or Gravity.START
         params.x = 100
         params.y = 100
+
+        applySettingsToParams(params)
 
         // WebViewの設定
         val webView: WebView = floatingView!!.findViewById(R.id.floatingWebView)
@@ -137,6 +203,14 @@ class FloatingWindowService : Service() {
         // 閉じるボタンの設定
         val closeButton: Button = floatingView!!.findViewById(R.id.closeButton)
         closeButton.setOnClickListener {
+            val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            val intervalMinutes = prefs.getInt("recheckInterval", 0)
+            
+            if (intervalMinutes > 0) {
+                AlarmScheduler.scheduleIntervalAlarm(this, intervalMinutes)
+            }
+
+            removeFloatingWindow()
             stopSelf()
         }
 
@@ -156,9 +230,26 @@ class FloatingWindowService : Service() {
                     true
                 }
                 android.view.MotionEvent.ACTION_MOVE -> {
-                    params.x = initialX + (event.rawX - initialTouchX).toInt()
-                    params.y = initialY + (event.rawY - initialTouchY).toInt()
+                    val newX = initialX + (event.rawX - initialTouchX).toInt()
+                    val newY = initialY + (event.rawY - initialTouchY).toInt()
+
+                    // 画面境界内に収める
+                    val displayMetrics = resources.displayMetrics
+                    val screenWidth = displayMetrics.widthPixels
+                    val screenHeight = displayMetrics.heightPixels
+
+                    params.x = newX.coerceIn(0, (screenWidth - params.width).coerceAtLeast(0))
+                    params.y = newY.coerceIn(0, (screenHeight - params.height).coerceAtLeast(0))
+
                     windowManager.updateViewLayout(floatingView, params)
+                    
+                    // 位置を保存
+                    val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+                    prefs.edit().apply {
+                        putInt("floatX", params.x)
+                        putInt("floatY", params.y)
+                        apply()
+                    }
                     true
                 }
                 else -> false
