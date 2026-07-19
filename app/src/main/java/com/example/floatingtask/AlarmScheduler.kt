@@ -56,16 +56,17 @@ object AlarmScheduler {
         alarmManager.cancel(pendingIntent)
     }
 
-    fun scheduleTimerAlarm(context: Context, taskId: Long, taskText: String, durationMs: Long) {
+    fun scheduleTimerAlarm(context: Context, taskId: Long, taskText: String, durationMs: Long, melody: String) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = "ACTION_TIMER_EXPIRED"
             putExtra("EXTRA_TASK_ID", taskId)
             putExtra("EXTRA_TASK_TEXT", taskText)
+            putExtra("EXTRA_MELODY", melody)
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            taskId.toInt(), // requestCodeとしてtaskIdを使用
+            (taskId % Int.MAX_VALUE).toInt(), // requestCodeとしてtaskIdの剰余を使用
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

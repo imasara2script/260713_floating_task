@@ -228,6 +228,8 @@
             align-items: center;
             justify-content: center;
         }
+        #taskModal { z-index: 1050; }
+        #customModal { z-index: 1100; }
         .modal-content {
             background: white;
             padding: 20px;
@@ -263,29 +265,9 @@
                 <button id="btn-toggle-edit" class="btn btn-secondary" onclick="toggleEditMode()" style="padding: 4px 12px; font-size: 14px;">リストを編集</button>
             </div>
             <div class="card">
-                <!-- タスク追加フォーム (初期は非表示) -->
-                <div id="addTaskForm" style="display: none; border-bottom: 1px solid #eee; padding-bottom: 16px; margin-bottom: 16px;">
-                    <div class="input-group" style="margin-bottom: 12px;">
-                        <input type="text" id="taskInput" placeholder="新しいタスク名を入力..." onkeydown="if(event.key==='Enter') addTask()" aria-label="新しいタスク名">
-                    </div>
-                    <div class="timer-group" style="margin-bottom: 12px;">
-                        <label for="timerUnit" style="color: #666;">タイマー：</label>
-                        <select id="timerUnit" onchange="toggleTimerInput()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white;">
-                            <option value="none">無し</option>
-                            <option value="min">分後</option>
-                            <option value="hour">時間後</option>
-                        </select>
-                        <input type="number" id="timerValue" class="timer-input" placeholder="数" min="1" style="display: none; padding: 6px;" aria-label="タイマー時間">
-                        <div style="margin-left: auto; display: flex; gap: 8px;">
-                            <button class="btn btn-secondary" onclick="toggleAddTaskForm()" style="padding: 6px 12px;">キャンセル</button>
-                            <button class="btn btn-primary" onclick="addTask()" style="padding: 6px 12px;">追加</button>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- 普段表示される追加ボタン -->
                 <div id="addTaskTrigger" style="margin-bottom: 8px;">
-                    <button class="btn" onclick="toggleAddTaskForm()" style="width: 100%; border: 2px dashed #007bff; background: transparent; color: #007bff; font-weight: bold; padding: 12px; border-radius: 8px;">
+                    <button class="btn" onclick="openTaskModal()" style="width: 100%; border: 2px dashed #007bff; background: transparent; color: #007bff; font-weight: bold; padding: 12px; border-radius: 8px;">
                         ＋ 新しいタスクを追加
                     </button>
                 </div>
@@ -399,6 +381,41 @@
         </div>
     </div>
 
+    <!-- Task Modal -->
+    <div id="taskModal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="taskModalTitle" class="modal-title">新しいタスクを追加</div>
+            <div class="input-group" style="margin-bottom: 12px;">
+                <input type="text" id="taskInput" placeholder="タスク名を入力..." onkeydown="if(event.key==='Enter') addTask()" aria-label="新しいタスク名">
+            </div>
+            <div class="timer-group" style="margin-bottom: 12px;">
+                <label for="timerUnit" style="color: #666; font-size: 14px;">タイマー：</label>
+                <select id="timerUnit" onchange="toggleTimerInput()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                    <option value="none">無し</option>
+                    <option value="sec">秒後</option>
+                    <option value="min">分後</option>
+                    <option value="hour">時間後</option>
+                </select>
+                <input type="number" id="timerValue" class="timer-input" placeholder="数" min="1" style="display: none; padding: 6px; width: 60px; font-size: 14px;" aria-label="時間">
+            </div>
+            <div id="melodyGroup" style="margin-bottom: 20px; display: none;">
+                <label for="melodySelect" style="color: #666; font-size: 14px;">メロディ：</label>
+                <select id="melodySelect" onchange="handleMelodyChange()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                    <option value="none">なし</option>
+                    <option value="default">デフォルト</option>
+                    <option value="alarm">アラーム音</option>
+                    <option value="chime">チャイム</option>
+                    <option value="custom">端末内から選択...</option>
+                </select>
+                <div id="customMelodyName" style="font-size: 11px; color: #666; margin-top: 4px; display: none;"></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeTaskModal()">キャンセル</button>
+                <button id="taskModalConfirmBtn" class="btn btn-primary" onclick="addTask()">追加</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const mode = urlParams.get('mode') || 'manager';
@@ -411,6 +428,34 @@
         let isEditMode = false;
         let currentCalendarDate = new Date();
         let currentCalendarTaskId = null;
+        let editingTaskId = null;
+        let selectedCustomUri = null;
+        let selectedCustomName = null;
+
+        function handleMelodyChange() {
+            const select = document.getElementById('melodySelect');
+            if (select.value === 'custom') {
+                if (typeof Android !== 'undefined' && Android.pickRingtone) {
+                    Android.pickRingtone();
+                }
+            } else {
+                document.getElementById('customMelodyName').style.display = 'none';
+                selectedCustomUri = null;
+                selectedCustomName = null;
+            }
+        }
+
+        function onRingtoneSelected(uri, title) {
+            selectedCustomUri = uri;
+            selectedCustomName = title;
+            const nameEl = document.getElementById('customMelodyName');
+            nameEl.textContent = '選択中: ' + title;
+            nameEl.style.display = 'block';
+
+            // セレクトボックスで「端末内から選択...」を選んだ状態を維持しつつ、
+            // 値を保持するために何らかの工夫が必要かもしれないが、
+            // ここでは value="custom" のまま、保存時に selectedCustomUri を使うようにする。
+        }
 
         function toggleEditMode() {
             isEditMode = !isEditMode;
@@ -624,26 +669,78 @@
             }
         }
 
-        function toggleAddTaskForm() {
-            const form = document.getElementById('addTaskForm');
-            const trigger = document.getElementById('addTaskTrigger');
-            const isHidden = form.style.display === 'none';
+        function openTaskModal(taskId = null) {
+            editingTaskId = taskId;
+            const titleEl = document.getElementById('taskModalTitle');
+            const confirmBtn = document.getElementById('taskModalConfirmBtn');
 
-            form.style.display = isHidden ? 'block' : 'none';
-            trigger.style.display = isHidden ? 'none' : 'block';
+            if (taskId) {
+                const task = tasks.find(t => t.id === taskId);
+                titleEl.textContent = 'タスクを編集';
+                confirmBtn.textContent = '保存';
+                document.getElementById('taskInput').value = task.text;
 
-            if (isHidden) {
-                document.getElementById('taskInput').focus();
+                if (task.durationMs) {
+                    if (task.durationMs >= 3600000 && task.durationMs % 3600000 === 0) {
+                        document.getElementById('timerUnit').value = 'hour';
+                        document.getElementById('timerValue').value = task.durationMs / 3600000;
+                    } else if (task.durationMs >= 60000 && task.durationMs % 60000 === 0) {
+                        document.getElementById('timerUnit').value = 'min';
+                        document.getElementById('timerValue').value = task.durationMs / 60000;
+                    } else {
+                        document.getElementById('timerUnit').value = 'sec';
+                        document.getElementById('timerValue').value = task.durationMs / 1000;
+                    }
+
+                    const melody = task.melody || 'default';
+                    const select = document.getElementById('melodySelect');
+                    const nameEl = document.getElementById('customMelodyName');
+
+                    if (melody.startsWith('content://')) {
+                        select.value = 'custom';
+                        selectedCustomUri = melody;
+                        selectedCustomName = task.melodyName || '不明なメロディ';
+                        nameEl.textContent = '選択中: ' + selectedCustomName;
+                        nameEl.style.display = 'block';
+                    } else {
+                        select.value = melody;
+                        selectedCustomUri = null;
+                        selectedCustomName = null;
+                        nameEl.style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('timerUnit').value = 'none';
+                    document.getElementById('timerValue').value = '';
+                    document.getElementById('melodySelect').value = 'default';
+                }
+            } else {
+                titleEl.textContent = '新しいタスクを追加';
+                confirmBtn.textContent = '追加';
+                document.getElementById('taskInput').value = '';
+                document.getElementById('timerValue').value = '';
+                document.getElementById('timerUnit').value = 'none';
+                document.getElementById('melodySelect').value = 'default';
             }
+
+            toggleTimerInput();
+            document.getElementById('taskModal').style.display = 'flex';
+            setTimeout(() => document.getElementById('taskInput').focus(), 100);
+        }
+
+        function closeTaskModal() {
+            document.getElementById('taskModal').style.display = 'none';
+            editingTaskId = null;
         }
 
         function toggleTimerInput() {
             const unit = document.getElementById('timerUnit').value;
             const input = document.getElementById('timerValue');
+            const melodyGroup = document.getElementById('melodyGroup');
             const isVisible = (unit !== 'none');
             input.style.display = isVisible ? 'inline-block' : 'none';
+            melodyGroup.style.display = isVisible ? 'block' : 'none';
             if (isVisible) {
-                input.focus();
+                setTimeout(() => input.focus(), 50);
             }
         }
 
@@ -652,6 +749,7 @@
             const text = input.value.trim();
             const valInput = document.getElementById('timerValue');
             const unitSelect = document.getElementById('timerUnit');
+            const melodySelect = document.getElementById('melodySelect');
 
             if (!text) {
                 showModal('タスク名を入力してください', {
@@ -663,18 +761,35 @@
                 return;
             }
 
-            const id = Date.now();
-            const newTask = { id: id, text: text, completed: false };
+            let targetTask;
+            if (editingTaskId) {
+                targetTask = tasks.find(t => t.id === editingTaskId);
+                targetTask.text = text;
+            } else {
+                const id = Date.now();
+                targetTask = { id: id, text: text, completed: false };
+            }
 
             if (unitSelect.value !== 'none') {
                 const value = parseInt(valInput.value);
                 if (!isNaN(value) && value > 0) {
-                    const durationMs = value * (unitSelect.value === 'min' ? 60000 : 3600000);
-                    newTask.startTime = Date.now();
-                    newTask.durationMs = durationMs;
+                    const multiplier = unitSelect.value === 'hour' ? 3600000 : (unitSelect.value === 'min' ? 60000 : 1000);
+                    const durationMs = value * multiplier;
+                    let melody = melodySelect.value;
+                    let melodyName = null;
+
+                    if (melody === 'custom' && selectedCustomUri) {
+                        melody = selectedCustomUri;
+                        melodyName = selectedCustomName;
+                    }
+
+                    targetTask.startTime = Date.now();
+                    targetTask.durationMs = durationMs;
+                    targetTask.melody = melody;
+                    if (melodyName) targetTask.melodyName = melodyName;
 
                     if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-                        Android.setTimerAlarm(id, text, durationMs);
+                        Android.setTimerAlarm(targetTask.id, text, durationMs, melody);
                     }
                 } else {
                     showModal('タイマーの時間を入力してください', {
@@ -685,22 +800,27 @@
                     });
                     return;
                 }
+            } else {
+                // タイマーなしに設定
+                delete targetTask.startTime;
+                delete targetTask.durationMs;
+                delete targetTask.melody;
             }
 
-            tasks.unshift(newTask);
-            input.value = '';
-            valInput.value = '';
-            unitSelect.value = 'none';
-            toggleTimerInput();
+            if (!editingTaskId) {
+                tasks.unshift(targetTask);
+            }
+
             saveTasks();
-            toggleAddTaskForm(); // フォームを閉じる
+            closeTaskModal();
         }
 
         function repeatTimer(id) {
             tasks = tasks.map(t => {
                 if (t.id === id && t.durationMs) {
+                    const melody = t.melody || 'default';
                     if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-                        Android.setTimerAlarm(t.id, t.text, t.durationMs);
+                        Android.setTimerAlarm(t.id, t.text, t.durationMs, melody);
                     }
                     // 履歴にリピートを記録
                     history.unshift({
@@ -723,26 +843,30 @@
             const remaining = (t.startTime + t.durationMs) - Date.now();
             if (remaining <= 0) return '0秒';
 
-            const mins = Math.floor(remaining / 60000);
+            const hours = Math.floor(remaining / 3600000);
+            const mins = Math.floor((remaining % 3600000) / 60000);
             const secs = Math.floor((remaining % 60000) / 1000);
 
-            if (mins >= 60) {
-                const hours = Math.floor(mins / 60);
-                const rMins = mins % 60;
-                return `${hours}時間${rMins}分`;
+            if (hours > 0) {
+                return `${hours}時間${mins}分`;
             }
-            return `${mins}分${secs}秒`;
+            if (mins > 0) {
+                return `${mins}分${secs}秒`;
+            }
+            return `${secs}秒`;
         }
 
         function getTotalTimeText(t) {
             if (!t.durationMs) return '';
-            const mins = Math.floor(t.durationMs / 60000);
-            if (mins >= 60) {
-                const hours = Math.floor(mins / 60);
-                const rMins = mins % 60;
-                return rMins > 0 ? `${hours}時間${rMins}分` : `${hours}時間`;
-            }
-            return `${mins}分`;
+            const hours = Math.floor(t.durationMs / 3600000);
+            const mins = Math.floor((t.durationMs % 3600000) / 60000);
+            const secs = Math.floor((t.durationMs % 60000) / 1000);
+
+            let res = '';
+            if (hours > 0) res += hours + '時間';
+            if (mins > 0) res += mins + '分';
+            if (secs > 0 || res === '') res += secs + '秒';
+            return res;
         }
 
         function toggleTask(id) {
@@ -820,19 +944,7 @@
 
         function editTask(id) {
             if (!isEditMode) return;
-            const task = tasks.find(t => t.id === id);
-            if (task) {
-                showModal('タスク名を編集:', {
-                    showInput: true,
-                    inputValue: task.text,
-                    onConfirm: (newText) => {
-                        if (newText && newText.trim() !== '') {
-                            tasks = tasks.map(t => t.id === id ? { ...t, text: newText.trim() } : t);
-                            saveTasks();
-                        }
-                    }
-                });
-            }
+            openTaskModal(id);
         }
 
         function renderCalendar(targetTaskId, date = new Date()) {
@@ -1150,20 +1262,20 @@
             let defaultX = 100;
             let defaultY = 100;
             let defaultWidth = 300;
-            let defaultHeight = 32;
+            let defaultHeight = 44; // デフォルトを少し厚めに (px)
             let defaultScale = 1.0;
 
             if (typeof Android !== 'undefined' && Android.getDisplayMetrics) {
                 try {
                     const metrics = JSON.parse(Android.getDisplayMetrics());
                     const density = metrics.density || 1;
-                    const screenWidth = metrics.widthPixels / density;
+                    const widthPx = metrics.widthPixels; // 物理ピクセル (例: 1080)
 
-                    // 画面幅に合わせたデフォルト値を計算
-                    defaultWidth = Math.floor(screenWidth * 0.9); // 画面幅の90%
-                    defaultX = Math.floor((screenWidth - defaultWidth) / 2); // 中央
-                    defaultY = 100; // 上部から少し下
-                    defaultHeight = 32;
+                    // 物理ピクセルベースで計算
+                    defaultWidth = Math.floor(widthPx * 0.9); // 画面幅の90% (例: 972px)
+                    defaultX = Math.floor((widthPx - defaultWidth) / 2); // 左右中央
+                    defaultY = Math.floor(100 * density); // 上部から100dpの位置
+                    defaultHeight = Math.floor(44 * density); // 44dp相当の高さ (Pixel 7なら約115px)
                 } catch(e) {
                     console.error("Failed to get display metrics", e);
                 }

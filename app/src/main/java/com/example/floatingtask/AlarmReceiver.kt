@@ -1,14 +1,16 @@
 package com.example.floatingtask
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.media.RingtoneManager
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import android.app.NotificationManager
-import android.app.NotificationChannel
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -36,7 +38,8 @@ class AlarmReceiver : BroadcastReceiver() {
             }
         } else if (intent.action == "ACTION_TIMER_EXPIRED") {
             val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: "タイマー終了"
-            showNotification(context, "タイマー終了", taskText)
+            val melody = intent.getStringExtra("EXTRA_MELODY") ?: "default"
+            showNotification(context, "タイマー終了", taskText, melody)
             
             if (Settings.canDrawOverlays(context)) {
                 val serviceIntent = Intent(context, FloatingWindowService::class.java).apply {
@@ -78,12 +81,34 @@ class AlarmReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun showNotification(context: Context, title: String, message: String) {
-        val channelId = "timer_notifications"
+    private fun showNotification(context: Context, title: String, message: String, melody: String) {
+        if (melody == "none") {
+            // 通知は出すが音は出さない、または通知自体出さないか検討が必要。
+            // ここでは音なし通知とする。
+            showSilentNotification(context, title, message)
+            return
+        }
+
+        val channelId = "timer_notifications_${melody.hashCode()}"
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
+        val soundUri = when {
+            melody == "alarm" -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            melody == "chime" -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            melody.startsWith("content://") -> android.net.Uri.parse(melody)
+            else -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, "Timer Notifications", NotificationManager.IMPORTANCE_HIGH)
+            val channelName = when {
+                melody == "alarm" -> "Timer Alarm"
+                melody == "chime" -> "Timer Chime"
+                melody.startsWith("content://") -> "Timer Custom"
+                else -> "Timer Notifications"
+            }
+            val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH).apply {
+                setSound(soundUri, Notification.AUDIO_ATTRIBUTES_DEFAULT)
+            }
             manager.createNotificationChannel(channel)
         }
 
@@ -92,6 +117,29 @@ class AlarmReceiver : BroadcastReceiver() {
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setSound(soundUri)
+            .setAutoCancel(true)
+            .build()
+
+        manager.notify(System.currentTimeMillis().toInt(), notification)
+    }
+
+    private fun showSilentNotification(context: Context, title: String, message: String) {
+        val channelId = "timer_notifications_silent"
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(channelId, "Timer Silent", NotificationManager.IMPORTANCE_LOW).apply {
+                setSound(null, null)
+            }
+            manager.createNotificationChannel(channel)
+        }
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
             .build()
 

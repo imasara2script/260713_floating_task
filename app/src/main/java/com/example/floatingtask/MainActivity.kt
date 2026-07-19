@@ -11,6 +11,7 @@ import android.provider.Settings
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.view.WindowManager
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -36,6 +37,20 @@ class MainActivity : AppCompatActivity() {
     ) {
         if (Settings.canDrawOverlays(this)) {
             startFloatingService()
+        }
+    }
+
+    private val ringtonePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val uri: Uri? = result.data?.getParcelableExtra(android.media.RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            val webView: WebView = findViewById(R.id.webView)
+            if (uri != null) {
+                val ringtone = android.media.RingtoneManager.getRingtone(this, uri)
+                val title = ringtone.getTitle(this)
+                webView.evaluateJavascript("onRingtoneSelected('${uri.toString()}', '${title.replace("'", "\\'")}');", null)
+            }
         }
     }
 
@@ -164,8 +179,19 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long) {
-            AlarmScheduler.scheduleTimerAlarm(mContext, taskId, taskText, durationMs)
+        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String) {
+            AlarmScheduler.scheduleTimerAlarm(mContext, taskId, taskText, durationMs, melody)
+        }
+
+        @JavascriptInterface
+        fun pickRingtone() {
+            val intent = Intent(android.media.RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_TYPE, android.media.RingtoneManager.TYPE_ALL)
+                putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_TITLE, "メロディを選択")
+                putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+            }
+            ringtonePickerLauncher.launch(intent)
         }
 
         @JavascriptInterface
@@ -187,11 +213,12 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun getDisplayMetrics(): String {
-            val metrics = mContext.resources.displayMetrics
+            // システム全体のメトリクスを使用することで、より確実に物理ピクセルと密度を取得
+            val dm = android.content.res.Resources.getSystem().displayMetrics
             val json = org.json.JSONObject()
-            json.put("widthPixels", metrics.widthPixels)
-            json.put("heightPixels", metrics.heightPixels)
-            json.put("density", metrics.density)
+            json.put("widthPixels", dm.widthPixels)
+            json.put("heightPixels", dm.heightPixels)
+            json.put("density", dm.density)
             return json.toString()
         }
     }
