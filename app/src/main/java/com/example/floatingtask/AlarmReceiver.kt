@@ -65,9 +65,9 @@ class AlarmReceiver : BroadcastReceiver() {
                     AlarmScheduler.scheduleIntervalAlarm(context, minutes)
                 }
             }
-        } else {
-            // AM0時の処理: フローティングサービスを開始
-            // オーバーレイ権限がある場合のみ開始可能
+        } else if (intent.action == "ACTION_MIDNIGHT_RESET") {
+            Log.d("AlarmReceiver", "Midnight reset triggered")
+            // AM0時の処理: フローティングサービスを開始してリセットを実行
             if (Settings.canDrawOverlays(context)) {
                 val serviceIntent = Intent(context, FloatingWindowService::class.java).apply {
                     putExtra("TRIGGER_RESET", true)
@@ -76,7 +76,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 context.startForegroundService(serviceIntent)
             }
             
-            // 次の日の AM0時を再設定
+            // 次の日の AM0時を再スケジュール
             AlarmScheduler.scheduleMidnightAlarm(context)
         }
     }

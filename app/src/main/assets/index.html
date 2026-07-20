@@ -110,8 +110,7 @@
             height: 100%;
             box-sizing: border-box;
             background: white;
-            border-radius: 8px;
-            border: 1px solid #ccc;
+            border-radius: 12px;
             overflow: hidden;
         }
         .floating-task-single {
@@ -139,7 +138,8 @@
             user-select: none;
             padding: 4px 0;
             margin: 0;
-            min-height: 52px; /* 縦幅を1行分追加 (約12px-14px分) */
+            min-height: 52px;
+            border-radius: 12px;
         }
         .floating-timer-collapsed {
             font-size: 11px;
@@ -1019,13 +1019,33 @@
                         melodyName = selectedCustomName;
                     }
 
-                    targetTask.startTime = Date.now();
-                    targetTask.durationMs = durationMs;
+                    // タイマー設定（時間・単位）が変更されたかチェック
+                    let isDurationChanged = true;
+                    if (editingTaskId) {
+                        const originalTask = tasks.find(t => t.id === editingTaskId);
+                        if (originalTask.durationMs === durationMs) {
+                            isDurationChanged = false;
+                        }
+                    }
+
+                    if (isDurationChanged) {
+                        targetTask.startTime = Date.now();
+                        targetTask.durationMs = durationMs;
+                    }
+
                     targetTask.melody = melody;
                     if (melodyName) targetTask.melodyName = melodyName;
 
                     if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-                        Android.setTimerAlarm(targetTask.id, text, durationMs, melody);
+                        if (isDurationChanged) {
+                            Android.setTimerAlarm(targetTask.id, text, durationMs, melody);
+                        } else {
+                            // 継続中の場合、残り時間でアラームを更新（テキストやメロディの変更を反映）
+                            const remaining = (targetTask.startTime + targetTask.durationMs) - Date.now();
+                            if (remaining > 0) {
+                                Android.setTimerAlarm(targetTask.id, text, remaining, melody);
+                            }
+                        }
                     }
                 } else {
                     showModal('タイマーの時間を入力してください', {
@@ -1084,16 +1104,16 @@
             const remaining = (t.startTime + t.durationMs) - Date.now();
             if (remaining <= 0) return '0秒';
 
-            const hours = Math.floor(remaining / 3600000);
-            const mins = Math.floor((remaining % 3600000) / 60000);
-            const secs = Math.floor((remaining % 60000) / 1000);
-
-            if (hours > 0) {
-                return `${hours}時間`;
+            const hoursFloat = remaining / 3600000;
+            if (hoursFloat >= 1) {
+                return `${hoursFloat.toFixed(1)}時間`;
             }
+
+            const mins = Math.floor(remaining / 60000);
             if (mins > 0) {
                 return `${mins}分`;
             }
+            const secs = Math.floor((remaining % 60000) / 1000);
             return `${secs}秒`;
         }
 
@@ -1785,18 +1805,33 @@
             managerList.addEventListener('touchend', handleTouchEnd, { passive: false });
         }
 
-        // まず画面を表示することを最優先する
-        setViewMode(mode);
-
-        // その後に初期化処理を行う
-        setTimeout(() => {
+        // 起動時の初期化処理
+        function initializeApp() {
             try {
+                // データの読み込み
+                tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+                history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+
+                // 表示モードの設定
+                setViewMode(mode);
+
+                // 日付変更チェックと権限状態の更新
                 checkDailyReset();
                 updateAlarmStatus();
+                updateBatteryStatus();
+
+                console.log("App initialized and daily reset checked.");
             } catch (e) {
                 console.error("Initialization error:", e);
             }
-        }, 100);
+        }
+
+        // DOMContentLoaded または少し遅延させて確実に実行
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            setTimeout(initializeApp, 50);
+        }
     </script>
 </body>
 </html>

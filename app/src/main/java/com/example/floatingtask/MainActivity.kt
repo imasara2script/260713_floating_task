@@ -131,6 +131,10 @@ class MainActivity : AppCompatActivity() {
 
         webView.loadUrl("file:///android_asset/index.html")
 
+        // 毎日 AM 0:00 のリセットアラームと正午のチェックアラームをスケジュール
+        AlarmScheduler.scheduleMidnightAlarm(this)
+        AlarmScheduler.scheduleNoonAlarm(this)
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
