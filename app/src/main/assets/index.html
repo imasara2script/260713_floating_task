@@ -383,14 +383,10 @@
             Floating<br>task
         </div>
         <div id="floating-expanded" class="compact-container" style="display: none;">
-            <div class="floating-label-collapsed" style="width: 50px; flex-shrink: 0; border-right: 1px solid #ccc;" onclick="toggleFloatingExpand(false)">
+            <div class="drag-handle" style="width: 50px; flex-shrink: 0; border-right: 1px solid #ccc; background: #eee; font-size: 10px; text-align: center; line-height: 1.2; padding: 0;">
                 Floating<br>task
             </div>
-            <div id="floatingTaskContent" class="floating-task-single"></div>
-            <div class="floating-controls">
-                <button class="nav-btn-small" onclick="nextTask()">▽</button>
-                <button class="btn-compact" onclick="openFullScreen()">全</button>
-            </div>
+            <div id="floatingTaskContent" class="floating-task-single" style="flex-grow: 1; overflow: hidden; padding: 0 4px;"></div>
         </div>
     </div>
 
@@ -721,8 +717,8 @@
             const historyBtn = document.getElementById('modalHistoryBtn');
 
             if (taskId) {
-                if (historyBtn) historyBtn.style.display = 'block';
                 const task = tasks.find(t => t.id === taskId);
+                if (historyBtn) historyBtn.style.display = task.durationMs ? 'none' : 'block';
                 titleEl.textContent = 'タスクを編集';
                 confirmBtn.textContent = '保存';
                 document.getElementById('taskInput').value = task.text;
@@ -1179,14 +1175,8 @@
             if (floatingContent) {
                 if (pendingTasks.length === 0) {
                     floatingContent.innerHTML = '<p style="color:#888; font-size:12px; margin:0;">なし</p>';
-                    document.querySelector('.floating-controls').style.display = 'none';
                 } else {
                     const t = pendingTasks[currentFloatingIndex];
-                    const controls = document.querySelector('.floating-controls');
-                    controls.style.display = 'flex';
-                    const nextBtn = controls.querySelector('.nav-btn-small');
-                    nextBtn.style.display = pendingTasks.length > 1 ? 'flex' : 'none';
-
                     const isTimer = !!t.durationMs;
                     const remainingText = isTimer ? getRemainingTimeText(t) : '';
                     const totalText = isTimer ? getTotalTimeText(t) : '';
@@ -1194,17 +1184,27 @@
                     const timerDisplay = isTimer ? `${remainingText} / ${totalText}` : '';
 
                     floatingContent.innerHTML = `
-                        <input type="checkbox" onchange="toggleTask(${t.id})" style="flex-shrink: 0;">
-                        <div style="flex-grow: 1; min-width: 0; display: flex; align-items: center; overflow: hidden;">
-                            ${isTimer ? `<span class="timer-badge ${isExpired ? 'timer-expired' : ''}" style="margin:0 4px 0 2px; font-size:9px; padding: 1px 4px; flex-shrink: 0;">${timerDisplay}</span>` : ''}
-                            <span class="floating-task-text" style="margin-left: 0;">${t.text}</span>
+                        <div style="display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: center; padding: 2px 4px; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; min-width: 0; margin-bottom: 2px;">
+                                <input type="checkbox" onchange="toggleTask(${t.id})" style="width: 16px; height: 16px; margin-right: 6px; flex-shrink: 0;">
+                                <span class="floating-task-text" style="font-size: 14px; font-weight: bold; margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${t.text}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #555;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    ${isTimer ? `<span class="${isExpired ? 'timer-expired' : ''}" style="font-variant-numeric: tabular-nums;">${timerDisplay}</span>` : ''}
+                                    ${isTimer ? `<button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size: 14px; padding: 0; background: none; border: none; cursor: pointer;">🔄</button>` : ''}
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span class="floating-task-counter" style="font-size: 11px;">(${currentFloatingIndex + 1}/${pendingTasks.length})</span>
+                                    <button onclick="nextTask()" style="background: #eee; border: 1px solid #ccc; border-radius: 4px; width: 24px; height: 24px; padding: 0; font-size: 14px; color: #333; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="次のタスク">▽</button>
+                                    <button onclick="if(typeof Android !== 'undefined' && Android.openMainActivity) Android.openMainActivity(); else setViewMode('manager');" style="background: #007bff; border: none; border-radius: 4px; width: 24px; height: 24px; padding: 0; font-size: 11px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="全画面表示">全</button>
+                                </div>
+                            </div>
                         </div>
-                        ${isTimer ? `<button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size:14px; padding:0 2px; margin-right:2px; flex-shrink: 0;">🔄</button>` : ''}
-                        ${pendingTasks.length > 1 ? `<span class="floating-task-counter" style="font-size:9px; flex-shrink: 0; margin-right: 4px;">(${currentFloatingIndex + 1}/${pendingTasks.length})</span>` : ''}
                     `;
                 }
             }
-            if (document.getElementById('settings-content').style.display === 'block') {
+            if (document.getElementById('history-content').style.display === 'block') {
                 renderHistory();
             }
         }
