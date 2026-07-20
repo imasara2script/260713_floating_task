@@ -5,20 +5,26 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
-import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.provider.Settings
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
 import androidx.core.app.NotificationCompat
+import kotlin.math.hypot
 
 class FloatingWindowService : Service() {
 
@@ -69,7 +75,7 @@ class FloatingWindowService : Service() {
     private fun applySettings() {
         val view = floatingView ?: return
         val params = view.layoutParams as WindowManager.LayoutParams
-        val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
 
         val x = prefs.getInt("floatX", 100)
         val y = prefs.getInt("floatY", 100)
@@ -103,7 +109,7 @@ class FloatingWindowService : Service() {
     }
 
     private fun applySettingsToParams(params: WindowManager.LayoutParams) {
-        val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
         val scale = prefs.getFloat("floatScale", 1.0f)
         val density = resources.displayMetrics.density
 
@@ -135,7 +141,7 @@ class FloatingWindowService : Service() {
         isExpanded = expanded
         val view = floatingView ?: return
         val params = view.layoutParams as WindowManager.LayoutParams
-        val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
         val scale = prefs.getFloat("floatScale", 1.0f)
         val density = resources.displayMetrics.density
 
@@ -150,9 +156,9 @@ class FloatingWindowService : Service() {
             params.height = (40 * density * scale).toInt()
         }
 
-        // 閉じるボタンの表示切り替え
+        // 閉じるボタンの表示切り替え（ユーザー要望により常に非表示）
         val closeButton: Button = view.findViewById(R.id.closeButton)
-        closeButton.visibility = if (expanded) View.VISIBLE else View.GONE
+        closeButton.visibility = View.GONE
 
         // ドラッグハンドルの設定（展開時は左側の「Floating task」部分のみドラッグ可能にする）
         val dragHandle: View = view.findViewById(R.id.dragHandle)
@@ -160,7 +166,7 @@ class FloatingWindowService : Service() {
         if (expanded) {
             dragHandleParams.width = (50 * density * scale).toInt()
         } else {
-            dragHandleParams.width = android.view.ViewGroup.LayoutParams.MATCH_PARENT
+            dragHandleParams.width = ViewGroup.LayoutParams.MATCH_PARENT
         }
         dragHandle.layoutParams = dragHandleParams
         dragHandle.visibility = View.VISIBLE
@@ -176,18 +182,18 @@ class FloatingWindowService : Service() {
         windowManager.updateViewLayout(view, params)
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
+    @SuppressLint("SetJavaScriptEnabled", "InflateParams")
     private fun showFloatingWindow() {
-        if (!android.provider.Settings.canDrawOverlays(this)) {
+        if (!Settings.canDrawOverlays(this)) {
             return
         }
         if (floatingView != null) {
             floatingView?.visibility = View.VISIBLE
             return
         }
-        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         
-        val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+        val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
         // floating_layout.xml をインフレート
         floatingView = inflater.inflate(R.layout.floating_layout, null)
 
@@ -205,19 +211,20 @@ class FloatingWindowService : Service() {
 
         applySettingsToParams(params)
 
-        // 閉じるボタンの表示切り替え（初期状態）
+        // 閉じるボタンの表示切り替え（初期状態・常に非表示）
         val closeButton: Button = floatingView!!.findViewById(R.id.closeButton)
-        closeButton.visibility = if (isExpanded) View.VISIBLE else View.GONE
+        closeButton.visibility = View.GONE
 
         // WebViewの設定
         val webView: WebView = floatingView!!.findViewById(R.id.floatingWebView)
         webView.webViewClient = WebViewClient()
-        webView.webChromeClient = android.webkit.WebChromeClient()
+        webView.webChromeClient = WebChromeClient()
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
 
         webView.addJavascriptInterface(object {
             @JavascriptInterface
+            @Suppress("unused")
             fun openMainActivity() {
                 val intent = Intent(this@FloatingWindowService, MainActivity::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -225,14 +232,16 @@ class FloatingWindowService : Service() {
             }
 
             @JavascriptInterface
+            @Suppress("unused")
             fun updatePendingTaskCount(count: Int) {
                 if (count == 0) {
-                    val handler = android.os.Handler(android.os.Looper.getMainLooper())
+                    val handler = Handler(Looper.getMainLooper())
                     handler.post { hideFloatingWindow() }
                 }
             }
 
             @JavascriptInterface
+            @Suppress("unused")
             fun onDataChanged() {
                 // MainActivityに通知
                 val intent = Intent("com.example.floatingtask.DATA_CHANGED")
@@ -240,8 +249,9 @@ class FloatingWindowService : Service() {
             }
 
             @JavascriptInterface
+            @Suppress("unused")
             fun toggleExpand(expanded: Boolean) {
-                val handler = android.os.Handler(android.os.Looper.getMainLooper())
+                val handler = Handler(Looper.getMainLooper())
                 handler.post {
                     updateWindowSize(expanded)
                 }
@@ -252,7 +262,7 @@ class FloatingWindowService : Service() {
 
         // 閉じるボタンの設定
         closeButton.setOnClickListener {
-            val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
             val intervalMinutes = prefs.getInt("recheckInterval", 0)
             
             if (intervalMinutes > 0) {
@@ -265,7 +275,7 @@ class FloatingWindowService : Service() {
 
         // ドラッグ移動の設定
         val dragHandle: View = floatingView!!.findViewById(R.id.dragHandle)
-        val touchSlop = android.view.ViewConfiguration.get(this).scaledTouchSlop
+        val touchSlop = ViewConfiguration.get(this).scaledTouchSlop
         var isActuallyDragging = false
         var initialX = 0
         var initialY = 0
@@ -274,7 +284,7 @@ class FloatingWindowService : Service() {
 
         val touchListener = View.OnTouchListener { v, event ->
             when (event.action) {
-                android.view.MotionEvent.ACTION_DOWN -> {
+                MotionEvent.ACTION_DOWN -> {
                     initialX = params.x
                     initialY = params.y
                     initialTouchX = event.rawX
@@ -282,11 +292,11 @@ class FloatingWindowService : Service() {
                     isActuallyDragging = false
                     true
                 }
-                android.view.MotionEvent.ACTION_MOVE -> {
+                MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - initialTouchX
                     val dy = event.rawY - initialTouchY
                     
-                    if (!isActuallyDragging && Math.hypot(dx.toDouble(), dy.toDouble()) > touchSlop) {
+                    if (!isActuallyDragging && hypot(dx.toDouble(), dy.toDouble()) > touchSlop) {
                         isActuallyDragging = true
                         webView.evaluateJavascript("setIsDragging(true);", null)
                     }
@@ -306,7 +316,7 @@ class FloatingWindowService : Service() {
                         windowManager.updateViewLayout(floatingView, params)
                         
                         // 位置を保存
-                        val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+                        val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
                         prefs.edit().apply {
                             putInt("floatX", params.x)
                             putInt("floatY", params.y)
@@ -315,16 +325,17 @@ class FloatingWindowService : Service() {
                     }
                     true
                 }
-                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
-                    if (event.action == android.view.MotionEvent.ACTION_UP && !isActuallyDragging) {
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (event.action == MotionEvent.ACTION_UP && !isActuallyDragging) {
                         // タップ判定: 展開/縮小を切り替え
+                        v.performClick()
                         val nextExpanded = !isExpanded
                         updateWindowSize(nextExpanded)
                         webView.evaluateJavascript("toggleFloatingExpand($nextExpanded);", null)
                     }
 
                     // ドラッグ終了を通知（タップ判定との競合を避けるため少し遅延させる）
-                    val handler = android.os.Handler(android.os.Looper.getMainLooper())
+                    val handler = Handler(Looper.getMainLooper())
                     handler.postDelayed({
                         webView.evaluateJavascript("setIsDragging(false);", null)
                     }, 150)
