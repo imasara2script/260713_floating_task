@@ -434,7 +434,8 @@
                 </select>
                 <div id="customMelodyName" style="font-size: 11px; color: #666; margin-top: 4px; display: none;"></div>
             </div>
-            <div class="modal-actions">
+            <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                <button id="modalHistoryBtn" class="btn" style="background: none; border: none; font-size: 24px; padding: 0; display: none;" onclick="viewHistoryFromModal()" title="履歴・カレンダーを表示">📅</button>
                 <button class="btn btn-secondary" onclick="closeTaskModal()">キャンセル</button>
                 <button id="taskModalConfirmBtn" class="btn btn-primary" onclick="addTask()">追加</button>
             </div>
@@ -717,8 +718,10 @@
             editingTaskId = taskId;
             const titleEl = document.getElementById('taskModalTitle');
             const confirmBtn = document.getElementById('taskModalConfirmBtn');
+            const historyBtn = document.getElementById('modalHistoryBtn');
 
             if (taskId) {
+                if (historyBtn) historyBtn.style.display = 'block';
                 const task = tasks.find(t => t.id === taskId);
                 titleEl.textContent = 'タスクを編集';
                 confirmBtn.textContent = '保存';
@@ -764,16 +767,32 @@
                 document.getElementById('timerValue').value = '';
                 document.getElementById('timerUnit').value = 'none';
                 document.getElementById('melodySelect').value = 'default';
+                if (historyBtn) historyBtn.style.display = 'none';
             }
 
             toggleTimerInput();
-            document.getElementById('taskModal').style.display = 'flex';
+            const modal = document.getElementById('taskModal');
+            modal.style.display = 'flex';
+            modal.onclick = (e) => {
+                if (e.target === modal) closeTaskModal();
+            };
             setTimeout(() => document.getElementById('taskInput').focus(), 100);
         }
 
         function closeTaskModal() {
             document.getElementById('taskModal').style.display = 'none';
+            if (document.getElementById('modalHistoryBtn')) {
+                document.getElementById('modalHistoryBtn').style.display = 'none';
+            }
             editingTaskId = null;
+        }
+
+        function viewHistoryFromModal() {
+            if (editingTaskId) {
+                const id = editingTaskId;
+                closeTaskModal();
+                renderTaskHistory(id);
+            }
         }
 
         function toggleTimerInput() {
@@ -987,7 +1006,6 @@
         }
 
         function editTask(id) {
-            if (!isEditMode) return;
             openTaskModal(id);
         }
 
@@ -1147,7 +1165,7 @@
                         ${isEditMode ? '<span class="drag-handle">☰</span>' : ''}
                         <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">
                         ${isTimer && !t.completed ? `<span class="timer-badge ${isExpired ? 'timer-expired' : ''}">${timerDisplay}</span>` : ''}
-                        <span class="task-text ${t.completed ? 'completed' : ''} ${isEditMode ? 'editable' : ''}" onclick="${isEditMode ? `editTask(${t.id})` : `renderTaskHistory(${t.id})`}">${t.text}</span>
+                        <span class="task-text ${t.completed ? 'completed' : ''} editable" onclick="editTask(${t.id})">${t.text}</span>
                         ${isTimer ? `<button class="btn-icon" onclick="repeatTimer(${t.id})" title="リピート">🔄</button>` : ''}
                         ${isEditMode ? `
                             <button class="btn-icon" onclick="editTask(${t.id})" title="編集">✏️</button>
