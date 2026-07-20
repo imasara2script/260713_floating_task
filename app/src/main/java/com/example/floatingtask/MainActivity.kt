@@ -41,6 +41,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var dataToBackup: String? = null
+
+    private val createDocumentLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            contentResolver.openOutputStream(it)?.use { outputStream ->
+                dataToBackup?.let { data ->
+                    outputStream.write(data.toByteArray())
+                }
+            }
+            dataToBackup = null
+        }
+    }
+
+    private val openDocumentLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            contentResolver.openInputStream(it)?.use { inputStream ->
+                val reader = inputStream.bufferedReader()
+                val content = reader.readText()
+                val webView: WebView = findViewById(R.id.webView)
+                // バッククォートやエスケープ文字を処理
+                val escapedContent = content.replace("\\", "\\\\")
+                    .replace("`", "\\`")
+                    .replace("$", "\\$")
+                webView.evaluateJavascript("applyRestoredData(`$escapedContent`);", null)
+            }
+        }
+    }
+
     private val ringtonePickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -252,6 +284,20 @@ class MainActivity : AppCompatActivity() {
             json.put("heightPixels", dm.heightPixels)
             json.put("density", dm.density)
             return json.toString()
+        }
+
+        @JavascriptInterface
+        fun backupData(jsonData: String) {
+            dataToBackup = jsonData
+            val sdf = java.text.SimpleDateFormat("yyyyMMdd HHmmss", java.util.Locale.getDefault())
+            val timestamp = sdf.format(java.util.Date())
+            val fileName = "floating task $timestamp.json"
+            createDocumentLauncher.launch(fileName)
+        }
+
+        @JavascriptInterface
+        fun restoreData() {
+            openDocumentLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*"))
         }
     }
 

@@ -371,6 +371,14 @@
                         <label for="calendarMarkInput" style="display: block; margin-bottom: 8px;">カレンダーのマーク (記号や絵文字):</label>
                         <input type="text" id="calendarMarkInput" placeholder="例: ⭕, ✔, ⭐" onchange="updateCalendarMark()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
                     </div>
+
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                        <div style="font-size: 13px; margin-bottom: 8px;">💾 データ管理</div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-secondary" onclick="exportData()" style="flex: 1; font-size: 14px;">バックアップ</button>
+                            <button class="btn btn-secondary" onclick="if(typeof Android !== 'undefined') Android.restoreData()" style="flex: 1; font-size: 14px;">復元</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- フローティングウィンドウ詳細設定画面 -->
@@ -1620,6 +1628,62 @@
             const mark = document.getElementById('calendarMarkInput').value || '⭕';
             calendarMark = mark;
             localStorage.setItem('calendarMark', mark);
+        }
+
+        function exportData() {
+            const data = {
+                tasks: tasks,
+                taskHistory: history,
+                calendarMark: calendarMark,
+                showAllInFloating: showAllInFloating,
+                floatX: localStorage.getItem('floatX'),
+                floatY: localStorage.getItem('floatY'),
+                floatWidth: localStorage.getItem('floatWidth'),
+                floatHeight: localStorage.getItem('floatHeight'),
+                floatScale: localStorage.getItem('floatScale'),
+                recheckInterval: localStorage.getItem('recheckInterval')
+            };
+            if (typeof Android !== 'undefined') {
+                Android.backupData(JSON.stringify(data));
+            }
+        }
+
+        function applyRestoredData(jsonString) {
+            try {
+                const data = JSON.parse(jsonString);
+                if (data.tasks) {
+                    tasks = data.tasks;
+                    localStorage.setItem('tasks', JSON.stringify(tasks));
+                }
+                if (data.taskHistory) {
+                    history = data.taskHistory;
+                    localStorage.setItem('taskHistory', JSON.stringify(history));
+                }
+                if (data.calendarMark) {
+                    calendarMark = data.calendarMark;
+                    localStorage.setItem('calendarMark', calendarMark);
+                }
+                if (data.showAllInFloating !== undefined) {
+                    showAllInFloating = data.showAllInFloating;
+                    localStorage.setItem('showAllInFloating', showAllInFloating);
+                }
+                const keys = ['floatX', 'floatY', 'floatWidth', 'floatHeight', 'floatScale', 'recheckInterval'];
+                keys.forEach(key => {
+                    if (data[key] !== undefined) {
+                        localStorage.setItem(key, data[key]);
+                    }
+                });
+
+                showModal('データの復元が完了しました。', {
+                    hideCancel: true,
+                    onConfirm: () => {
+                        window.location.reload();
+                    }
+                });
+            } catch (e) {
+                showModal('データの復元に失敗しました。', { hideCancel: true });
+                console.error(e);
+            }
         }
 
         window.addEventListener('storage', () => {
