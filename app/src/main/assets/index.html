@@ -137,8 +137,15 @@
             cursor: pointer;
             background: #eee;
             user-select: none;
-            padding: 0;
+            padding: 4px 0;
             margin: 0;
+            min-height: 52px; /* 縦幅を1行分追加 (約12px-14px分) */
+        }
+        .floating-timer-collapsed {
+            font-size: 11px;
+            color: #d9534f;
+            margin-top: 2px;
+            font-weight: normal;
         }
         .floating-drag-handle {
             width: 50px;
@@ -429,6 +436,7 @@
         <div id="floating-collapsed" class="floating-label-collapsed" onclick="if(!isDragging) toggleFloatingExpand(true)">
             <div>Floating</div>
             <div>task</div>
+            <div id="collapsed-timer-text" class="floating-timer-collapsed" style="display: none;"></div>
         </div>
         <div id="floating-expanded" class="compact-container" style="display: none; width: 100%; height: 100%;">
             <div id="expanded-drag-handle" class="floating-drag-handle">
@@ -719,7 +727,10 @@
             }
         }
 
-        function switchTab(tab) {
+        function switchTab(tab, options = {}) {
+            if (tab !== 'history' || !options.skipRenderHistory) {
+                currentCalendarTaskId = null;
+            }
             document.getElementById('tasks-content').style.display = (tab === 'tasks') ? 'block' : 'none';
             document.getElementById('history-content').style.display = (tab === 'history') ? 'block' : 'none';
             document.getElementById('settings-content').style.display = (tab === 'settings') ? 'block' : 'none';
@@ -730,7 +741,7 @@
                 updateBatteryStatus();
                 updateAlarmStatus();
             }
-            if (tab === 'history') {
+            if (tab === 'history' && !options.skipRenderHistory) {
                 renderHistory();
             }
         }
@@ -1008,6 +1019,24 @@
             const secs = Math.floor((remaining % 60000) / 1000);
 
             if (hours > 0) {
+                return `${hours}時間`;
+            }
+            if (mins > 0) {
+                return `${mins}分`;
+            }
+            return `${secs}秒`;
+        }
+
+        function getRemainingTimeTextDetailed(t) {
+            if (!t.durationMs) return '';
+            const remaining = (t.startTime + t.durationMs) - Date.now();
+            if (remaining <= 0) return '0秒';
+
+            const hours = Math.floor(remaining / 3600000);
+            const mins = Math.floor((remaining % 3600000) / 60000);
+            const secs = Math.floor((remaining % 60000) / 1000);
+
+            if (hours > 0) {
                 return `${hours}時間${mins}分`;
             }
             if (mins > 0) {
@@ -1127,8 +1156,9 @@
             const backBtn = document.getElementById('btn-back-history');
             const task = tasks.find(t => t.id === targetTaskId);
 
-            if (!task || task.durationMs) {
+            if (!task) {
                 calendarView.style.display = 'none';
+                currentCalendarTaskId = null;
                 return;
             }
 
@@ -1185,10 +1215,13 @@
         }
 
         function renderTaskHistory(taskId) {
+            // カレンダー表示モードを即座に有効にする
+            currentCalendarTaskId = taskId;
+
             const historyList = document.getElementById('historyList');
             const filteredHistory = history.filter(h => h.taskId === taskId);
 
-            switchTab('history');
+            switchTab('history', { skipRenderHistory: true });
             renderCalendar(taskId);
 
             if (filteredHistory.length === 0) {
@@ -1212,6 +1245,7 @@
 
             if (!historyList) return;
 
+            currentCalendarTaskId = null; // 全体履歴を表示する際はカレンダーモードを解除
             calendarView.style.display = 'none';
             historyTitle.textContent = '完了履歴';
             backBtn.style.display = 'none';
@@ -1231,6 +1265,11 @@
 
         function render() {
             if (draggingElement) return; // ドラッグ操作中はDOMを書き換えない
+
+            // カレンダー表示中の場合は、リストの書き換えによってカレンダーが消えるのを防ぐ
+            if (currentCalendarTaskId !== null && document.getElementById('calendar-view')?.style.display === 'block') {
+                return;
+            }
 
             const btnToggleEdit = document.getElementById('btn-toggle-edit');
             if (btnToggleEdit) {
@@ -1270,7 +1309,7 @@
             if (managerList) {
                 managerList.innerHTML = managerTasks.map((t, index) => {
                     const isTimer = !!t.durationMs;
-                    const remainingText = isTimer ? getRemainingTimeText(t) : '';
+                    const remainingText = isTimer ? getRemainingTimeTextDetailed(t) : '';
                     const totalText = isTimer ? getTotalTimeText(t) : '';
                     const isExpired = isTimer && (t.startTime + t.durationMs <= Date.now());
                     const timerDisplay = (isTimer && !t.completed) ?
@@ -1288,6 +1327,23 @@
             }
 
             const floatingContent = document.getElementById('floatingTaskContent');
+            const collapsedTimerEl = document.getElementById('collapsed-timer-text');
+
+            // 縮小表示用の最短タイマー取得
+            const activeTimers = tasks.filter(t => t.durationMs && !t.completed)
+                .map(t => ({...t, remaining: (t.startTime + t.durationMs) - Date.now()}))
+                .filter(t => t.remaining > 0)
+                .sort((a, b) => a.remaining - b.remaining);
+
+            if (collapsedTimerEl) {
+                if (activeTimers.length > 0) {
+                    collapsedTimerEl.textContent = getRemainingTimeText(activeTimers[0]);
+                    collapsedTimerEl.style.display = 'block';
+                } else {
+                    collapsedTimerEl.style.display = 'none';
+                }
+            }
+
             if (floatingContent) {
                 if (floatingTasks.length === 0) {
                     floatingContent.innerHTML = '<p style="color:#888; font-size:12px; margin:0;">なし</p>';
@@ -1298,7 +1354,7 @@
                         return;
                     }
                     const isTimer = !!t.durationMs;
-                    const remainingText = isTimer ? getRemainingTimeText(t) : '';
+                    const remainingText = isTimer ? getRemainingTimeTextDetailed(t) : '';
                     const totalText = isTimer ? getTotalTimeText(t) : '';
                     const isExpired = isTimer && (t.startTime + t.durationMs <= Date.now());
                     const timerDisplay = isTimer ?
@@ -1326,7 +1382,7 @@
                     `;
                 }
             }
-            if (document.getElementById('history-content').style.display === 'block') {
+            if (document.getElementById('history-content').style.display === 'block' && currentCalendarTaskId === null) {
                 renderHistory();
             }
         }

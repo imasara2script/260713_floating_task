@@ -153,7 +153,7 @@ class FloatingWindowService : Service() {
             params.height = (height * scale).toInt()
         } else {
             params.width = (64 * density * scale).toInt()
-            params.height = (40 * density * scale).toInt()
+            params.height = (52 * density * scale).toInt()
         }
 
         // 画面境界内に収める
@@ -184,9 +184,9 @@ class FloatingWindowService : Service() {
             params.width = (width * scale).toInt()
             params.height = (height * scale).toInt()
         } else {
-            // 畳まれている時のサイズ (目安: 64dp x 40dp)
+            // 畳まれている時のサイズ (目安: 64dp x 52dp)
             params.width = (64 * density * scale).toInt()
-            params.height = (40 * density * scale).toInt()
+            params.height = (52 * density * scale).toInt()
         }
 
         // 閉じるボタンの表示切り替え（ユーザー要望により常に非表示）

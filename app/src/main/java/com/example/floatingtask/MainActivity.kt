@@ -74,9 +74,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         val webView: WebView = findViewById(R.id.webView)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            WebView.setWebContentsDebuggingEnabled(true)
+        }
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
         webView.settings.allowFileAccess = true
+        webView.settings.allowContentAccess = true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            webView.settings.allowFileAccessFromFileURLs = true
+            webView.settings.allowUniversalAccessFromFileURLs = true
+        }
+        webView.settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         webView.addJavascriptInterface(WebAppInterface(this), "Android")
 
         webView.webViewClient = object : WebViewClient() {
@@ -98,12 +107,16 @@ class MainActivity : AppCompatActivity() {
 
         // ブロードキャストレシーバーの登録
         val filter = IntentFilter("com.example.floatingtask.DATA_CHANGED")
-        ContextCompat.registerReceiver(
-            this,
-            dataChangeReceiver,
-            filter,
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(dataChangeReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            ContextCompat.registerReceiver(
+                this,
+                dataChangeReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        }
     }
 
     override fun onDestroy() {
