@@ -89,9 +89,13 @@
             display: flex;
             align-items: center;
             gap: 4px;
-            padding-right: 32px; /* 右上のネイティブ「×」ボタン(32dp)用 */
-            height: 32px;
+            padding-right: 4px;
+            height: 100%;
             box-sizing: border-box;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            overflow: hidden;
         }
         .floating-task-single {
             flex-grow: 1;
@@ -99,7 +103,22 @@
             align-items: center;
             font-size: 14px;
             overflow: hidden;
-            min-width: 0; /* flexアイテムで省略記号を機能させるために必要 */
+            min-width: 0;
+        }
+        .floating-label-collapsed {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #555;
+            text-align: center;
+            line-height: 1.2;
+            cursor: pointer;
+            background: #f0f0f0;
+            user-select: none;
         }
         .floating-task-text {
             overflow: hidden;
@@ -360,7 +379,13 @@
 
     <!-- フローティング画面 -->
     <div id="floating-view">
-        <div class="compact-container">
+        <div id="floating-collapsed" class="floating-label-collapsed" onclick="if(!isDragging) toggleFloatingExpand(true)">
+            Floating<br>task
+        </div>
+        <div id="floating-expanded" class="compact-container" style="display: none;">
+            <div class="floating-label-collapsed" style="width: 50px; flex-shrink: 0; border-right: 1px solid #ccc;" onclick="toggleFloatingExpand(false)">
+                Floating<br>task
+            </div>
             <div id="floatingTaskContent" class="floating-task-single"></div>
             <div class="floating-controls">
                 <button class="nav-btn-small" onclick="nextTask()">▽</button>
@@ -431,6 +456,25 @@
         let editingTaskId = null;
         let selectedCustomUri = null;
         let selectedCustomName = null;
+        let isFloatingExpanded = false;
+        let isDragging = false;
+
+        function toggleFloatingExpand(expand) {
+            isFloatingExpanded = expand;
+            document.getElementById('floating-collapsed').style.display = expand ? 'none' : 'flex';
+            document.getElementById('floating-expanded').style.display = expand ? 'flex' : 'none';
+
+            // 背景（ドラッグハンドル）のクリック透過設定などをネイティブ側に任せる
+            if (typeof Android !== 'undefined' && Android.toggleExpand) {
+                Android.toggleExpand(expand);
+            }
+            render();
+        }
+
+        // ネイティブ側からドラッグ中かどうかを通知してもらうための関数
+        function setIsDragging(dragging) {
+            isDragging = dragging;
+        }
 
         function handleMelodyChange() {
             const select = document.getElementById('melodySelect');

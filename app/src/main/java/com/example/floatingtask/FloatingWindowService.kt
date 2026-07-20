@@ -73,28 +73,15 @@ class FloatingWindowService : Service() {
 
         val x = prefs.getInt("floatX", 100)
         val y = prefs.getInt("floatY", 100)
-        val width = prefs.getInt("floatWidth", 300)
-        val height = prefs.getInt("floatHeight", 32)
-        val scale = prefs.getFloat("floatScale", 1.0f)
 
-        // サイズ設定 (倍率考慮)
-        val finalWidth = (width * scale).toInt()
-        val finalHeight = (height * scale).toInt()
-        params.width = finalWidth
-        params.height = finalHeight
+        // 位置の更新（updateWindowSize内で境界チェックが行われる）
+        params.x = x
+        params.y = y
 
-        // 画面境界内に収める
-        val displayMetrics = resources.displayMetrics
-        val screenWidth = displayMetrics.widthPixels
-        val screenHeight = displayMetrics.heightPixels
-
-        params.gravity = Gravity.TOP or Gravity.START
-        params.x = x.coerceIn(0, (screenWidth - finalWidth).coerceAtLeast(0))
-        params.y = y.coerceIn(0, (screenHeight - finalHeight).coerceAtLeast(0))
-
-        windowManager.updateViewLayout(view, params)
+        // 現在の状態（展開/縮小）を維持しつつ、新しい設定（スケールやサイズ）を反映
+        updateWindowSize(isExpanded)
         
-        // WebView内にもリロードを促す
+        // WebView内にもリロードを促す（スケール変更などを反映させるため）
         val webView: WebView = view.findViewById(R.id.floatingWebView)
         webView.evaluateJavascript("location.reload();", null)
     }
@@ -117,25 +104,76 @@ class FloatingWindowService : Service() {
 
     private fun applySettingsToParams(params: WindowManager.LayoutParams) {
         val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
-        val x = prefs.getInt("floatX", 100)
-        val y = prefs.getInt("floatY", 100)
-        val width = prefs.getInt("floatWidth", 300)
-        val height = prefs.getInt("floatHeight", 32)
         val scale = prefs.getFloat("floatScale", 1.0f)
+        val density = resources.displayMetrics.density
 
-        val finalWidth = (width * scale).toInt()
-        val finalHeight = (height * scale).toInt()
-        params.width = finalWidth
-        params.height = finalHeight
+        if (isExpanded) {
+            val width = prefs.getInt("floatWidth", (300 * density).toInt())
+            val height = prefs.getInt("floatHeight", (44 * density).toInt())
+            params.width = (width * scale).toInt()
+            params.height = (height * scale).toInt()
+        } else {
+            params.width = (64 * density * scale).toInt()
+            params.height = (40 * density * scale).toInt()
+        }
 
         // 画面境界内に収める
         val displayMetrics = resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
         val screenHeight = displayMetrics.heightPixels
 
+        val x = prefs.getInt("floatX", 100)
+        val y = prefs.getInt("floatY", 100)
         params.gravity = Gravity.TOP or Gravity.START
-        params.x = x.coerceIn(0, (screenWidth - finalWidth).coerceAtLeast(0))
-        params.y = y.coerceIn(0, (screenHeight - finalHeight).coerceAtLeast(0))
+        params.x = x.coerceIn(0, (screenWidth - params.width).coerceAtLeast(0))
+        params.y = y.coerceIn(0, (screenHeight - params.height).coerceAtLeast(0))
+    }
+
+    private var isExpanded = false
+
+    private fun updateWindowSize(expanded: Boolean) {
+        isExpanded = expanded
+        val view = floatingView ?: return
+        val params = view.layoutParams as WindowManager.LayoutParams
+        val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        val scale = prefs.getFloat("floatScale", 1.0f)
+        val density = resources.displayMetrics.density
+
+        if (expanded) {
+            val width = prefs.getInt("floatWidth", (300 * density).toInt())
+            val height = prefs.getInt("floatHeight", (44 * density).toInt())
+            params.width = (width * scale).toInt()
+            params.height = (height * scale).toInt()
+        } else {
+            // 畳まれている時のサイズ (目安: 64dp x 40dp)
+            params.width = (64 * density * scale).toInt()
+            params.height = (40 * density * scale).toInt()
+        }
+
+        // 閉じるボタンの表示切り替え
+        val closeButton: Button = view.findViewById(R.id.closeButton)
+        closeButton.visibility = if (expanded) View.VISIBLE else View.GONE
+
+        // ドラッグハンドルの設定（展開時は左側の「Floating task」部分のみドラッグ可能にする）
+        val dragHandle: View = view.findViewById(R.id.dragHandle)
+        val dragHandleParams = dragHandle.layoutParams
+        if (expanded) {
+            dragHandleParams.width = (50 * density * scale).toInt()
+        } else {
+            dragHandleParams.width = android.view.ViewGroup.LayoutParams.MATCH_PARENT
+        }
+        dragHandle.layoutParams = dragHandleParams
+        dragHandle.visibility = View.VISIBLE
+
+        // 画面境界内に収める
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val screenHeight = displayMetrics.heightPixels
+
+        params.x = params.x.coerceIn(0, (screenWidth - params.width).coerceAtLeast(0))
+        params.y = params.y.coerceIn(0, (screenHeight - params.height).coerceAtLeast(0))
+
+        windowManager.updateViewLayout(view, params)
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -167,6 +205,10 @@ class FloatingWindowService : Service() {
 
         applySettingsToParams(params)
 
+        // 閉じるボタンの表示切り替え（初期状態）
+        val closeButton: Button = floatingView!!.findViewById(R.id.closeButton)
+        closeButton.visibility = if (isExpanded) View.VISIBLE else View.GONE
+
         // WebViewの設定
         val webView: WebView = floatingView!!.findViewById(R.id.floatingWebView)
         webView.webViewClient = WebViewClient()
@@ -196,12 +238,19 @@ class FloatingWindowService : Service() {
                 val intent = Intent("com.example.floatingtask.DATA_CHANGED")
                 sendBroadcast(intent)
             }
+
+            @JavascriptInterface
+            fun toggleExpand(expanded: Boolean) {
+                val handler = android.os.Handler(android.os.Looper.getMainLooper())
+                handler.post {
+                    updateWindowSize(expanded)
+                }
+            }
         }, "Android")
 
         webView.loadUrl("file:///android_asset/index.html?mode=floating")
 
         // 閉じるボタンの設定
-        val closeButton: Button = floatingView!!.findViewById(R.id.closeButton)
         closeButton.setOnClickListener {
             val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
             val intervalMinutes = prefs.getInt("recheckInterval", 0)
@@ -215,48 +264,82 @@ class FloatingWindowService : Service() {
         }
 
         // ドラッグ移動の設定
+        val dragHandle: View = floatingView!!.findViewById(R.id.dragHandle)
+        val touchSlop = android.view.ViewConfiguration.get(this).scaledTouchSlop
+        var isActuallyDragging = false
         var initialX = 0
         var initialY = 0
         var initialTouchX = 0f
         var initialTouchY = 0f
 
-        floatingView!!.setOnTouchListener { v, event ->
+        val touchListener = View.OnTouchListener { v, event ->
             when (event.action) {
                 android.view.MotionEvent.ACTION_DOWN -> {
                     initialX = params.x
                     initialY = params.y
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
+                    isActuallyDragging = false
                     true
                 }
                 android.view.MotionEvent.ACTION_MOVE -> {
-                    val newX = initialX + (event.rawX - initialTouchX).toInt()
-                    val newY = initialY + (event.rawY - initialTouchY).toInt()
-
-                    // 画面境界内に収める
-                    val displayMetrics = resources.displayMetrics
-                    val screenWidth = displayMetrics.widthPixels
-                    val screenHeight = displayMetrics.heightPixels
-
-                    params.x = newX.coerceIn(0, (screenWidth - params.width).coerceAtLeast(0))
-                    params.y = newY.coerceIn(0, (screenHeight - params.height).coerceAtLeast(0))
-
-                    windowManager.updateViewLayout(floatingView, params)
+                    val dx = event.rawX - initialTouchX
+                    val dy = event.rawY - initialTouchY
                     
-                    // 位置を保存
-                    val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
-                    prefs.edit().apply {
-                        putInt("floatX", params.x)
-                        putInt("floatY", params.y)
-                        apply()
+                    if (!isActuallyDragging && Math.hypot(dx.toDouble(), dy.toDouble()) > touchSlop) {
+                        isActuallyDragging = true
+                        webView.evaluateJavascript("setIsDragging(true);", null)
                     }
+
+                    if (isActuallyDragging) {
+                        val newX = initialX + dx.toInt()
+                        val newY = initialY + dy.toInt()
+
+                        // 画面境界内に収める
+                        val displayMetrics = resources.displayMetrics
+                        val screenWidth = displayMetrics.widthPixels
+                        val screenHeight = displayMetrics.heightPixels
+
+                        params.x = newX.coerceIn(0, (screenWidth - params.width).coerceAtLeast(0))
+                        params.y = newY.coerceIn(0, (screenHeight - params.height).coerceAtLeast(0))
+
+                        windowManager.updateViewLayout(floatingView, params)
+                        
+                        // 位置を保存
+                        val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+                        prefs.edit().apply {
+                            putInt("floatX", params.x)
+                            putInt("floatY", params.y)
+                            apply()
+                        }
+                    }
+                    true
+                }
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                    if (event.action == android.view.MotionEvent.ACTION_UP && !isActuallyDragging) {
+                        // タップ判定: 展開/縮小を切り替え
+                        val nextExpanded = !isExpanded
+                        updateWindowSize(nextExpanded)
+                        webView.evaluateJavascript("toggleFloatingExpand($nextExpanded);", null)
+                    }
+
+                    // ドラッグ終了を通知（タップ判定との競合を避けるため少し遅延させる）
+                    val handler = android.os.Handler(android.os.Looper.getMainLooper())
+                    handler.postDelayed({
+                        webView.evaluateJavascript("setIsDragging(false);", null)
+                    }, 150)
                     true
                 }
                 else -> false
             }
         }
 
+        dragHandle.setOnTouchListener(touchListener)
+
         windowManager.addView(floatingView, params)
+
+        // 初期状態の表示を反映
+        updateWindowSize(isExpanded)
     }
 
     override fun onDestroy() {
