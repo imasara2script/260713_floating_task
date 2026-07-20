@@ -84,7 +84,7 @@
         .task-text.completed { text-decoration: line-through; color: #888; }
 
         /* Floating View Styles */
-        #floating-view { display: none; }
+        #floating-view { display: none; background: transparent; }
         .compact-container {
             display: flex;
             align-items: center;
@@ -311,35 +311,34 @@
             <h1>設定</h1>
 
             <div class="card" style="margin-bottom: 16px;">
-                <button class="btn btn-primary" style="width: 100%; margin-bottom: 12px;" onclick="Android.startFloatingWindow()">フローティング表示を開始</button>
+                <div id="settings-main-view">
+                    <button class="btn btn-primary" style="width: 100%; margin-bottom: 12px;" onclick="openFloatingSettings()">フローティングウィンドウの設定</button>
 
-                <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                    <div id="battery-status-text" style="font-size: 13px; margin-bottom: 8px;">🔋 バッテリー最適化の状態を確認中...</div>
-                    <button id="btn-request-battery" class="btn btn-secondary" onclick="requestBatteryExemption()" style="width: 100%; font-size: 14px; display: none;">バッテリー最適化を解除する</button>
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                        <div id="battery-status-text" style="font-size: 13px; margin-bottom: 8px;">🔋 バッテリー最適化の状態を確認中...</div>
+                        <button id="btn-request-battery" class="btn btn-secondary" onclick="requestBatteryExemption()" style="width: 100%; font-size: 14px; display: none;">バッテリー最適化を解除する</button>
+                    </div>
+
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                        <div id="alarmStatus" style="font-size: 13px; margin-bottom: 8px;">⏰ アラーム権限の状態を確認中...</div>
+                        <button id="btn-request-alarm" class="btn btn-secondary" onclick="Android.openExactAlarmSettings()" style="width: 100%; font-size: 14px; display: none;">アラーム権限を許可する</button>
+                    </div>
+
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
+                        <label for="calendarMarkInput" style="display: block; margin-bottom: 8px;">カレンダーのマーク (記号や絵文字):</label>
+                        <input type="text" id="calendarMarkInput" placeholder="例: ⭕, ✔, ⭐" onchange="updateCalendarMark()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                    </div>
                 </div>
 
-                <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                    <div id="alarmStatus" style="font-size: 13px; margin-bottom: 8px;">⏰ アラーム権限の状態を確認中...</div>
-                    <button id="btn-request-alarm" class="btn btn-secondary" onclick="Android.openExactAlarmSettings()" style="width: 100%; font-size: 14px; display: none;">アラーム権限を許可する</button>
-                </div>
+                <!-- フローティングウィンドウ詳細設定画面 -->
+                <div id="settings-floating-detail" style="display: none; font-size: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="font-size: 15px; margin: 0;">フローティングウィンドウ調整</h3>
+                        <button class="btn btn-secondary" style="padding: 4px 12px; font-size: 12px;" onclick="closeFloatingSettings()">完了</button>
+                    </div>
 
-                <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
-                    <label for="calendarMarkInput" style="display: block; margin-bottom: 8px;">カレンダーのマーク (記号や絵文字):</label>
-                    <input type="text" id="calendarMarkInput" placeholder="例: ⭕, ✔, ⭐" onchange="updateCalendarMark()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
-                </div>
-
-                <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
-                    <h3 style="font-size: 15px; margin: 0 0 12px 0;">フローティングウィンドウ設定</h3>
-
-                    <div style="margin-bottom: 12px;">
-                        <label for="intervalSelect" style="display: block; margin-bottom: 8px;">未完了時の再表示間隔:</label>
-                        <select id="intervalSelect" onchange="updateInterval()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white;">
-                            <option value="0">なし</option>
-                            <option value="1">1分ごと</option>
-                            <option value="10">10分ごと</option>
-                            <option value="30">30分ごと</option>
-                            <option value="60">1時間ごと</option>
-                        </select>
+                    <div style="margin-bottom: 12px; background: #f0f7ff; padding: 8px; border-radius: 6px; font-size: 12px; color: #0056b3; line-height: 1.4;">
+                        ラベル部分を上下にドラッグすると数値を素早く調整できます。
                     </div>
 
                     <div style="display: flex; gap: 8px; margin-bottom: 12px;">
@@ -364,13 +363,25 @@
                         </div>
                     </div>
 
+                    <div style="margin-bottom: 16px;">
+                        <label for="intervalSelect" style="display: block; margin-bottom: 8px;">未完了時の再表示間隔:</label>
+                        <select id="intervalSelect" onchange="updateInterval()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white;">
+                            <option value="0">なし</option>
+                            <option value="1">1分ごと</option>
+                            <option value="10">10分ごと</option>
+                            <option value="30">30分ごと</option>
+                            <option value="60">1時間ごと</option>
+                        </select>
+                    </div>
+
                     <label style="display: block; margin-bottom: 4px;">表示倍率:</label>
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
                         <input type="range" id="floatScale" min="0.5" max="2.0" step="0.1" oninput="document.getElementById('scaleVal').innerText = this.value; saveFloatingSettings()" style="flex-grow: 1;">
                         <span id="scaleVal" style="width: 30px;">1.0</span>
                     </div>
 
-                    <button class="btn btn-secondary" style="width: 100%; font-size: 13px;" onclick="resetFloatingSettings()">設定をデフォルトに戻す</button>
+                    <button class="btn btn-secondary" style="width: 100%; font-size: 13px; margin-bottom: 8px;" onclick="resetFloatingSettings()">設定をデフォルトに戻す</button>
+                    <button class="btn btn-secondary" style="width: 100%; font-size: 13px;" onclick="closeFloatingSettings()">閉じる</button>
                 </div>
             </div>
         </div>
@@ -453,19 +464,38 @@
         let editingTaskId = null;
         let selectedCustomUri = null;
         let selectedCustomName = null;
-        let isFloatingExpanded = false;
+        let isFloatingExpanded = (urlParams.get('expanded') === 'true');
         let isDragging = false;
 
-        function toggleFloatingExpand(expand) {
+        function toggleFloatingExpand(expand, fromAndroid = false) {
             isFloatingExpanded = expand;
-            document.getElementById('floating-collapsed').style.display = expand ? 'none' : 'flex';
-            document.getElementById('floating-expanded').style.display = expand ? 'flex' : 'none';
+            const collapsedEl = document.getElementById('floating-collapsed');
+            const expandedEl = document.getElementById('floating-expanded');
+            if (collapsedEl) collapsedEl.style.display = expand ? 'none' : 'flex';
+            if (expandedEl) expandedEl.style.display = expand ? 'flex' : 'none';
 
             // 背景（ドラッグハンドル）のクリック透過設定などをネイティブ側に任せる
-            if (typeof Android !== 'undefined' && Android.toggleExpand) {
+            if (!fromAndroid && typeof Android !== 'undefined' && Android.toggleExpand) {
                 Android.toggleExpand(expand);
             }
             render();
+        }
+
+        // ネイティブ側から設定変更を通知してもらうための関数
+        function applyFloatingSettings(scale, expanded) {
+            if (mode === 'floating') {
+                updateScale(scale);
+                if (isFloatingExpanded !== expanded) {
+                    toggleFloatingExpand(expanded, true);
+                }
+            }
+        }
+
+        function updateScale(scale) {
+            document.body.style.transform = `scale(${scale})`;
+            document.body.style.transformOrigin = 'top left';
+            document.body.style.width = (100 / parseFloat(scale)) + '%';
+            document.body.style.height = (100 / parseFloat(scale)) + '%';
         }
 
         // ネイティブ側からドラッグ中かどうかを通知してもらうための関数
@@ -602,7 +632,7 @@
                     if (remaining > 0) {
                         // まだ終了していないタイマーがあれば再登録
                         if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-                            Android.setTimerAlarm(t.id, t.text, remaining);
+                            Android.setTimerAlarm(t.id, t.text, remaining, t.melody || 'default');
                         }
                     }
                 }
@@ -1223,7 +1253,10 @@
             document.getElementById('floating-view').style.display = (m === 'floating') ? 'block' : 'none';
             if (m === 'manager') {
                 document.body.style.backgroundColor = '#f8f9fa';
-                updateAlarmStatus();
+                document.body.style.padding = '16px';
+                document.body.style.transform = 'none';
+                document.body.style.width = 'auto';
+                document.body.style.height = 'auto';
                 updateBatteryStatus(); // バッテリー状態の更新
                 // 保存されている間隔を反映
                 const savedInterval = localStorage.getItem('recheckInterval') || '0';
@@ -1236,18 +1269,42 @@
 
                 // フローティング設定を反映
                 loadFloatingSettings();
+
+                // フローティング設定画面が開いたままならフローティングを表示
+                if (document.getElementById('settings-floating-detail').style.display === 'block') {
+                    if (typeof Android !== 'undefined' && Android.startFloatingWindow) {
+                        Android.startFloatingWindow();
+                    }
+                }
             } else {
-                document.body.style.backgroundColor = 'white';
+                document.body.style.backgroundColor = 'transparent';
                 document.body.style.padding = '0';
 
                 // 倍率適用
                 const scale = localStorage.getItem('floatScale') || '1.0';
-                document.body.style.transform = `scale(${scale})`;
-                document.body.style.transformOrigin = 'top left';
-                document.body.style.width = (100 / parseFloat(scale)) + '%';
-                document.body.style.height = (100 / parseFloat(scale)) + '%';
+                updateScale(scale);
+
+                // フローティングモードなら初期の展開状態を反映
+                toggleFloatingExpand(isFloatingExpanded, true);
             }
             render();
+        }
+
+        function openFloatingSettings() {
+            document.getElementById('settings-main-view').style.display = 'none';
+            document.getElementById('settings-floating-detail').style.display = 'block';
+            if (typeof Android !== 'undefined' && Android.startFloatingWindow) {
+                Android.startFloatingWindow();
+                toggleFloatingExpand(true);
+            }
+        }
+
+        function closeFloatingSettings() {
+            document.getElementById('settings-main-view').style.display = 'block';
+            document.getElementById('settings-floating-detail').style.display = 'none';
+            if (typeof Android !== 'undefined' && Android.stopFloatingWindow) {
+                Android.stopFloatingWindow();
+            }
         }
 
         function loadFloatingSettings() {
@@ -1294,6 +1351,15 @@
             label.onmousedown = label.ontouchstart = (e) => {
                 startY = e.touches ? e.touches[0].clientY : e.clientY;
                 startVal = parseInt(input.value) || 0;
+
+                // 調整開始時にフローティングウィンドウを表示・展開
+                if (typeof Android !== 'undefined') {
+                    if (Android.startFloatingWindow) Android.startFloatingWindow();
+                    // toggleFloatingExpand() は isFloatingExpanded をチェックして
+                    // すでに展開済みなら Android.toggleExpand を呼ばない
+                    toggleFloatingExpand(true);
+                }
+
                 document.addEventListener('mousemove', onMove);
                 document.addEventListener('mouseup', onEnd);
                 document.addEventListener('touchmove', onMove, { passive: false });
@@ -1315,8 +1381,14 @@
             localStorage.setItem('floatHeight', height);
             localStorage.setItem('floatScale', scale);
 
-            if (typeof Android !== 'undefined' && Android.updateFloatingSettings) {
-                Android.updateFloatingSettings(parseInt(x), parseInt(y), parseInt(width), parseInt(height), parseFloat(scale));
+            if (typeof Android !== 'undefined') {
+                if (Android.updateFloatingSettings) {
+                    Android.updateFloatingSettings(parseInt(x), parseInt(y), parseInt(width), parseInt(height), parseFloat(scale));
+                }
+
+                // まだ展開状態でなければ表示・展開を行う（手入力時やドラッグ開始漏れ対策）
+                if (Android.startFloatingWindow) Android.startFloatingWindow();
+                toggleFloatingExpand(true);
             }
         }
 
@@ -1429,8 +1501,18 @@
             managerList.addEventListener('touchend', handleTouchEnd, { passive: false });
         }
 
-        checkDailyReset();
+        // まず画面を表示することを最優先する
         setViewMode(mode);
+
+        // その後に初期化処理を行う
+        setTimeout(() => {
+            try {
+                checkDailyReset();
+                updateAlarmStatus();
+            } catch (e) {
+                console.error("Initialization error:", e);
+            }
+        }, 100);
     </script>
 </body>
 </html>

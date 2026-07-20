@@ -36,7 +36,6 @@ class FloatingWindowService : Service() {
     override fun onCreate() {
         super.onCreate()
         startForegroundService()
-        showFloatingWindow()
     }
 
     private fun startForegroundService() {
@@ -68,6 +67,26 @@ class FloatingWindowService : Service() {
             "ACTION_SHOW" -> showFloatingWindow()
             "ACTION_REFRESH" -> refreshWebView()
             "ACTION_UPDATE_SETTINGS" -> applySettings()
+            "ACTION_EXPAND" -> {
+                if (floatingView == null) {
+                    isExpanded = true
+                    showFloatingWindow()
+                } else {
+                    updateWindowSize(true)
+                    val webView: WebView? = floatingView?.findViewById(R.id.floatingWebView)
+                    webView?.evaluateJavascript("toggleFloatingExpand(true, true);", null)
+                }
+            }
+            "ACTION_COLLAPSE" -> {
+                if (floatingView == null) {
+                    isExpanded = false
+                    showFloatingWindow()
+                } else {
+                    updateWindowSize(false)
+                    val webView: WebView? = floatingView?.findViewById(R.id.floatingWebView)
+                    webView?.evaluateJavascript("toggleFloatingExpand(false, true);", null)
+                }
+            }
         }
         return START_STICKY
     }
@@ -79,6 +98,7 @@ class FloatingWindowService : Service() {
 
         val x = prefs.getInt("floatX", 100)
         val y = prefs.getInt("floatY", 100)
+        val scale = prefs.getFloat("floatScale", 1.0f)
 
         // 位置の更新（updateWindowSize内で境界チェックが行われる）
         params.x = x
@@ -89,7 +109,7 @@ class FloatingWindowService : Service() {
         
         // WebView内にもリロードを促す（スケール変更などを反映させるため）
         val webView: WebView = view.findViewById(R.id.floatingWebView)
-        webView.evaluateJavascript("location.reload();", null)
+        webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded);", null)
     }
 
     private fun refreshWebView() {
@@ -221,6 +241,7 @@ class FloatingWindowService : Service() {
         webView.webChromeClient = WebChromeClient()
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
+        webView.setBackgroundColor(0) // 透明に設定
 
         webView.addJavascriptInterface(object {
             @JavascriptInterface
@@ -253,12 +274,13 @@ class FloatingWindowService : Service() {
             fun toggleExpand(expanded: Boolean) {
                 val handler = Handler(Looper.getMainLooper())
                 handler.post {
+                    isExpanded = expanded
                     updateWindowSize(expanded)
                 }
             }
         }, "Android")
 
-        webView.loadUrl("file:///android_asset/index.html?mode=floating")
+        webView.loadUrl("file:///android_asset/index.html?mode=floating&expanded=$isExpanded")
 
         // 閉じるボタンの設定
         closeButton.setOnClickListener {

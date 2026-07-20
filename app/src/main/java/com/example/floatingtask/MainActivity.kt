@@ -75,6 +75,7 @@ class MainActivity : AppCompatActivity() {
         val webView: WebView = findViewById(R.id.webView)
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
+        webView.settings.allowFileAccess = true
         webView.addJavascriptInterface(WebAppInterface(this), "Android")
 
         webView.webViewClient = object : WebViewClient() {
@@ -115,6 +116,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun stopFloatingWindow() {
+            val intent = Intent(mContext, FloatingWindowService::class.java)
+            intent.action = "ACTION_HIDE"
+            mContext.startService(intent)
+        }
+
+        @JavascriptInterface
         fun onDataChanged() {
             val intent = Intent("com.example.floatingtask.DATA_CHANGED")
             intent.setPackage(mContext.packageName)
@@ -126,6 +134,15 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(mContext, MainActivity::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             mContext.startActivity(intent)
+        }
+
+        @JavascriptInterface
+        fun toggleExpand(expanded: Boolean) {
+            if (Settings.canDrawOverlays(mContext)) {
+                val intent = Intent(mContext, FloatingWindowService::class.java)
+                intent.action = if (expanded) "ACTION_EXPAND" else "ACTION_COLLAPSE"
+                mContext.startService(intent)
+            }
         }
 
         @JavascriptInterface
@@ -225,7 +242,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // 全画面表示中はフローティングウィンドウを隠す
+        // 全画面表示中はフローティングウィンドウを隠す。
+        // ただし、設定画面のフローティング調整中はこの限りではない（JS側から表示指示が出る）。
         if (Settings.canDrawOverlays(this)) {
             val intent = Intent(this, FloatingWindowService::class.java)
             intent.action = "ACTION_HIDE"
