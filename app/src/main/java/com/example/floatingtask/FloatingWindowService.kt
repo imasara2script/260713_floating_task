@@ -31,11 +31,24 @@ class FloatingWindowService : Service() {
     private lateinit var windowManager: WindowManager
     private var floatingView: View? = null
 
+    private val dataChangeReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+            refreshWebView()
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         startForegroundService()
+        val filter = android.content.IntentFilter("com.example.floatingtask.DATA_CHANGED")
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
+            dataChangeReceiver,
+            filter,
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        )
     }
 
     private fun startForegroundService() {
@@ -378,6 +391,7 @@ class FloatingWindowService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        unregisterReceiver(dataChangeReceiver)
         floatingView?.let {
             windowManager.removeView(it)
         }
