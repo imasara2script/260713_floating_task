@@ -15,6 +15,7 @@ import android.view.WindowManager
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
@@ -97,11 +98,12 @@ class MainActivity : AppCompatActivity() {
 
         // ブロードキャストレシーバーの登録
         val filter = IntentFilter("com.example.floatingtask.DATA_CHANGED")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(dataChangeReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(dataChangeReceiver, filter)
-        }
+        ContextCompat.registerReceiver(
+            this,
+            dataChangeReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
     }
 
     override fun onDestroy() {

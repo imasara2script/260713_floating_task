@@ -266,6 +266,7 @@ class FloatingWindowService : Service() {
             fun onDataChanged() {
                 // MainActivityに通知
                 val intent = Intent("com.example.floatingtask.DATA_CHANGED")
+                intent.setPackage(packageName)
                 sendBroadcast(intent)
             }
 
