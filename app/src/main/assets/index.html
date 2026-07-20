@@ -469,33 +469,51 @@
 
     <!-- Task Modal -->
     <div id="taskModal" class="modal-overlay">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 400px; width: 90%;">
             <div id="taskModalTitle" class="modal-title">新しいタスクを追加</div>
-            <div class="input-group" style="margin-bottom: 12px;">
-                <input type="text" id="taskInput" placeholder="タスク名を入力..." onkeydown="if(event.key==='Enter') addTask()" aria-label="新しいタスク名">
+
+            <!-- View Mode Container -->
+            <div id="taskViewContainer" style="display: none;">
+                <div id="viewTaskText" style="font-size: 18px; font-weight: bold; margin-bottom: 12px; word-break: break-all;"></div>
+                <div id="viewTaskTimer" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none;"></div>
+                <div style="color: #666; font-size: 12px; margin-bottom: 4px;">補足文章：</div>
+                <div id="viewTaskNote" style="font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 6px; min-height: 40px; white-space: pre-wrap; margin-bottom: 20px; border: 1px solid #eee; word-break: break-all;"></div>
             </div>
-            <div class="timer-group" style="margin-bottom: 12px;">
-                <label for="timerUnit" style="color: #666; font-size: 14px;">タイマー：</label>
-                <select id="timerUnit" onchange="toggleTimerInput()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
-                    <option value="none">無し</option>
-                    <option value="sec">秒後</option>
-                    <option value="min">分後</option>
-                    <option value="hour">時間後</option>
-                </select>
-                <input type="number" id="timerValue" class="timer-input" placeholder="数" min="1" style="display: none; padding: 6px; width: 60px; font-size: 14px;" aria-label="時間">
+
+            <!-- Edit Mode Container -->
+            <div id="taskEditContainer">
+                <div class="input-group" style="margin-bottom: 12px;">
+                    <input type="text" id="taskInput" placeholder="タスク名を入力..." onkeydown="if(event.key==='Enter') addTask()" aria-label="新しいタスク名">
+                </div>
+                <div class="timer-group" style="margin-bottom: 12px;">
+                    <label for="timerUnit" style="color: #666; font-size: 14px;">タイマー：</label>
+                    <select id="timerUnit" onchange="toggleTimerInput()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                        <option value="none">無し</option>
+                        <option value="sec">秒後</option>
+                        <option value="min">分後</option>
+                        <option value="hour">時間後</option>
+                    </select>
+                    <input type="number" id="timerValue" class="timer-input" placeholder="数" min="1" style="display: none; padding: 6px; width: 60px; font-size: 14px;" aria-label="時間">
+                </div>
+                <div id="melodyGroup" style="margin-bottom: 12px; display: none;">
+                    <label for="melodySelect" style="color: #666; font-size: 14px;">メロディ：</label>
+                    <select id="melodySelect" onchange="handleMelodyChange()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                        <option value="none">なし</option>
+                        <option value="default">デフォルト</option>
+                        <option value="alarm">アラーム音</option>
+                        <option value="chime">チャイム</option>
+                        <option value="custom">端末内から選択...</option>
+                    </select>
+                    <div id="customMelodyName" style="font-size: 11px; color: #666; margin-top: 4px; display: none;"></div>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label for="taskNote" style="color: #666; font-size: 14px; display: block; margin-bottom: 4px;">補足文章：</label>
+                    <textarea id="taskNote" placeholder="補足情報を入力..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; height: 120px; resize: none; box-sizing: border-box;"></textarea>
+                </div>
             </div>
-            <div id="melodyGroup" style="margin-bottom: 20px; display: none;">
-                <label for="melodySelect" style="color: #666; font-size: 14px;">メロディ：</label>
-                <select id="melodySelect" onchange="handleMelodyChange()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
-                    <option value="none">なし</option>
-                    <option value="default">デフォルト</option>
-                    <option value="alarm">アラーム音</option>
-                    <option value="chime">チャイム</option>
-                    <option value="custom">端末内から選択...</option>
-                </select>
-                <div id="customMelodyName" style="font-size: 11px; color: #666; margin-top: 4px; display: none;"></div>
-            </div>
+
             <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                <button id="modalEditBtn" class="btn" style="background: none; border: none; font-size: 24px; padding: 0; display: none;" onclick="switchToEditMode()" title="編集">✏️</button>
                 <button id="modalHistoryBtn" class="btn" style="background: none; border: none; font-size: 24px; padding: 0; display: none;" onclick="viewHistoryFromModal()" title="履歴・カレンダーを表示">📅</button>
                 <button id="modalDeleteBtn" class="btn" style="background: none; border: none; font-size: 24px; padding: 0; display: none;" onclick="deleteTaskFromModal()" title="タスクを削除">🗑️</button>
                 <button class="btn btn-secondary" onclick="closeTaskModal()">キャンセル</button>
@@ -819,20 +837,51 @@
             }
         }
 
+        function switchToViewMode() {
+            document.getElementById('taskViewContainer').style.display = 'block';
+            document.getElementById('taskEditContainer').style.display = 'none';
+            document.getElementById('taskModalConfirmBtn').style.display = 'none';
+            if (editingTaskId) {
+                document.getElementById('modalEditBtn').style.display = 'block';
+            }
+        }
+
+        function switchToEditMode() {
+            document.getElementById('taskViewContainer').style.display = 'none';
+            document.getElementById('taskEditContainer').style.display = 'block';
+            document.getElementById('taskModalConfirmBtn').style.display = 'block';
+            document.getElementById('modalEditBtn').style.display = 'none';
+
+            const titleEl = document.getElementById('taskModalTitle');
+            if (editingTaskId) {
+                titleEl.textContent = 'タスクを編集';
+            } else {
+                titleEl.textContent = '新しいタスクを追加';
+            }
+            setTimeout(() => document.getElementById('taskInput').focus(), 100);
+        }
+
         function openTaskModal(taskId = null) {
             editingTaskId = taskId;
             const titleEl = document.getElementById('taskModalTitle');
             const confirmBtn = document.getElementById('taskModalConfirmBtn');
             const historyBtn = document.getElementById('modalHistoryBtn');
             const deleteBtn = document.getElementById('modalDeleteBtn');
+            const editBtn = document.getElementById('modalEditBtn');
 
             if (taskId) {
                 const task = tasks.find(t => t.id === taskId);
                 if (historyBtn) historyBtn.style.display = task.durationMs ? 'none' : 'block';
                 if (deleteBtn) deleteBtn.style.display = 'block';
-                titleEl.textContent = 'タスクを編集';
+
+                titleEl.textContent = 'タスク詳細';
                 confirmBtn.textContent = '保存';
                 document.getElementById('taskInput').value = task.text;
+                document.getElementById('taskNote').value = task.note || '';
+
+                // Populate View Mode
+                document.getElementById('viewTaskText').textContent = task.text;
+                document.getElementById('viewTaskNote').textContent = task.note || '（なし）';
 
                 if (task.durationMs) {
                     if (task.durationMs >= 3600000 && task.durationMs % 3600000 === 0) {
@@ -862,20 +911,28 @@
                         selectedCustomName = null;
                         nameEl.style.display = 'none';
                     }
+
+                    document.getElementById('viewTaskTimer').textContent = `タイマー: ${getTotalTimeText(task)}`;
+                    document.getElementById('viewTaskTimer').style.display = 'block';
                 } else {
                     document.getElementById('timerUnit').value = 'none';
                     document.getElementById('timerValue').value = '';
                     document.getElementById('melodySelect').value = 'default';
+                    document.getElementById('viewTaskTimer').style.display = 'none';
                 }
+                switchToViewMode();
             } else {
                 titleEl.textContent = '新しいタスクを追加';
                 confirmBtn.textContent = '追加';
                 document.getElementById('taskInput').value = '';
+                document.getElementById('taskNote').value = '';
                 document.getElementById('timerValue').value = '';
                 document.getElementById('timerUnit').value = 'none';
                 document.getElementById('melodySelect').value = 'default';
                 if (historyBtn) historyBtn.style.display = 'none';
                 if (deleteBtn) deleteBtn.style.display = 'none';
+                if (editBtn) editBtn.style.display = 'none';
+                switchToEditMode();
             }
 
             toggleTimerInput();
@@ -884,7 +941,6 @@
             modal.onclick = (e) => {
                 if (e.target === modal) closeTaskModal();
             };
-            setTimeout(() => document.getElementById('taskInput').focus(), 100);
         }
 
         function closeTaskModal() {
@@ -894,6 +950,9 @@
             }
             if (document.getElementById('modalDeleteBtn')) {
                 document.getElementById('modalDeleteBtn').style.display = 'none';
+            }
+            if (document.getElementById('modalEditBtn')) {
+                document.getElementById('modalEditBtn').style.display = 'none';
             }
             editingTaskId = null;
         }
@@ -921,6 +980,8 @@
         function addTask() {
             const input = document.getElementById('taskInput');
             const text = input.value.trim();
+            const noteInput = document.getElementById('taskNote');
+            const note = noteInput.value.trim();
             const valInput = document.getElementById('timerValue');
             const unitSelect = document.getElementById('timerUnit');
             const melodySelect = document.getElementById('melodySelect');
@@ -939,9 +1000,10 @@
             if (editingTaskId) {
                 targetTask = tasks.find(t => t.id === editingTaskId);
                 targetTask.text = text;
+                targetTask.note = note;
             } else {
                 const id = Date.now();
-                targetTask = { id: id, text: text, completed: false };
+                targetTask = { id: id, text: text, note: note, completed: false };
             }
 
             if (unitSelect.value !== 'none') {
