@@ -11,18 +11,40 @@ import android.provider.Settings
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.view.WindowManager
+import android.view.View
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.rewarded.RewardedAd
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import java.security.MessageDigest
 
 class MainActivity : AppCompatActivity() {
 
     private var pendingTaskCount = 0
     private var isPageLoaded = false
+    private var rewardedAd: RewardedAd? = null
+    private var isAdFree = false
+
+    private fun loadRewardedAd() {
+        if (isAdFree) return
+        val adRequest = AdRequest.Builder().build()
+        RewardedAd.load(this, BuildConfig.ADMOB_REWARDED_UNIT_ID, adRequest, object : RewardedAdLoadCallback() {
+            override fun onAdFailedToLoad(adError: LoadAdError) {
+                rewardedAd = null
+            }
+            override fun onAdLoaded(ad: RewardedAd) {
+                rewardedAd = ad
+            }
+        })
+    }
 
     private val dataChangeReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -77,12 +99,17 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK) {
-            val uri: Uri? = result.data?.getParcelableExtra(android.media.RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            val uri: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                result.data?.getParcelableExtra(android.media.RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                result.data?.getParcelableExtra(android.media.RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            }
             val webView: WebView = findViewById(R.id.webView)
             if (uri != null) {
                 val ringtone = android.media.RingtoneManager.getRingtone(this, uri)
                 val title = ringtone.getTitle(this)
-                webView.evaluateJavascript("onRingtoneSelected('${uri.toString()}', '${title.replace("'", "\\'")}');", null)
+                webView.evaluateJavascript("onRingtoneSelected('$uri', '${title.replace("'", "\\'")}');", null)
             }
         }
     }
@@ -101,22 +128,23 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val requestPermissionLauncher = registerForActivityResult(
                 ActivityResultContracts.RequestPermission()
-            ) { isGranted: Boolean -> }
+            ) { _ -> }
             requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
 
         val webView: WebView = findViewById(R.id.webView)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            WebView.setWebContentsDebuggingEnabled(true)
-        }
+        WebView.setWebContentsDebuggingEnabled(true)
+        
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
         webView.settings.allowFileAccess = true
         webView.settings.allowContentAccess = true
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            webView.settings.allowFileAccessFromFileURLs = true
-            webView.settings.allowUniversalAccessFromFileURLs = true
-        }
+        
+        @Suppress("DEPRECATION")
+        webView.settings.allowFileAccessFromFileURLs = true
+        @Suppress("DEPRECATION")
+        webView.settings.allowUniversalAccessFromFileURLs = true
+        
         webView.settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         webView.addJavascriptInterface(WebAppInterface(this), "Android")
 
@@ -130,6 +158,22 @@ class MainActivity : AppCompatActivity() {
         webView.webChromeClient = android.webkit.WebChromeClient()
 
         webView.loadUrl("file:///android_asset/index.html")
+
+        // AdMobの初期化
+        val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+        isAdFree = prefs.getBoolean("isAdFree", false)
+        
+        MobileAds.initialize(this) {}
+        loadRewardedAd()
+        
+        val adView: AdView = findViewById(R.id.adView)
+        if (isAdFree) {
+            adView.visibility = View.GONE
+        } else {
+            adView.visibility = View.VISIBLE
+            val adRequest = AdRequest.Builder().build()
+            adView.loadAd(adRequest)
+        }
 
         // 毎日 AM 0:00 のリセットアラームと正午のチェックアラームをスケジュール
         AlarmScheduler.scheduleMidnightAlarm(this)
@@ -209,6 +253,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        @SuppressLint("BatteryLife")
         fun requestBatteryOptimizationExemption() {
             val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
             intent.data = Uri.parse("package:${mContext.packageName}")
@@ -303,6 +348,61 @@ class MainActivity : AppCompatActivity() {
         fun restoreData() {
             openDocumentLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*"))
         }
+
+        @JavascriptInterface
+        fun showRewardedAd() {
+            runOnUiThread {
+                if (rewardedAd != null) {
+                    rewardedAd?.show(this@MainActivity) { _ ->
+                        // 報酬付与: タスク制限を一時的に緩和（JS側で処理）
+                        val webView: WebView = findViewById(R.id.webView)
+                        webView.evaluateJavascript("onRewardEarned();", null)
+                        loadRewardedAd()
+                    }
+                } else {
+                    // 広告がロードされていない場合
+                    val webView: WebView = findViewById(R.id.webView)
+                    webView.evaluateJavascript("showModal('広告の読み込みに失敗しました。時間をおいて再度お試しください。', {hideCancel: true});", null)
+                    loadRewardedAd()
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun isAdFree(): Boolean {
+            return isAdFree
+        }
+
+        @JavascriptInterface
+        fun submitUnlockCode(code: String): Boolean {
+            // セキュリティ対策: 平文のコードではなくハッシュ値で比較する
+            // local.properties -> build.gradle.kts 経由で提供されるハッシュとソルトを使用
+            val salt = BuildConfig.PREMIUM_CODE_SALT
+            val expectedHash = BuildConfig.PREMIUM_CODE_HASH
+            
+            val inputWithSalt = code + salt
+            val hashedInput = sha256(inputWithSalt)
+
+            if (hashedInput == expectedHash) {
+                isAdFree = true
+                val prefs = mContext.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+                prefs.edit().putBoolean("isAdFree", true).apply()
+                
+                runOnUiThread {
+                    val adView: AdView = findViewById(R.id.adView)
+                    adView.visibility = View.GONE
+                    val webView: WebView = findViewById(R.id.webView)
+                    webView.evaluateJavascript("location.reload();", null)
+                }
+                return true
+            }
+            return false
+        }
+
+        private fun sha256(input: String): String {
+            val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
+            return bytes.joinToString("") { "%02x".format(it) }
+        }
     }
 
     override fun onResume() {
@@ -319,6 +419,14 @@ class MainActivity : AppCompatActivity() {
         if (isPageLoaded) {
             val webView: WebView = findViewById(R.id.webView)
             webView.evaluateJavascript("checkDailyReset();", null)
+            
+            // バナー広告の表示更新
+            val adView: AdView = findViewById(R.id.adView)
+            if (isAdFree) {
+                adView.visibility = View.GONE
+            } else {
+                adView.visibility = View.VISIBLE
+            }
         }
     }
 

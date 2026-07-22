@@ -373,6 +373,11 @@
                     </div>
 
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                        <div style="font-size: 13px; margin-bottom: 8px;">🔓 プレミアム機能</div>
+                        <button class="btn btn-primary" onclick="unlockPremium()" style="width: 100%; font-size: 14px;">解除コードを入力</button>
+                    </div>
+
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
                         <div style="font-size: 13px; margin-bottom: 8px;">💾 データ管理</div>
                         <div style="display: flex; gap: 8px;">
                             <button class="btn btn-secondary" onclick="exportData()" style="flex: 1; font-size: 14px;">バックアップ</button>
@@ -541,6 +546,13 @@
         let isFloatingExpanded = (urlParams.get('expanded') === 'true');
         let isDragging = false;
         let timerDisplayMode = 'countdown'; // 'countdown' or 'endtime'
+        let isAdFree = false;
+
+        function checkAdFree() {
+            if (typeof Android !== 'undefined' && Android.isAdFree) {
+                isAdFree = Android.isAdFree();
+            }
+        }
 
         function toggleFloatingExpand(expand, fromAndroid = false) {
             isFloatingExpanded = expand;
@@ -862,6 +874,17 @@
         }
 
         function openTaskModal(taskId = null) {
+            checkAdFree();
+            if (!isAdFree && !taskId && tasks.length >= 3) {
+                showModal('タスク数は3つまでに制限されています。広告を視聴して制限を緩和しますか？', {
+                    onConfirm: () => {
+                        if (typeof Android !== 'undefined' && Android.showRewardedAd) {
+                            Android.showRewardedAd();
+                        }
+                    }
+                });
+                return;
+            }
             editingTaskId = taskId;
             const titleEl = document.getElementById('taskModalTitle');
             const confirmBtn = document.getElementById('taskModalConfirmBtn');
@@ -963,6 +986,31 @@
                 closeTaskModal();
                 renderTaskHistory(id);
             }
+        }
+
+        function onRewardEarned() {
+            showModal('タスクの制限が緩和されました。アプリを再起動するか、このままタスクを追加できます。', {
+                hideCancel: true,
+                onConfirm: () => {
+                    // ここではフラグを立てるか、単純に再読み込みを促す
+                    // 今回はJS側では特に永続化せず、Android側で管理している。
+                    // 必要なら location.reload();
+                }
+            });
+        }
+
+        function unlockPremium() {
+            showModal('解除コードを入力してください', {
+                showInput: true,
+                onConfirm: (code) => {
+                    if (typeof Android !== 'undefined' && Android.submitUnlockCode) {
+                        const success = Android.submitUnlockCode(code);
+                        if (!success) {
+                            showModal('解除コードが正しくありません', { hideCancel: true });
+                        }
+                    }
+                }
+            });
         }
 
         function toggleTimerInput() {
