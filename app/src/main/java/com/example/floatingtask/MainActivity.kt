@@ -1,12 +1,14 @@
 package com.example.floatingtask
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
@@ -46,7 +48,7 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private val dataChangeReceiver = object : android.content.BroadcastReceiver() {
+    private val dataChangeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val webView: WebView = findViewById(R.id.webView)
             if (isPageLoaded) {
@@ -59,11 +61,15 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) {
         if (Settings.canDrawOverlays(this)) {
-            startFloatingService()
+            startFloatingService(false)
         }
     }
 
     private var dataToBackup: String? = null
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ -> }
 
     private val createDocumentLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -126,9 +132,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val requestPermissionLauncher = registerForActivityResult(
-                ActivityResultContracts.RequestPermission()
-            ) { _ -> }
             requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
 
@@ -139,12 +142,12 @@ class MainActivity : AppCompatActivity() {
         webView.settings.domStorageEnabled = true
         webView.settings.allowFileAccess = true
         webView.settings.allowContentAccess = true
-        
+
         @Suppress("DEPRECATION")
         webView.settings.allowFileAccessFromFileURLs = true
         @Suppress("DEPRECATION")
         webView.settings.allowUniversalAccessFromFileURLs = true
-        
+
         webView.settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         webView.addJavascriptInterface(WebAppInterface(this), "Android")
 
@@ -187,16 +190,12 @@ class MainActivity : AppCompatActivity() {
 
         // ブロードキャストレシーバーの登録
         val filter = IntentFilter("com.example.floatingtask.DATA_CHANGED")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(dataChangeReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            ContextCompat.registerReceiver(
-                this,
-                dataChangeReceiver,
-                filter,
-                ContextCompat.RECEIVER_NOT_EXPORTED
-            )
-        }
+        ContextCompat.registerReceiver(
+            this,
+            dataChangeReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
     }
 
     override fun onDestroy() {
@@ -207,7 +206,15 @@ class MainActivity : AppCompatActivity() {
     inner class WebAppInterface(private val mContext: Context) {
         @JavascriptInterface
         fun startFloatingWindow() {
-            checkOverlayPermissionAndStart()
+            if (!Settings.canDrawOverlays(mContext)) {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:${mContext.packageName}")
+                )
+                overlayPermissionLauncher.launch(intent)
+            } else {
+                startFloatingService(true)
+            }
         }
 
         @JavascriptInterface
@@ -248,7 +255,7 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun checkBatteryOptimizationExempt(): Boolean {
-            val powerManager = mContext.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            val powerManager = mContext.getSystemService(Context.POWER_SERVICE) as PowerManager
             return powerManager.isIgnoringBatteryOptimizations(mContext.packageName)
         }
 
@@ -407,6 +414,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+
+        val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+        prefs.edit().putBoolean("isAppInForeground", true).apply()
+
         // 全画面表示中はフローティングウィンドウを隠す。
         // ただし、設定画面のフローティング調整中はこの限りではない（JS側から表示指示が出る）。
         if (Settings.canDrawOverlays(this)) {
@@ -432,27 +443,20 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+
+        val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+        prefs.edit().putBoolean("isAppInForeground", false).apply()
+
         // アプリがバックグラウンドに回った時、未完了タスクがあれば表示する
         if (pendingTaskCount > 0 && Settings.canDrawOverlays(this)) {
-            startFloatingService()
+            startFloatingService(false)
         }
     }
 
-    private fun checkOverlayPermissionAndStart() {
-        if (!Settings.canDrawOverlays(this)) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
-            overlayPermissionLauncher.launch(intent)
-        } else {
-            startFloatingService()
-        }
-    }
-
-    private fun startFloatingService() {
+    private fun startFloatingService(isSettingsMode: Boolean) {
         val intent = Intent(this, FloatingWindowService::class.java)
         intent.action = "ACTION_SHOW"
+        intent.putExtra("IS_SETTINGS_MODE", isSettingsMode)
         startForegroundService(intent)
     }
 

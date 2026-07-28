@@ -5,7 +5,10 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.IBinder
@@ -30,9 +33,10 @@ class FloatingWindowService : Service() {
 
     private lateinit var windowManager: WindowManager
     private var floatingView: View? = null
+    private var isSettingsMode = false
 
-    private val dataChangeReceiver = object : android.content.BroadcastReceiver() {
-        override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+    private val dataChangeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
             refreshWebView()
         }
     }
@@ -42,7 +46,7 @@ class FloatingWindowService : Service() {
     override fun onCreate() {
         super.onCreate()
         startForegroundService()
-        val filter = android.content.IntentFilter("com.example.floatingtask.DATA_CHANGED")
+        val filter = IntentFilter("com.example.floatingtask.DATA_CHANGED")
         androidx.core.content.ContextCompat.registerReceiver(
             this,
             dataChangeReceiver,
@@ -66,7 +70,11 @@ class FloatingWindowService : Service() {
             .setSmallIcon(R.mipmap.ic_launcher)
             .build()
 
-        startForeground(1, notification)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(1, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(1, notification)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -75,8 +83,15 @@ class FloatingWindowService : Service() {
             webView?.evaluateJavascript("checkDailyReset();", null)
         }
 
+        if (intent?.hasExtra("IS_SETTINGS_MODE") == true) {
+            isSettingsMode = intent.getBooleanExtra("IS_SETTINGS_MODE", false)
+        }
+
         when (intent?.action) {
-            "ACTION_HIDE" -> hideFloatingWindow()
+            "ACTION_HIDE" -> {
+                isSettingsMode = false
+                hideFloatingWindow()
+            }
             "ACTION_SHOW" -> showFloatingWindow()
             "ACTION_REFRESH" -> refreshWebView()
             "ACTION_UPDATE_SETTINGS" -> applySettings()
@@ -106,8 +121,15 @@ class FloatingWindowService : Service() {
 
     private fun applySettings() {
         val view = floatingView ?: return
-        val params = view.layoutParams as WindowManager.LayoutParams
+        
         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+        val isAppInForeground = prefs.getBoolean("isAppInForeground", false)
+        if (isAppInForeground && !isSettingsMode) {
+            hideFloatingWindow()
+            return
+        }
+
+        val params = view.layoutParams as WindowManager.LayoutParams
 
         val x = prefs.getInt("floatX", 100)
         val y = prefs.getInt("floatY", 100)
@@ -220,6 +242,14 @@ class FloatingWindowService : Service() {
         if (!Settings.canDrawOverlays(this)) {
             return
         }
+
+        val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+        val isAppInForeground = prefs.getBoolean("isAppInForeground", false)
+        if (isAppInForeground && !isSettingsMode) {
+            hideFloatingWindow()
+            return
+        }
+
         if (floatingView != null) {
             floatingView?.visibility = View.VISIBLE
             return

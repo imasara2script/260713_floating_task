@@ -769,6 +769,13 @@
             if (tab !== 'history' || !options.skipRenderHistory) {
                 currentCalendarTaskId = null;
             }
+            // 設定画面から別のタブに移動する場合、フローティング設定が開いていれば閉じる
+            if (tab !== 'settings') {
+                const floatingDetail = document.getElementById('settings-floating-detail');
+                if (floatingDetail && floatingDetail.style.display === 'block') {
+                    closeFloatingSettings();
+                }
+            }
             document.getElementById('tasks-content').style.display = (tab === 'tasks') ? 'block' : 'none';
             document.getElementById('history-content').style.display = (tab === 'history') ? 'block' : 'none';
             document.getElementById('settings-content').style.display = (tab === 'settings') ? 'block' : 'none';
@@ -1170,13 +1177,14 @@
             const remaining = (t.startTime + t.durationMs) - Date.now();
             if (remaining <= 0) return '0秒';
 
-            const hours = Math.floor(remaining / 3600000);
-            const mins = Math.floor((remaining % 3600000) / 60000);
+            const hoursFloat = remaining / 3600000;
+            if (hoursFloat >= 1) {
+                return `${hoursFloat.toFixed(1)}時間`;
+            }
+
+            const mins = Math.floor(remaining / 60000);
             const secs = Math.floor((remaining % 60000) / 1000);
 
-            if (hours > 0) {
-                return `${hours}時間${mins}分`;
-            }
             if (mins > 0) {
                 return `${mins}分${secs}秒`;
             }
@@ -1194,12 +1202,14 @@
 
         function getTotalTimeText(t) {
             if (!t.durationMs) return '';
-            const hours = Math.floor(t.durationMs / 3600000);
-            const mins = Math.floor((t.durationMs % 3600000) / 60000);
+            const hoursFloat = t.durationMs / 3600000;
+            if (hoursFloat >= 1) {
+                return `${hoursFloat.toFixed(1)}時間`;
+            }
+            const mins = Math.floor(t.durationMs / 60000);
             const secs = Math.floor((t.durationMs % 60000) / 1000);
 
             let res = '';
-            if (hours > 0) res += hours + '時間';
             if (mins > 0) res += mins + '分';
             if (secs > 0 || res === '') res += secs + '秒';
             return res;
@@ -1859,6 +1869,11 @@
                 // データの読み込み
                 tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
                 history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+
+                // 初回起動時（設定未保存時）にデフォルト値を設定
+                if (localStorage.getItem('floatX') === null) {
+                    resetFloatingSettings();
+                }
 
                 // 表示モードの設定
                 setViewMode(mode);
