@@ -324,7 +324,17 @@
         <div id="tasks-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                 <h1 style="margin: 0;">デイリータスク管理</h1>
-                <button id="btn-toggle-edit" class="btn btn-secondary" onclick="toggleEditMode()" style="padding: 4px 12px; font-size: 14px;">リストを編集</button>
+                <button id="btn-toggle-edit" class="btn btn-secondary" onclick="openEditMenu()" style="padding: 4px 12px; font-size: 14px;">リストを編集</button>
+            </div>
+            <!-- エクスポート操作パネル -->
+            <div id="export-controls" class="card" style="display: none; margin-bottom: 16px; background: #e7f3ff; border: 1px solid #b3d7ff;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 14px; font-weight: bold; color: #0056b3;">エクスポートするタスクを選択</span>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" onclick="cancelExportMode()" style="padding: 4px 12px; font-size: 13px;">キャンセル</button>
+                        <button class="btn btn-primary" onclick="executeExportTasks()" style="padding: 4px 12px; font-size: 13px;">エクスポート実行</button>
+                    </div>
+                </div>
             </div>
             <div class="card">
                 <!-- 普段表示される追加ボタン -->
@@ -460,6 +470,21 @@
         </div>
     </div>
 
+    <!-- Edit Menu Modal -->
+    <div id="editMenuModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 250px;">
+            <div class="modal-title">リスト編集メニュー</div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button class="btn btn-secondary" onclick="startSortMode()" style="width: 100%; background: #f8f9fa; color: #333; border: 1px solid #ddd; text-align: left; padding: 12px;">↕️ 並べ替え</button>
+                <button class="btn btn-secondary" onclick="startExportMode()" style="width: 100%; background: #f8f9fa; color: #333; border: 1px solid #ddd; text-align: left; padding: 12px;">📤 タスクをエクスポート</button>
+                <button class="btn btn-secondary" onclick="if(typeof Android !== 'undefined') Android.restoreData()" style="width: 100%; background: #f8f9fa; color: #333; border: 1px solid #ddd; text-align: left; padding: 12px;">📥 タスクをインポート</button>
+            </div>
+            <div class="modal-actions" style="margin-top: 16px;">
+                <button class="btn" onclick="closeEditMenu()" style="width: 100%;">閉じる</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Custom Modal -->
     <div id="customModal" class="modal-overlay">
         <div class="modal-content">
@@ -538,6 +563,8 @@
         let currentFloatingIndex = 0;
         let draggingElement = null;
         let isEditMode = false;
+        let isExportMode = false;
+        let selectedExportIds = new Set();
         let currentCalendarDate = new Date();
         let currentCalendarTaskId = null;
         let editingTaskId = null;
@@ -613,6 +640,68 @@
             // セレクトボックスで「端末内から選択...」を選んだ状態を維持しつつ、
             // 値を保持するために何らかの工夫が必要かもしれないが、
             // ここでは value="custom" のまま、保存時に selectedCustomUri を使うようにする。
+        }
+
+        function openEditMenu() {
+            if (isEditMode) {
+                toggleEditMode();
+                return;
+            }
+            if (isExportMode) {
+                cancelExportMode();
+                return;
+            }
+            document.getElementById('editMenuModal').style.display = 'flex';
+        }
+
+        function closeEditMenu() {
+            document.getElementById('editMenuModal').style.display = 'none';
+        }
+
+        function startSortMode() {
+            closeEditMenu();
+            toggleEditMode();
+        }
+
+        function startExportMode() {
+            closeEditMenu();
+            isExportMode = true;
+            selectedExportIds.clear();
+            document.getElementById('export-controls').style.display = 'block';
+            document.getElementById('addTaskTrigger').style.display = 'none';
+            render();
+        }
+
+        function cancelExportMode() {
+            isExportMode = false;
+            selectedExportIds.clear();
+            document.getElementById('export-controls').style.display = 'none';
+            document.getElementById('addTaskTrigger').style.display = 'block';
+            render();
+        }
+
+        function toggleExportSelection(id) {
+            if (selectedExportIds.has(id)) {
+                selectedExportIds.delete(id);
+            } else {
+                selectedExportIds.add(id);
+            }
+        }
+
+        function executeExportTasks() {
+            if (selectedExportIds.size === 0) {
+                showModal('エクスポートするタスクを1つ以上選択してください', { hideCancel: true });
+                return;
+            }
+            const selectedTasks = tasks.filter(t => selectedExportIds.has(t.id));
+            const data = {
+                type: 'partial_tasks',
+                tasks: selectedTasks
+            };
+            if (typeof Android !== 'undefined') {
+                Android.backupData(JSON.stringify(data));
+            }
+            cancelExportMode();
         }
 
         function toggleEditMode() {
@@ -1422,8 +1511,14 @@
             const btnToggleEdit = document.getElementById('btn-toggle-edit');
             if (btnToggleEdit) {
                 btnToggleEdit.style.display = (mode === 'manager') ? 'inline-block' : 'none';
-                // 編集モードの状態をボタンに反映
-                btnToggleEdit.textContent = isEditMode ? '編集終了' : 'リストを編集';
+                // モードの状態をボタンに反映
+                if (isEditMode) {
+                    btnToggleEdit.textContent = '並べ替え終了';
+                } else if (isExportMode) {
+                    btnToggleEdit.textContent = '編集メニュー';
+                } else {
+                    btnToggleEdit.textContent = 'リストを編集';
+                }
                 btnToggleEdit.classList.toggle('btn-secondary', !isEditMode);
                 btnToggleEdit.classList.toggle('btn-primary', isEditMode);
             }
@@ -1466,10 +1561,11 @@
                     return `
                     <li class="task-item ${isTimer && !t.completed ? 'timer-active' : ''}" data-id="${t.id}">
                         ${isEditMode ? '<span class="drag-handle">☰</span>' : ''}
-                        ${!isEditMode ? `<input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">` : ''}
+                        ${isExportMode ? `<input type="checkbox" onchange="toggleExportSelection(${t.id})">` : ''}
+                        ${!isEditMode && !isExportMode ? `<input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">` : ''}
                         ${isTimer && !t.completed ? `<span class="timer-badge ${isExpired ? 'timer-expired' : ''}" onclick="toggleTimerDisplayMode()" style="cursor:pointer;">${timerDisplay}</span>` : ''}
-                        <span class="task-text ${t.completed ? 'completed' : ''} editable" onclick="editTask(${t.id})">${t.text}</span>
-                        ${isTimer && !isEditMode ? `<button class="btn-icon" onclick="repeatTimer(${t.id})" title="リピート">🔄</button>` : ''}
+                        <span class="task-text ${t.completed ? 'completed' : ''} editable" onclick="${isExportMode ? `toggleExportSelection(${t.id}); render();` : `editTask(${t.id})`}">${t.text}</span>
+                        ${isTimer && !isEditMode && !isExportMode ? `<button class="btn-icon" onclick="repeatTimer(${t.id})" title="リピート">🔄</button>` : ''}
                     </li>
                 `}).join('');
             }
@@ -1791,6 +1887,22 @@
         function applyRestoredData(jsonString) {
             try {
                 const data = JSON.parse(jsonString);
+
+                // 個別タスクのインポート処理
+                if (data.type === 'partial_tasks' && Array.from(data.tasks)) {
+                    // IDが衝突しないように調整してリストの先頭に追加
+                    const now = Date.now();
+                    const newTasks = data.tasks.map((t, idx) => ({
+                        ...t,
+                        id: now + idx, // 重複を避けるために新しいIDを付与
+                        completed: false // インポート時は未完了状態にする
+                    }));
+                    tasks = [...newTasks, ...tasks];
+                    saveTasks();
+                    showModal(`${newTasks.length}件のタスクをインポートしました。`, { hideCancel: true });
+                    return;
+                }
+
                 if (data.tasks) {
                     tasks = data.tasks;
                     localStorage.setItem('tasks', JSON.stringify(tasks));
