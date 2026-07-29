@@ -59,14 +59,14 @@ class FloatingWindowService : Service() {
         val channelId = "floating_window_service"
         val channel = NotificationChannel(
             channelId,
-            "Floating Window Service",
+            getString(R.string.floating_window_service_name),
             NotificationManager.IMPORTANCE_LOW
         )
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(channel)
 
         val notification: Notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Floating Task Running")
+            .setContentTitle(getString(R.string.floating_window_service_name))
             .setSmallIcon(R.mipmap.ic_launcher)
             .build()
 

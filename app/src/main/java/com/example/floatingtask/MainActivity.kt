@@ -307,7 +307,7 @@ class MainActivity : AppCompatActivity() {
         fun pickRingtone() {
             val intent = Intent(android.media.RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                 putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_TYPE, android.media.RingtoneManager.TYPE_ALL)
-                putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_TITLE, "メロディを選択")
+                putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_TITLE, getString(R.string.pick_melody))
                 putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
                 putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
             }
@@ -369,7 +369,7 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     // 広告がロードされていない場合
                     val webView: WebView = findViewById(R.id.webView)
-                    webView.evaluateJavascript("showModal('広告の読み込みに失敗しました。時間をおいて再度お試しください。', {hideCancel: true});", null)
+                    webView.evaluateJavascript("showModal(getTranslation('msg_ad_fail'), {hideCancel: true});", null)
                     loadRewardedAd()
                 }
             }
@@ -404,6 +404,23 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
             return false
+        }
+
+        @JavascriptInterface
+        fun setAppLanguage(languageCode: String) {
+            val appLocale: androidx.core.os.LocaleListCompat = if (languageCode == "system") {
+                androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+            } else {
+                androidx.core.os.LocaleListCompat.forLanguageTags(languageCode)
+            }
+            runOnUiThread {
+                androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(appLocale)
+            }
+        }
+
+        @JavascriptInterface
+        fun getSystemLanguage(): String {
+            return java.util.Locale.getDefault().language
         }
 
         private fun sha256(input: String): String {
@@ -462,16 +479,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun showOverlayPermissionDialog() {
         android.app.AlertDialog.Builder(this)
-            .setTitle("権限が必要です")
-            .setMessage("このアプリを動作させるには「他のアプリの上に重ねて表示」権限を許可する必要があります。設定画面から許可してください。")
-            .setPositiveButton("設定へ") { _, _ ->
+            .setTitle(R.string.permission_required_title)
+            .setMessage(R.string.permission_required_message)
+            .setPositiveButton(R.string.go_to_settings) { _, _ ->
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     Uri.parse("package:$packageName")
                 )
                 startActivity(intent)
             }
-            .setNegativeButton("キャンセル", null)
+            .setNegativeButton(R.string.cancel, null)
             .setCancelable(false)
             .show()
     }

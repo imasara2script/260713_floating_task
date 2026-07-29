@@ -37,9 +37,9 @@ class AlarmReceiver : BroadcastReceiver() {
                 context.startForegroundService(serviceIntent)
             }
         } else if (intent.action == "ACTION_TIMER_EXPIRED") {
-            val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: "タイマー終了"
+            val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: context.getString(R.string.timer_expired)
             val melody = intent.getStringExtra("EXTRA_MELODY") ?: "default"
-            showNotification(context, "タイマー終了", taskText, melody)
+            showNotification(context, context.getString(R.string.timer_expired), taskText, melody)
             
             if (Settings.canDrawOverlays(context)) {
                 val serviceIntent = Intent(context, FloatingWindowService::class.java).apply {
@@ -101,10 +101,10 @@ class AlarmReceiver : BroadcastReceiver() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channelName = when {
-                melody == "alarm" -> "Timer Alarm"
-                melody == "chime" -> "Timer Chime"
-                melody.startsWith("content://") -> "Timer Custom"
-                else -> "Timer Notifications"
+                melody == "alarm" -> context.getString(R.string.channel_timer_alarm)
+                melody == "chime" -> context.getString(R.string.channel_timer_chime)
+                melody.startsWith("content://") -> context.getString(R.string.channel_timer_custom)
+                else -> context.getString(R.string.channel_timer_notifications)
             }
             val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH).apply {
                 setSound(soundUri, Notification.AUDIO_ATTRIBUTES_DEFAULT)
@@ -129,7 +129,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, "Timer Silent", NotificationManager.IMPORTANCE_LOW).apply {
+            val channel = NotificationChannel(channelId, context.getString(R.string.channel_timer_silent), NotificationManager.IMPORTANCE_LOW).apply {
                 setSound(null, null)
             }
             manager.createNotificationChannel(channel)

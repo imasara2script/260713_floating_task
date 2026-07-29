@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">floating task</string>
+    <string name="permission_required_title">権限が必要です</string>
+    <string name="permission_required_message">このアプリを動作させるには「他のアプリの上に重ねて表示」権限を許可する必要があります。設定画面から許可してください。</string>
+    <string name="go_to_settings">設定へ</string>
+    <string name="cancel">キャンセル</string>
+    <string name="pick_melody">メロディを選択</string>
+    <string name="timer_expired">タイマー終了</string>
+    <string name="channel_timer_alarm">タイマー：アラーム音</string>
+    <string name="channel_timer_chime">タイマー：チャイム</string>
+    <string name="channel_timer_custom">タイマー：カスタム</string>
+    <string name="channel_timer_notifications">タイマー通知</string>
+    <string name="channel_timer_silent">タイマー：消音</string>
+    <string name="floating_window_service_name">フローティングウィンドウ・サービス</string>
 </resources>
