@@ -1,10 +1,12 @@
 package com.example.floatingtask
 
 import android.annotation.SuppressLint
+import android.app.AlarmManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Resources
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -80,7 +82,7 @@ class MainActivity : AppCompatActivity() {
     ) { _ -> }
 
     private val createDocumentLauncher = registerForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json")
+        ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
         uri?.let {
             contentResolver.openOutputStream(it)?.use { outputStream ->
@@ -93,7 +95,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val openDocumentLauncher = registerForActivityResult(
-        ActivityResultContracts.OpenDocument()
+        ActivityResultContracts.OpenDocument(),
     ) { uri ->
         uri?.let {
             contentResolver.openInputStream(it)?.use { inputStream ->
@@ -110,7 +112,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val ringtonePickerLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
+        ActivityResultContracts.StartActivityForResult(),
     ) { result ->
         if (result.resultCode == RESULT_OK) {
             val uri: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -202,7 +204,7 @@ class MainActivity : AppCompatActivity() {
             this,
             dataChangeReceiver,
             filter,
-            ContextCompat.RECEIVER_NOT_EXPORTED
+            ContextCompat.RECEIVER_NOT_EXPORTED,
         )
     }
 
@@ -278,7 +280,7 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun checkExactAlarmPermission(): Boolean {
-            val alarmManager = mContext.getSystemService(android.app.AlarmManager::class.java)
+            val alarmManager = mContext.getSystemService(AlarmManager::class.java)
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 alarmManager.canScheduleExactAlarms()
             } else {
@@ -290,7 +292,7 @@ class MainActivity : AppCompatActivity() {
         fun openExactAlarmSettings() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                intent.data = Uri.parse("package:${mContext.packageName}")
+                intent.data = "package:${mContext.packageName}".toUri()
                 mContext.startActivity(intent)
             }
         }
@@ -325,14 +327,13 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun updateFloatingSettings(x: Int, y: Int, width: Int, height: Int, scale: Float) {
-            val prefs = mContext.getSharedPreferences("prefs", Context.MODE_PRIVATE)
-            prefs.edit().apply {
+            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+            prefs.edit {
                 putInt("floatX", x)
                 putInt("floatY", y)
                 putInt("floatWidth", width)
                 putInt("floatHeight", height)
                 putFloat("floatScale", scale)
-                apply()
             }
             // サービスが実行中なら更新を通知
             val intent = Intent(mContext, FloatingWindowService::class.java)
@@ -343,7 +344,7 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun getDisplayMetrics(): String {
             // システム全体のメトリクスを使用することで、より確実に物理ピクセルと密度を取得
-            val dm = android.content.res.Resources.getSystem().displayMetrics
+            val dm = Resources.getSystem().displayMetrics
             val json = org.json.JSONObject()
             json.put("widthPixels", dm.widthPixels)
             json.put("heightPixels", dm.heightPixels)

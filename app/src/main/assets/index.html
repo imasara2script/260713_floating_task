@@ -396,7 +396,7 @@
                     </div>
 
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <div style="font-size: 13px; margin-bottom: 8px;" data-i18n="label_language">🌐 言語設定</div>
+                        <label for="languageSelect" style="display: block; font-size: 13px; margin-bottom: 8px;" data-i18n="label_language">🌐 言語設定</label>
                         <select id="languageSelect" onchange="updateLanguagePreference()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
                             <option value="system" data-i18n="lang_auto">自動 (システム設定)</option>
                             <option value="ja" data-i18n="lang_ja">日本語</option>
@@ -418,22 +418,22 @@
 
                     <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                         <div style="flex: 1;">
-                            <label id="labelFloatX" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_x">位置 (X) (ドラッグ):</label>
+                            <label for="floatX" id="labelFloatX" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_x">位置 (X) (ドラッグ):</label>
                             <input type="number" id="floatX" onchange="saveFloatingSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
                         </div>
                         <div style="flex: 1;">
-                            <label id="labelFloatY" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_y">位置 (Y) (ドラッグ):</label>
+                            <label for="floatY" id="labelFloatY" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_y">位置 (Y) (ドラッグ):</label>
                             <input type="number" id="floatY" onchange="saveFloatingSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
                         </div>
                     </div>
 
                     <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                         <div style="flex: 1;">
-                            <label id="labelFloatWidth" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_width">横幅 (px) (ドラッグ):</label>
+                            <label for="floatWidth" id="labelFloatWidth" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_width">横幅 (px) (ドラッグ):</label>
                             <input type="number" id="floatWidth" onchange="saveFloatingSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
                         </div>
                         <div style="flex: 1;">
-                            <label id="labelFloatHeight" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_height">縦幅 (px) (ドラッグ):</label>
+                            <label for="floatHeight" id="labelFloatHeight" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_height">縦幅 (px) (ドラッグ):</label>
                             <input type="number" id="floatHeight" onchange="saveFloatingSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
                         </div>
                     </div>
@@ -449,7 +449,7 @@
                         </select>
                     </div>
 
-                    <label style="display: block; margin-bottom: 4px;" data-i18n="label_scale">表示倍率:</label>
+                    <label for="floatScale" style="display: block; margin-bottom: 4px;" data-i18n="label_scale">表示倍率:</label>
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
                         <input type="range" id="floatScale" min="0.5" max="2.0" step="0.1" oninput="document.getElementById('scaleVal').innerText = this.value; saveFloatingSettings()" style="flex-grow: 1;">
                         <span id="scaleVal" style="width: 30px;">1.0</span>
@@ -514,7 +514,8 @@
     <div id="customModal" class="modal-overlay">
         <div class="modal-content">
             <div id="modalTitle" class="modal-title"></div>
-            <input type="text" id="modalInput" class="modal-input" style="display: none;">
+            <label for="modalInput" style="display:none;">Input</label>
+            <input type="text" id="modalInput" class="modal-input" style="display: none;" aria-labelledby="modalTitle">
             <div class="modal-actions">
                 <button class="btn" onclick="closeModal()">キャンセル</button>
                 <button id="modalConfirmBtn" class="btn btn-primary">OK</button>
@@ -538,6 +539,7 @@
             <!-- Edit Mode Container -->
             <div id="taskEditContainer">
                 <div class="input-group" style="margin-bottom: 12px;">
+                    <label for="taskInput" style="display:none;" data-i18n="label_task_name">タスク名:</label>
                     <input type="text" id="taskInput" placeholder="タスク名を入力..." onkeydown="if(event.key==='Enter') addTask()" aria-label="新しいタスク名" data-i18n-placeholder="placeholder_task_name">
                 </div>
                 <div class="timer-group" style="margin-bottom: 12px;">
