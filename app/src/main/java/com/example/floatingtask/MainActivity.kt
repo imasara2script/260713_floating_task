@@ -18,6 +18,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.gms.ads.AdRequest
@@ -38,14 +40,20 @@ class MainActivity : AppCompatActivity() {
     private fun loadRewardedAd() {
         if (isAdFree) return
         val adRequest = AdRequest.Builder().build()
-        RewardedAd.load(this, BuildConfig.ADMOB_REWARDED_UNIT_ID, adRequest, object : RewardedAdLoadCallback() {
-            override fun onAdFailedToLoad(adError: LoadAdError) {
-                rewardedAd = null
-            }
-            override fun onAdLoaded(ad: RewardedAd) {
-                rewardedAd = ad
-            }
-        })
+        RewardedAd.load(
+            this,
+            BuildConfig.ADMOB_REWARDED_UNIT_ID,
+            adRequest,
+            object : RewardedAdLoadCallback() {
+                override fun onAdFailedToLoad(adError: LoadAdError) {
+                    rewardedAd = null
+                }
+
+                override fun onAdLoaded(ad: RewardedAd) {
+                    rewardedAd = ad
+                }
+            },
+        )
     }
 
     private val dataChangeReceiver = object : BroadcastReceiver() {
@@ -58,17 +66,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val overlayPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
+        ActivityResultContracts.StartActivityForResult(),
     ) {
         if (Settings.canDrawOverlays(this)) {
-            startFloatingService(false)
+            startFloatingService(isSettingsMode = false)
         }
     }
 
     private var dataToBackup: String? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission(),
     ) { _ -> }
 
     private val createDocumentLauncher = registerForActivityResult(
@@ -203,17 +211,18 @@ class MainActivity : AppCompatActivity() {
         unregisterReceiver(dataChangeReceiver)
     }
 
+    @Suppress("unused")
     inner class WebAppInterface(private val mContext: Context) {
         @JavascriptInterface
         fun startFloatingWindow() {
             if (!Settings.canDrawOverlays(mContext)) {
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:${mContext.packageName}")
+                    "package:${mContext.packageName}".toUri(),
                 )
                 overlayPermissionLauncher.launch(intent)
             } else {
-                startFloatingService(true)
+                startFloatingService(isSettingsMode = true)
             }
         }
 
@@ -255,7 +264,7 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun checkBatteryOptimizationExempt(): Boolean {
-            val powerManager = mContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+            val powerManager = mContext.getSystemService(PowerManager::class.java)
             return powerManager.isIgnoringBatteryOptimizations(mContext.packageName)
         }
 
@@ -263,13 +272,13 @@ class MainActivity : AppCompatActivity() {
         @SuppressLint("BatteryLife")
         fun requestBatteryOptimizationExemption() {
             val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-            intent.data = Uri.parse("package:${mContext.packageName}")
+            intent.data = "package:${mContext.packageName}".toUri()
             mContext.startActivity(intent)
         }
 
         @JavascriptInterface
         fun checkExactAlarmPermission(): Boolean {
-            val alarmManager = mContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            val alarmManager = mContext.getSystemService(android.app.AlarmManager::class.java)
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 alarmManager.canScheduleExactAlarms()
             } else {
@@ -288,8 +297,8 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun setIntervalAlarm(minutes: Int) {
-            val prefs = mContext.getSharedPreferences("prefs", Context.MODE_PRIVATE)
-            prefs.edit().putInt("recheckInterval", minutes).apply()
+            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+            prefs.edit { putInt("recheckInterval", minutes) }
 
             if (minutes > 0) {
                 AlarmScheduler.scheduleIntervalAlarm(mContext, minutes)
@@ -392,8 +401,8 @@ class MainActivity : AppCompatActivity() {
 
             if (hashedInput == expectedHash) {
                 isAdFree = true
-                val prefs = mContext.getSharedPreferences("prefs", Context.MODE_PRIVATE)
-                prefs.edit().putBoolean("isAdFree", true).apply()
+                val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+                prefs.edit { putBoolean("isAdFree", true) }
                 
                 runOnUiThread {
                     val adView: AdView = findViewById(R.id.adView)
@@ -433,7 +442,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
 
         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
-        prefs.edit().putBoolean("isAppInForeground", true).apply()
+        prefs.edit { putBoolean("isAppInForeground", true) }
 
         // 全画面表示中はフローティングウィンドウを隠す。
         // ただし、設定画面のフローティング調整中はこの限りではない（JS側から表示指示が出る）。
@@ -462,11 +471,11 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
 
         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
-        prefs.edit().putBoolean("isAppInForeground", false).apply()
+        prefs.edit { putBoolean("isAppInForeground", false) }
 
         // アプリがバックグラウンドに回った時、未完了タスクがあれば表示する
-        if (pendingTaskCount > 0 && Settings.canDrawOverlays(this)) {
-            startFloatingService(false)
+        if ((pendingTaskCount > 0) && Settings.canDrawOverlays(this)) {
+            startFloatingService(isSettingsMode = false)
         }
     }
 
@@ -484,7 +493,7 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton(R.string.go_to_settings) { _, _ ->
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")
+                    "package:$packageName".toUri(),
                 )
                 startActivity(intent)
             }

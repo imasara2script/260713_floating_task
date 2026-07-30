@@ -51,7 +51,7 @@ class FloatingWindowService : Service() {
             this,
             dataChangeReceiver,
             filter,
-            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED,
         )
     }
 
@@ -60,7 +60,7 @@ class FloatingWindowService : Service() {
         val channel = NotificationChannel(
             channelId,
             getString(R.string.floating_window_service_name),
-            NotificationManager.IMPORTANCE_LOW
+            NotificationManager.IMPORTANCE_LOW,
         )
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(channel)
@@ -100,7 +100,7 @@ class FloatingWindowService : Service() {
                     isExpanded = true
                     showFloatingWindow()
                 } else {
-                    updateWindowSize(true)
+                    updateWindowSize(expanded = true)
                     val webView: WebView? = floatingView?.findViewById(R.id.floatingWebView)
                     webView?.evaluateJavascript("toggleFloatingExpand(true, true);", null)
                 }
@@ -110,7 +110,7 @@ class FloatingWindowService : Service() {
                     isExpanded = false
                     showFloatingWindow()
                 } else {
-                    updateWindowSize(false)
+                    updateWindowSize(expanded = false)
                     val webView: WebView? = floatingView?.findViewById(R.id.floatingWebView)
                     webView?.evaluateJavascript("toggleFloatingExpand(false, true);", null)
                 }
@@ -265,7 +265,7 @@ class FloatingWindowService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            PixelFormat.TRANSLUCENT
+            PixelFormat.TRANSLUCENT,
         )
 
         params.gravity = Gravity.TOP or Gravity.START
@@ -286,14 +286,15 @@ class FloatingWindowService : Service() {
         webView.settings.domStorageEnabled = true
         webView.setBackgroundColor(0) // 透明に設定
 
-        webView.addJavascriptInterface(object {
-            @JavascriptInterface
-            @Suppress("unused")
-            fun openMainActivity() {
-                val intent = Intent(this@FloatingWindowService, MainActivity::class.java)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                startActivity(intent)
-            }
+        webView.addJavascriptInterface(
+            object {
+                @JavascriptInterface
+                @Suppress("unused")
+                fun openMainActivity() {
+                    val intent = Intent(this@FloatingWindowService, MainActivity::class.java)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    startActivity(intent)
+                }
 
             @JavascriptInterface
             @Suppress("unused")
@@ -322,7 +323,9 @@ class FloatingWindowService : Service() {
                     updateWindowSize(expanded)
                 }
             }
-        }, "Android")
+            },
+            "Android",
+        )
 
         webView.loadUrl("file:///android_asset/index.html?mode=floating&expanded=$isExpanded")
 
@@ -362,7 +365,7 @@ class FloatingWindowService : Service() {
                     val dx = event.rawX - initialTouchX
                     val dy = event.rawY - initialTouchY
                     
-                    if (!isActuallyDragging && hypot(dx.toDouble(), dy.toDouble()) > touchSlop) {
+                    if (!isActuallyDragging && (hypot(dx.toDouble(), dy.toDouble()) > touchSlop)) {
                         isActuallyDragging = true
                         webView.evaluateJavascript("setIsDragging(true);", null)
                     }
@@ -392,19 +395,22 @@ class FloatingWindowService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    if (event.action == MotionEvent.ACTION_UP && !isActuallyDragging) {
+                    if ((event.action == MotionEvent.ACTION_UP) && !isActuallyDragging) {
                         // タップ判定: 展開/縮小を切り替え
                         v.performClick()
                         val nextExpanded = !isExpanded
-                        updateWindowSize(nextExpanded)
+                        updateWindowSize(expanded = nextExpanded)
                         webView.evaluateJavascript("toggleFloatingExpand($nextExpanded);", null)
                     }
 
                     // ドラッグ終了を通知（タップ判定との競合を避けるため少し遅延させる）
                     val handler = Handler(Looper.getMainLooper())
-                    handler.postDelayed({
-                        webView.evaluateJavascript("setIsDragging(false);", null)
-                    }, 150)
+                    handler.postDelayed(
+                        {
+                            webView.evaluateJavascript("setIsDragging(false);", null)
+                        },
+                        150,
+                    )
                     true
                 }
                 else -> false
@@ -416,7 +422,7 @@ class FloatingWindowService : Service() {
         windowManager.addView(floatingView, params)
 
         // 初期状態の表示を反映
-        updateWindowSize(isExpanded)
+        updateWindowSize(expanded = isExpanded)
     }
 
     override fun onDestroy() {
