@@ -549,8 +549,10 @@
                         <option value="sec" data-i18n="timer_sec">秒後</option>
                         <option value="min" data-i18n="timer_min">分後</option>
                         <option value="hour" data-i18n="timer_hour">時間後</option>
+                        <option value="at" data-i18n="timer_at">時刻</option>
                     </select>
                     <input type="number" id="timerValue" class="timer-input" placeholder="数" min="1" style="display: none; padding: 6px; width: 60px; font-size: 14px;" aria-label="時間">
+                    <input type="time" id="timeValue" style="display: none; padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;" aria-label="時刻">
                 </div>
                 <div id="melodyGroup" style="margin-bottom: 12px; display: none;">
                     <label for="melodySelect" style="color: #666; font-size: 14px;" data-i18n="label_melody">メロディ：</label>
@@ -648,6 +650,7 @@
                 timer_sec: "秒後",
                 timer_min: "分後",
                 timer_hour: "時間後",
+                timer_at: "時刻",
                 label_melody: "メロディ：",
                 melody_none: "なし",
                 melody_default: "デフォルト",
@@ -762,6 +765,7 @@
                 timer_sec: "sec later",
                 timer_min: "min later",
                 timer_hour: "hour later",
+                timer_at: "at time",
                 label_melody: "Melody:",
                 melody_none: "None",
                 melody_default: "Default",
@@ -1193,7 +1197,24 @@
             const today = new Date().toDateString();
 
             if (lastReset !== today) {
-                tasks = tasks.map(t => ({ ...t, completed: false }));
+                tasks = tasks.map(t => {
+                    const updatedTask = { ...t, completed: false };
+                    // 時刻指定タスクの場合は、新しい日の指定時刻に向けて再計算
+                    if (t.targetTime) {
+                        const [hours, minutes] = t.targetTime.split(':').map(Number);
+                        const now = new Date();
+                        const target = new Date();
+                        target.setHours(hours, minutes, 0, 0);
+
+                        // リセット時は基本0:00頃なので、targetは未来のはずだが念のため
+                        if (target <= now) {
+                            target.setDate(target.getDate() + 1);
+                        }
+                        updatedTask.startTime = now.getTime();
+                        updatedTask.durationMs = target.getTime() - now.getTime();
+                    }
+                    return updatedTask;
+                });
                 localStorage.setItem('lastResetDate', today);
                 saveTasks();
             }
@@ -1381,7 +1402,11 @@
                 document.getElementById('viewTaskNote').textContent = task.note || getTranslation('none');
 
                 if (task.durationMs) {
-                    if (task.durationMs >= 3600000 && task.durationMs % 3600000 === 0) {
+                    if (task.targetTime) {
+                        document.getElementById('timerUnit').value = 'at';
+                        document.getElementById('timeValue').value = task.targetTime;
+                        document.getElementById('timerValue').value = '';
+                    } else if (task.durationMs >= 3600000 && task.durationMs % 3600000 === 0) {
                         document.getElementById('timerUnit').value = 'hour';
                         document.getElementById('timerValue').value = task.durationMs / 3600000;
                     } else if (task.durationMs >= 60000 && task.durationMs % 60000 === 0) {
@@ -1488,11 +1513,17 @@
         function toggleTimerInput() {
             const unit = document.getElementById('timerUnit').value;
             const input = document.getElementById('timerValue');
+            const timeInput = document.getElementById('timeValue');
             const melodyGroup = document.getElementById('melodyGroup');
             const isVisible = (unit !== 'none');
-            input.style.display = isVisible ? 'inline-block' : 'none';
+
+            input.style.display = (isVisible && unit !== 'at') ? 'inline-block' : 'none';
+            timeInput.style.display = (unit === 'at') ? 'inline-block' : 'none';
             melodyGroup.style.display = isVisible ? 'block' : 'none';
-            if (isVisible) {
+
+            if (unit === 'at') {
+                setTimeout(() => timeInput.focus(), 50);
+            } else if (isVisible) {
                 setTimeout(() => input.focus(), 50);
             }
         }
@@ -1503,6 +1534,7 @@
             const noteInput = document.getElementById('taskNote');
             const note = noteInput.value.trim();
             const valInput = document.getElementById('timerValue');
+            const timeInput = document.getElementById('timeValue');
             const unitSelect = document.getElementById('timerUnit');
             const melodySelect = document.getElementById('melodySelect');
 
@@ -1527,59 +1559,93 @@
             }
 
             if (unitSelect.value !== 'none') {
-                const value = parseInt(valInput.value);
-                if (!isNaN(value) && value > 0) {
-                    const multiplier = unitSelect.value === 'hour' ? 3600000 : (unitSelect.value === 'min' ? 60000 : 1000);
-                    const durationMs = value * multiplier;
-                    let melody = melodySelect.value;
-                    let melodyName = null;
+                let durationMs = 0;
+                let startTime = Date.now();
+                let targetTimeStr = null;
 
-                    if (melody === 'custom' && selectedCustomUri) {
-                        melody = selectedCustomUri;
-                        melodyName = selectedCustomName;
-                    }
-
-                    // タイマー設定（時間・単位）が変更されたかチェック
-                    let isDurationChanged = true;
-                    if (editingTaskId) {
-                        const originalTask = tasks.find(t => t.id === editingTaskId);
-                        if (originalTask.durationMs === durationMs) {
-                            isDurationChanged = false;
-                        }
-                    }
-
-                    if (isDurationChanged) {
-                        targetTask.startTime = Date.now();
-                        targetTask.durationMs = durationMs;
-                    }
-
-                    targetTask.melody = melody;
-                    if (melodyName) targetTask.melodyName = melodyName;
-
-                    if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-                        if (isDurationChanged) {
-                            Android.setTimerAlarm(targetTask.id, text, durationMs, melody);
-                        } else {
-                            // 継続中の場合、残り時間でアラームを更新（テキストやメロディの変更を反映）
-                            const remaining = (targetTask.startTime + targetTask.durationMs) - Date.now();
-                            if (remaining > 0) {
-                                Android.setTimerAlarm(targetTask.id, text, remaining, melody);
+                if (unitSelect.value === 'at') {
+                    const timeVal = timeInput.value;
+                    if (!timeVal) {
+                        showModal(getTranslation('msg_input_timer_val'), {
+                            hideCancel: true,
+                            onConfirm: () => {
+                                timeInput.focus();
                             }
+                        });
+                        return;
+                    }
+                    targetTimeStr = timeVal;
+                    const [hours, minutes] = timeVal.split(':').map(Number);
+                    const now = new Date();
+                    const target = new Date();
+                    target.setHours(hours, minutes, 0, 0);
+
+                    if (target <= now) {
+                        target.setDate(target.getDate() + 1);
+                    }
+                    durationMs = target.getTime() - now.getTime();
+                    startTime = now.getTime();
+                } else {
+                    const value = parseInt(valInput.value);
+                    if (!isNaN(value) && value > 0) {
+                        const multiplier = unitSelect.value === 'hour' ? 3600000 : (unitSelect.value === 'min' ? 60000 : 1000);
+                        durationMs = value * multiplier;
+                    } else {
+                        showModal(getTranslation('msg_input_timer_val'), {
+                            hideCancel: true,
+                            onConfirm: () => {
+                                valInput.focus();
+                            }
+                        });
+                        return;
+                    }
+                }
+
+                let melody = melodySelect.value;
+                let melodyName = null;
+
+                if (melody === 'custom' && selectedCustomUri) {
+                    melody = selectedCustomUri;
+                    melodyName = selectedCustomName;
+                }
+
+                // タイマー設定が変更されたかチェック
+                let isConfigChanged = true;
+                if (editingTaskId) {
+                    const originalTask = tasks.find(t => t.id === editingTaskId);
+                    if (originalTask.durationMs === durationMs && originalTask.targetTime === targetTimeStr) {
+                        isConfigChanged = false;
+                    }
+                }
+
+                if (isConfigChanged) {
+                    targetTask.startTime = startTime;
+                    targetTask.durationMs = durationMs;
+                    if (targetTimeStr) {
+                        targetTask.targetTime = targetTimeStr;
+                    } else {
+                        delete targetTask.targetTime;
+                    }
+                }
+
+                targetTask.melody = melody;
+                if (melodyName) targetTask.melodyName = melodyName;
+
+                if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
+                    if (isConfigChanged) {
+                        Android.setTimerAlarm(targetTask.id, text, durationMs, melody);
+                    } else {
+                        const remaining = (targetTask.startTime + targetTask.durationMs) - Date.now();
+                        if (remaining > 0) {
+                            Android.setTimerAlarm(targetTask.id, text, remaining, melody);
                         }
                     }
-                } else {
-                    showModal(getTranslation('msg_input_timer_val'), {
-                        hideCancel: true,
-                        onConfirm: () => {
-                            valInput.focus();
-                        }
-                    });
-                    return;
                 }
             } else {
                 // タイマーなしに設定
                 delete targetTask.startTime;
                 delete targetTask.durationMs;
+                delete targetTask.targetTime;
                 delete targetTask.melody;
             }
 
