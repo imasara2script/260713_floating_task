@@ -38,9 +38,10 @@ class MainActivity : AppCompatActivity() {
     private var isPageLoaded = false
     private var rewardedAd: RewardedAd? = null
     private var isAdFree = false
+    private var isLimitUnlockedByReward = false
 
     private fun loadRewardedAd() {
-        if (isAdFree) return
+        if (isAdFree || isLimitUnlockedByReward) return
         val adRequest = AdRequest.Builder().build()
         RewardedAd.load(
             this,
@@ -372,6 +373,7 @@ class MainActivity : AppCompatActivity() {
                 if (rewardedAd != null) {
                     rewardedAd?.show(this@MainActivity) { _ ->
                         // 報酬付与: タスク制限を一時的に緩和（JS側で処理）
+                        isLimitUnlockedByReward = true
                         val webView: WebView = findViewById(R.id.webView)
                         webView.evaluateJavascript("onRewardEarned();", null)
                         loadRewardedAd()
@@ -387,7 +389,7 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun isAdFree(): Boolean {
-            return isAdFree
+            return isAdFree || isLimitUnlockedByReward
         }
 
         @JavascriptInterface

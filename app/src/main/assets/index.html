@@ -661,6 +661,7 @@
                 placeholder_note: "補足情報を入力...",
                 btn_save: "保存",
                 btn_add: "追加",
+                btn_add_task_limit: "タスク登録数上限を解除(CM再生)",
                 msg_input_task_name: "タスク名を入力してください",
                 msg_input_timer_val: "タイマーの時間を入力してください",
                 msg_delete_confirm: "「{0}」のタスクを削除しますか？",
@@ -671,6 +672,7 @@
                 msg_restore_success: "データの復元が完了しました。",
                 msg_restore_fail: "データの復元に失敗しました。",
                 msg_ad_limit: "タスク数は3つまでに制限されています。広告を視聴して制限を緩和しますか？",
+                msg_ad_confirm: "広告を視聴すると、アプリを完全に終了するまでの間、タスク登録数の制限がなくなります。広告を再生しますか？",
                 msg_ad_fail: "広告の読み込みに失敗しました。時間をおいて再度お試しください。",
                 msg_reward_earned: "タスクの制限が緩和されました。アプリを再起動するか、このままタスクを追加できます。",
                 msg_invalid_code: "解除コードが正しくありません",
@@ -776,6 +778,7 @@
                 placeholder_note: "Enter notes here...",
                 btn_save: "Save",
                 btn_add: "Add",
+                btn_add_task_limit: "Unlock task limit (Watch CM)",
                 msg_input_task_name: "Please enter a task name",
                 msg_input_timer_val: "Please enter a timer value",
                 msg_delete_confirm: "Delete task \"{0}\"?",
@@ -786,6 +789,7 @@
                 msg_restore_success: "Data restored successfully.",
                 msg_restore_fail: "Failed to restore data.",
                 msg_ad_limit: "Task limit reached (3). Watch an ad to unlock more?",
+                msg_ad_confirm: "Watching the ad will remove the task limit until the app is closed. Play ad?",
                 msg_ad_fail: "Failed to load ad. Please try again later.",
                 msg_reward_earned: "Limit unlocked. You can now add more tasks.",
                 msg_invalid_code: "Invalid unlock code",
@@ -1371,7 +1375,7 @@
         function openTaskModal(taskId = null) {
             checkAdFree();
             if (!isAdFree && !taskId && tasks.length >= 3) {
-                showModal(getTranslation('msg_ad_limit'), {
+                showModal(getTranslation('msg_ad_confirm'), {
                     onConfirm: () => {
                         if (typeof Android !== 'undefined' && Android.showRewardedAd) {
                             Android.showRewardedAd();
@@ -1434,7 +1438,8 @@
                         nameEl.style.display = 'none';
                     }
 
-                    document.getElementById('viewTaskTimer').textContent = `${getTranslation('label_timer')} ${getTotalTimeText(task)}`;
+                    const timerText = task.targetTime ? task.targetTime : getTotalTimeText(task);
+                    document.getElementById('viewTaskTimer').textContent = `${getTranslation('label_timer')} ${timerText}`;
                     document.getElementById('viewTaskTimer').style.display = 'block';
                 } else {
                     document.getElementById('timerUnit').value = 'none';
@@ -1488,6 +1493,8 @@
         }
 
         function onRewardEarned() {
+            checkAdFree();
+            render();
             showModal(getTranslation('msg_reward_earned'), {
                 hideCancel: true,
                 onConfirm: () => {
@@ -1945,6 +1952,8 @@
         function render() {
             if (draggingElement) return; // ドラッグ操作中はDOMを書き換えない
 
+            checkAdFree();
+
             // カレンダー表示中の場合は、リストの書き換えによってカレンダーが消えるのを防ぐ
             if (currentCalendarTaskId !== null && document.getElementById('calendar-view')?.style.display === 'block') {
                 return;
@@ -1963,6 +1972,19 @@
                 }
                 btnToggleEdit.classList.toggle('btn-secondary', !isEditMode);
                 btnToggleEdit.classList.toggle('btn-primary', isEditMode);
+            }
+
+            const addBtn = document.querySelector('#addTaskTrigger button');
+            if (addBtn) {
+                if (!isAdFree && tasks.length >= 3) {
+                    addBtn.textContent = getTranslation('btn_add_task_limit');
+                    addBtn.style.borderColor = '#dc3545';
+                    addBtn.style.color = '#dc3545';
+                } else {
+                    addBtn.textContent = getTranslation('btn_add_task');
+                    addBtn.style.borderColor = '#007bff';
+                    addBtn.style.color = '#007bff';
+                }
             }
 
             const managerTasks = isEditMode ? tasks : [
