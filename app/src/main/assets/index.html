@@ -531,7 +531,49 @@
     <div id="taskModal" class="modal-overlay">
         <div class="modal-content" style="max-width: 400px; width: 90%;">
             <div id="taskModalTitle" class="modal-title" data-i18n="task_modal_add">新しいタスクを追加</div>
-            <!-- ... content ... -->
+
+            <!-- View Mode Container -->
+            <div id="taskViewContainer" style="display: none;">
+                <div id="viewTaskText" style="font-size: 18px; font-weight: bold; margin-bottom: 12px; word-break: break-all;"></div>
+                <div id="viewTaskTimer" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none;"></div>
+                <div style="color: #666; font-size: 12px; margin-bottom: 4px;" data-i18n="label_note">補足文章：</div>
+                <div id="viewTaskNote" style="font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 6px; min-height: 40px; white-space: pre-wrap; margin-bottom: 20px; border: 1px solid #eee; word-break: break-all;"></div>
+            </div>
+
+            <!-- Edit Mode Container -->
+            <div id="taskEditContainer">
+                <div class="input-group" style="margin-bottom: 12px;">
+                    <label for="taskInput" style="display:none;" data-i18n="label_task_name">タスク名:</label>
+                    <input type="text" id="taskInput" placeholder="タスク名を入力..." onkeydown="if(event.key==='Enter') addTask()" aria-label="新しいタスク名" data-i18n-placeholder="placeholder_task_name">
+                </div>
+                <div class="timer-group" style="margin-bottom: 12px;">
+                    <label for="timerUnit" style="color: #666; font-size: 14px;" data-i18n="label_timer">タイマー：</label>
+                    <select id="timerUnit" onchange="toggleTimerInput()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                        <option value="none" data-i18n="timer_none">無し</option>
+                        <option value="sec" data-i18n="timer_sec">秒後</option>
+                        <option value="min" data-i18n="timer_min">分後</option>
+                        <option value="hour" data-i18n="timer_hour">時間後</option>
+                        <option value="at" data-i18n="timer_at">時刻</option>
+                    </select>
+                    <input type="number" id="timerValue" class="timer-input" placeholder="数" min="1" style="display: none; padding: 6px; width: 60px; font-size: 14px;" aria-label="時間">
+                    <input type="time" id="timeValue" style="display: none; padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;" aria-label="時刻">
+                </div>
+                <div id="melodyGroup" style="margin-bottom: 12px; display: none;">
+                    <label for="melodySelect" style="color: #666; font-size: 14px;" data-i18n="label_melody">メロディ：</label>
+                    <select id="melodySelect" onchange="handleMelodyChange()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                        <option value="none" data-i18n="melody_none">なし</option>
+                        <option value="default" data-i18n="melody_default">デフォルト</option>
+                        <option value="alarm" data-i18n="melody_alarm">アラーム音</option>
+                        <option value="chime" data-i18n="melody_chime">チャイム</option>
+                        <option value="custom" data-i18n="melody_custom">端末内から選択...</option>
+                    </select>
+                    <div id="customMelodyName" style="font-size: 11px; color: #666; margin-top: 4px; display: none;"></div>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label for="taskNote" style="color: #666; font-size: 14px; display: block; margin-bottom: 4px;" data-i18n="label_note">補足文章：</label>
+                    <textarea id="taskNote" placeholder="補足情報を入力..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; height: 120px; resize: none; box-sizing: border-box;" data-i18n-placeholder="placeholder_note"></textarea>
+                </div>
+            </div>
             <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
                 <button id="modalEditBtn" class="btn" style="background: none; border: none; font-size: 24px; padding: 0; display: none;" onclick="switchToEditMode()" title="編集">✏️</button>
                 <button id="modalHistoryBtn" class="btn" style="background: none; border: none; font-size: 24px; padding: 0; display: none;" onclick="viewHistoryFromModal()" title="履歴・カレンダーを表示">📅</button>

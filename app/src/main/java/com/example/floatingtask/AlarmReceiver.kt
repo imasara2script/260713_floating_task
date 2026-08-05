@@ -49,6 +49,7 @@ class AlarmReceiver : BroadcastReceiver() {
             }
         } else if (intent.action == "ACTION_NOON_CHECK" || intent.action == "ACTION_INTERVAL_CHECK") {
             // 正午またはインターバルチェック: 未完了タスクがある場合のみ表示
+            AppLogger.log(context, "AlarmReceiver: Triggering re-show for action=${intent.action}")
             if (Settings.canDrawOverlays(context)) {
                 val serviceIntent = Intent(context, FloatingWindowService::class.java).apply {
                     action = "ACTION_SHOW"

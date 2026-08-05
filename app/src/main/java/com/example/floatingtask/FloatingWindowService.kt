@@ -79,17 +79,25 @@ class FloatingWindowService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        AppLogger.log(this, "FloatingWindowService onStartCommand: action=${intent?.action}")
-        if (intent?.getBooleanExtra("TRIGGER_RESET", false) == true) {
+        AppLogger.log(this, "FloatingWindowService onStartCommand: action=${intent?.action}, flags=$flags")
+
+        if (intent == null) {
+            // システムによるサービス再起動時 (START_STICKY)
+            AppLogger.log(this, "FloatingWindowService restarted by System (intent is null)")
+            showFloatingWindow()
+            return START_STICKY
+        }
+
+        if (intent.getBooleanExtra("TRIGGER_RESET", false) == true) {
             val webView: WebView? = floatingView?.findViewById(R.id.floatingWebView)
             webView?.evaluateJavascript("checkDailyReset();", null)
         }
 
-        if (intent?.hasExtra("IS_SETTINGS_MODE") == true) {
+        if (intent.hasExtra("IS_SETTINGS_MODE")) {
             isSettingsMode = intent.getBooleanExtra("IS_SETTINGS_MODE", false)
         }
 
-        when (intent?.action) {
+        when (intent.action) {
             "ACTION_HIDE" -> {
                 isSettingsMode = false
                 hideFloatingWindow()
