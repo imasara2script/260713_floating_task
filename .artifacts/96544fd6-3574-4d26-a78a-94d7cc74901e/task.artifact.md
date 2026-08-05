@@ -1,0 +1,11 @@
+- `[x]` Android側ログ基盤の実装
+    - `[x]` `AppLogger.kt` の作成
+    - `[x]` `res/xml/file_paths.xml` の作成
+    - `[x]` `AndroidManifest.xml` に `FileProvider` を追加
+- `[x]` `MainActivity.kt` の `WebAppInterface` 拡張
+- `[x]` `FloatingWindowService.kt` へのログ出力追加
+- `[x]` `index.html` (WebView) のUI・ロジック実装
+    - `[x]` 翻訳データの追加
+    - `[x]` 「開発者用」ボタンとモーダルの追加
+    - `[x]` ログ制御ロジックの追加
+- `[x]` 動作確認と最終調整

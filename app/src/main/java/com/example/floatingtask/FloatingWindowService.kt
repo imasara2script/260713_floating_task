@@ -45,6 +45,7 @@ class FloatingWindowService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        AppLogger.log(this, "FloatingWindowService onCreate")
         startForegroundService()
         val filter = IntentFilter("com.example.floatingtask.DATA_CHANGED")
         androidx.core.content.ContextCompat.registerReceiver(
@@ -78,6 +79,7 @@ class FloatingWindowService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        AppLogger.log(this, "FloatingWindowService onStartCommand: action=${intent?.action}")
         if (intent?.getBooleanExtra("TRIGGER_RESET", false) == true) {
             val webView: WebView? = floatingView?.findViewById(R.id.floatingWebView)
             webView?.evaluateJavascript("checkDailyReset();", null)
@@ -153,11 +155,13 @@ class FloatingWindowService : Service() {
     }
 
     private fun hideFloatingWindow() {
+        AppLogger.log(this, "hideFloatingWindow called")
         floatingView?.visibility = View.GONE
     }
 
     private fun removeFloatingWindow() {
         if (floatingView != null) {
+            AppLogger.log(this, "removeFloatingWindow called")
             windowManager.removeView(floatingView)
             floatingView = null
         }
@@ -193,6 +197,7 @@ class FloatingWindowService : Service() {
     private var isExpanded = false
 
     private fun updateWindowSize(expanded: Boolean) {
+        AppLogger.log(this, "updateWindowSize: expanded=$expanded")
         isExpanded = expanded
         val view = floatingView ?: return
         val params = view.layoutParams as WindowManager.LayoutParams
@@ -239,7 +244,9 @@ class FloatingWindowService : Service() {
 
     @SuppressLint("SetJavaScriptEnabled", "InflateParams")
     private fun showFloatingWindow() {
+        AppLogger.log(this, "showFloatingWindow called")
         if (!Settings.canDrawOverlays(this)) {
+            AppLogger.log(this, "showFloatingWindow: No overlay permission")
             return
         }
 
@@ -426,10 +433,21 @@ class FloatingWindowService : Service() {
     }
 
     override fun onDestroy() {
+        AppLogger.log(this, "FloatingWindowService onDestroy")
         super.onDestroy()
         unregisterReceiver(dataChangeReceiver)
         floatingView?.let {
             windowManager.removeView(it)
         }
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        AppLogger.log(this, "FloatingWindowService onTrimMemory: level=$level")
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        AppLogger.log(this, "FloatingWindowService onLowMemory")
     }
 }

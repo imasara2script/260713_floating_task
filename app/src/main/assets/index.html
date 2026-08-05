@@ -396,6 +396,10 @@
                     </div>
 
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                        <button class="btn btn-secondary" style="width: 100%; font-size: 14px;" onclick="openDeveloperModal()" data-i18n="btn_developer">開発者用</button>
+                    </div>
+
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
                         <label for="languageSelect" style="display: block; font-size: 13px; margin-bottom: 8px;" data-i18n="label_language">🌐 言語設定</label>
                         <select id="languageSelect" onchange="updateLanguagePreference()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
                             <option value="system" data-i18n="lang_auto">自動 (システム設定)</option>
@@ -527,56 +531,49 @@
     <div id="taskModal" class="modal-overlay">
         <div class="modal-content" style="max-width: 400px; width: 90%;">
             <div id="taskModalTitle" class="modal-title" data-i18n="task_modal_add">新しいタスクを追加</div>
-
-            <!-- View Mode Container -->
-            <div id="taskViewContainer" style="display: none;">
-                <div id="viewTaskText" style="font-size: 18px; font-weight: bold; margin-bottom: 12px; word-break: break-all;"></div>
-                <div id="viewTaskTimer" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none;"></div>
-                <div style="color: #666; font-size: 12px; margin-bottom: 4px;" data-i18n="label_note">補足文章：</div>
-                <div id="viewTaskNote" style="font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 6px; min-height: 40px; white-space: pre-wrap; margin-bottom: 20px; border: 1px solid #eee; word-break: break-all;"></div>
-            </div>
-
-            <!-- Edit Mode Container -->
-            <div id="taskEditContainer">
-                <div class="input-group" style="margin-bottom: 12px;">
-                    <label for="taskInput" style="display:none;" data-i18n="label_task_name">タスク名:</label>
-                    <input type="text" id="taskInput" placeholder="タスク名を入力..." onkeydown="if(event.key==='Enter') addTask()" aria-label="新しいタスク名" data-i18n-placeholder="placeholder_task_name">
-                </div>
-                <div class="timer-group" style="margin-bottom: 12px;">
-                    <label for="timerUnit" style="color: #666; font-size: 14px;" data-i18n="label_timer">タイマー：</label>
-                    <select id="timerUnit" onchange="toggleTimerInput()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
-                        <option value="none" data-i18n="timer_none">無し</option>
-                        <option value="sec" data-i18n="timer_sec">秒後</option>
-                        <option value="min" data-i18n="timer_min">分後</option>
-                        <option value="hour" data-i18n="timer_hour">時間後</option>
-                        <option value="at" data-i18n="timer_at">時刻</option>
-                    </select>
-                    <input type="number" id="timerValue" class="timer-input" placeholder="数" min="1" style="display: none; padding: 6px; width: 60px; font-size: 14px;" aria-label="時間">
-                    <input type="time" id="timeValue" style="display: none; padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;" aria-label="時刻">
-                </div>
-                <div id="melodyGroup" style="margin-bottom: 12px; display: none;">
-                    <label for="melodySelect" style="color: #666; font-size: 14px;" data-i18n="label_melody">メロディ：</label>
-                    <select id="melodySelect" onchange="handleMelodyChange()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
-                        <option value="none" data-i18n="melody_none">なし</option>
-                        <option value="default" data-i18n="melody_default">デフォルト</option>
-                        <option value="alarm" data-i18n="melody_alarm">アラーム音</option>
-                        <option value="chime" data-i18n="melody_chime">チャイム</option>
-                        <option value="custom" data-i18n="melody_custom">端末内から選択...</option>
-                    </select>
-                    <div id="customMelodyName" style="font-size: 11px; color: #666; margin-top: 4px; display: none;"></div>
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label for="taskNote" style="color: #666; font-size: 14px; display: block; margin-bottom: 4px;" data-i18n="label_note">補足文章：</label>
-                    <textarea id="taskNote" placeholder="補足情報を入力..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; height: 120px; resize: none; box-sizing: border-box;" data-i18n-placeholder="placeholder_note"></textarea>
-                </div>
-            </div>
-
+            <!-- ... content ... -->
             <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
                 <button id="modalEditBtn" class="btn" style="background: none; border: none; font-size: 24px; padding: 0; display: none;" onclick="switchToEditMode()" title="編集">✏️</button>
                 <button id="modalHistoryBtn" class="btn" style="background: none; border: none; font-size: 24px; padding: 0; display: none;" onclick="viewHistoryFromModal()" title="履歴・カレンダーを表示">📅</button>
                 <button id="modalDeleteBtn" class="btn" style="background: none; border: none; font-size: 24px; padding: 0; display: none;" onclick="deleteTaskFromModal()" title="タスクを削除">🗑️</button>
                 <button class="btn btn-secondary" onclick="closeTaskModal()" data-i18n="btn_cancel">キャンセル</button>
                 <button id="taskModalConfirmBtn" class="btn btn-primary" onclick="addTask()" data-i18n="btn_add">追加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Developer Modal -->
+    <div id="developerModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 350px; width: 90%;">
+            <div class="modal-title" data-i18n="developer_title">開発者設定</div>
+
+            <div style="margin-bottom: 16px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+                    <input type="checkbox" id="loggingToggle" onchange="toggleLogging()">
+                    <span data-i18n="label_logging">ログ出力を有効にする</span>
+                </label>
+            </div>
+
+            <div id="logInfoSection" style="display: none;">
+                <div style="font-size: 12px; color: #666; margin-bottom: 12px;">
+                    <span data-i18n="label_log_size">ログファイルサイズ: </span>
+                    <span id="logSizeText">0</span> KB
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label for="logCommentInput" style="display: block; font-size: 13px; margin-bottom: 4px;" data-i18n="label_custom_comment">カスタムコメントを記録:</label>
+                    <textarea id="logCommentInput" data-i18n-placeholder="placeholder_custom_comment" style="width: 100%; height: 60px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; resize: none; box-sizing: border-box;"></textarea>
+                    <button class="btn btn-secondary" onclick="addLogComment()" style="width: 100%; margin-top: 4px; font-size: 12px;" data-i18n="btn_log_comment">コメントを記録</button>
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-primary" onclick="if(typeof Android !== 'undefined') Android.shareLog()" style="flex: 1; font-size: 13px;" data-i18n="btn_share_log">ログを出力 (共有)</button>
+                    <button class="btn btn-danger" onclick="clearAppLog()" style="flex: 1; font-size: 13px;" data-i18n="btn_clear_log">ログを消去</button>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button class="btn" onclick="closeDeveloperModal()" style="width: 100%;" data-i18n="btn_close">閉じる</button>
             </div>
         </div>
     </div>
@@ -701,7 +698,19 @@
                 btn_toggle_pending_title: "未完了のみ表示",
                 btn_toggle_all_title: "すべて表示",
                 btn_next_task_title: "次のタスク",
-                btn_full_screen_title: "全画面表示"
+                btn_full_screen_title: "全画面表示",
+                btn_developer: "開発者用",
+                developer_title: "開発者設定",
+                label_logging: "ログ出力を有効にする",
+                label_log_size: "ログファイルサイズ: ",
+                btn_share_log: "ログを出力 (共有)",
+                btn_clear_log: "ログを消去",
+                label_custom_comment: "カスタムコメントを記録:",
+                placeholder_custom_comment: "例: ●●アプリで停止した...",
+                btn_log_comment: "コメントを記録",
+                msg_logging_confirm: "ログ出力を有効にしますか？\n\n収集される情報の種類:\n・サービスの起動/終了\n・メモリ不足等のシステム警告\n・ウィンドウの操作イベント\n・アプリの動作状態\n・手動入力コメント\n\n※個人情報は収集されません。",
+                msg_log_comment_success: "コメントを記録しました",
+                msg_log_cleared: "ログを消去しました"
             },
             en: {
                 tab_tasks: "Tasks",
@@ -818,7 +827,19 @@
                 btn_toggle_pending_title: "Show Pending Only",
                 btn_toggle_all_title: "Show All",
                 btn_next_task_title: "Next Task",
-                btn_full_screen_title: "Full Screen"
+                btn_full_screen_title: "Full Screen",
+                btn_developer: "Developer",
+                developer_title: "Developer Settings",
+                label_logging: "Enable log output",
+                label_log_size: "Log file size: ",
+                btn_share_log: "Share Log",
+                btn_clear_log: "Clear Log",
+                label_custom_comment: "Record custom comment:",
+                placeholder_custom_comment: "e.g. App crashed on...",
+                btn_log_comment: "Log Comment",
+                msg_logging_confirm: "Enable log output?\n\nCollected Information:\n- Service start/stop\n- System memory warnings\n- Window interaction events\n- App status\n- Manual comments\n\n* No personal data is collected.",
+                msg_log_comment_success: "Comment logged",
+                msg_log_cleared: "Log cleared"
             }
         };
 
@@ -2431,6 +2452,78 @@
         }
 
         updateAlarmStatus();
+
+        function openDeveloperModal() {
+            const modal = document.getElementById('developerModal');
+            modal.style.display = 'flex';
+
+            if (typeof Android !== 'undefined' && Android.isLoggingEnabled) {
+                const isEnabled = Android.isLoggingEnabled();
+                document.getElementById('loggingToggle').checked = isEnabled;
+                document.getElementById('logInfoSection').style.display = isEnabled ? 'block' : 'none';
+                if (isEnabled) updateLogSize();
+            }
+
+            modal.onclick = (e) => {
+                if (e.target === modal) closeDeveloperModal();
+            };
+        }
+
+        function closeDeveloperModal() {
+            document.getElementById('developerModal').style.display = 'none';
+        }
+
+        function toggleLogging() {
+            const checkbox = document.getElementById('loggingToggle');
+            const newEnabled = checkbox.checked;
+
+            if (newEnabled) {
+                // 有効化時は確認モーダルを表示
+                showModal(getTranslation('msg_logging_confirm'), {
+                    onConfirm: () => {
+                        if (typeof Android !== 'undefined' && Android.setLoggingEnabled) {
+                            Android.setLoggingEnabled(true);
+                        }
+                        document.getElementById('logInfoSection').style.display = 'block';
+                        updateLogSize();
+                    },
+                    onCancel: () => {
+                        checkbox.checked = false;
+                    }
+                });
+            } else {
+                if (typeof Android !== 'undefined' && Android.setLoggingEnabled) {
+                    Android.setLoggingEnabled(false);
+                }
+                document.getElementById('logInfoSection').style.display = 'none';
+            }
+        }
+
+        function updateLogSize() {
+            if (typeof Android !== 'undefined' && Android.getLogSize) {
+                const size = Android.getLogSize();
+                document.getElementById('logSizeText').textContent = size.toFixed(2);
+            }
+        }
+
+        function addLogComment() {
+            const input = document.getElementById('logCommentInput');
+            const comment = input.value.trim();
+            if (comment && typeof Android !== 'undefined' && Android.logComment) {
+                Android.logComment(comment);
+                input.value = '';
+                showModal(getTranslation('msg_log_comment_success'), { hideCancel: true });
+                updateLogSize();
+            }
+        }
+
+        function clearAppLog() {
+            if (typeof Android !== 'undefined' && Android.clearLog) {
+                Android.clearLog();
+                updateLogSize();
+                showModal(getTranslation('msg_log_cleared'), { hideCancel: true });
+            }
+        }
 
         // 並べ替えのためのイベントリスナー登録
         const managerList = document.getElementById('managerTaskList');

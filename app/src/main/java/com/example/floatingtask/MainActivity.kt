@@ -134,6 +134,7 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppLogger.log(this, "MainActivity onCreate")
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
@@ -216,6 +217,50 @@ class MainActivity : AppCompatActivity() {
 
     @Suppress("unused")
     inner class WebAppInterface(private val mContext: Context) {
+        @JavascriptInterface
+        fun isLoggingEnabled(): Boolean {
+            return AppLogger.isEnabled(mContext)
+        }
+
+        @JavascriptInterface
+        fun setLoggingEnabled(enabled: Boolean) {
+            AppLogger.setEnabled(mContext, enabled)
+        }
+
+        @JavascriptInterface
+        fun shareLog() {
+            val logFile = AppLogger.getLogFile(mContext)
+            if (!logFile.exists()) return
+
+            val contentUri = androidx.core.content.FileProvider.getUriForFile(
+                mContext,
+                "${mContext.packageName}.fileprovider",
+                logFile,
+            )
+
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_STREAM, contentUri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            mContext.startActivity(Intent.createChooser(intent, "Share Log"))
+        }
+
+        @JavascriptInterface
+        fun clearLog() {
+            AppLogger.clearLog(mContext)
+        }
+
+        @JavascriptInterface
+        fun getLogSize(): Double {
+            return AppLogger.getLogSizeKb(mContext)
+        }
+
+        @JavascriptInterface
+        fun logComment(comment: String) {
+            AppLogger.log(mContext, "[USER COMMENT] $comment")
+        }
+
         @JavascriptInterface
         fun startFloatingWindow() {
             if (!Settings.canDrawOverlays(mContext)) {
@@ -443,6 +488,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        AppLogger.log(this, "MainActivity onResume")
 
         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
         prefs.edit { putBoolean("isAppInForeground", true) }
@@ -472,6 +518,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        AppLogger.log(this, "MainActivity onPause")
 
         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
         prefs.edit { putBoolean("isAppInForeground", false) }
