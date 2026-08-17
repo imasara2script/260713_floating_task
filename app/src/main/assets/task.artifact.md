@@ -1,0 +1,10 @@
+- [x] `index.html` のCSSに `white-space: pre-wrap;` を追加
+- [x] `index.html` の翻訳に `msg_backup_confirm` を追加 (ja/en)
+- [x] `index.html` の `exportData()` 関数を修正して確認ダイアログを表示するように変更
+- [x] デフォルトのバックアップファイル名を修正
+- [x] 動作確認
+- [x] `index.html` のCSSに復元プレビュー用のスタイルを追加
+- [x] `showModal` 関数を HTML 表示可能に修正
+- [x] `applyRestoredData` 関数を修正し、プレビューと項目選択を実装
+- [x] `performRestore` 関数を実装し、選択された項目のみ復元するように変更
+- [x] 動作確認

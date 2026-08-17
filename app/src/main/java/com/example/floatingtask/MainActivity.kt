@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
+import android.provider.OpenableColumns
 import android.provider.Settings
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
@@ -105,6 +106,7 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
         uri?.let {
+            val fileName = getFileName(it) ?: "Unknown"
             contentResolver.openInputStream(it)?.use { inputStream ->
                 val reader = inputStream.bufferedReader()
                 val content = reader.readText()
@@ -113,9 +115,32 @@ class MainActivity : AppCompatActivity() {
                 val escapedContent = content.replace("\\", "\\\\")
                     .replace("`", "\\`")
                     .replace("$", "\\$")
-                webView.evaluateJavascript("applyRestoredData(`$escapedContent`);", null)
+                val escapedFileName = fileName.replace("`", "\\`").replace("$", "\\$")
+                webView.evaluateJavascript("applyRestoredData(`$escapedContent`, `$escapedFileName`);", null)
             }
         }
+    }
+
+    private fun getFileName(uri: Uri): String? {
+        var result: String? = null
+        if (uri.scheme == "content") {
+            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val columnIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (columnIndex != -1) {
+                        result = cursor.getString(columnIndex)
+                    }
+                }
+            }
+        }
+        if (result == null) {
+            result = uri.path
+            val cut = result?.lastIndexOf('/') ?: -1
+            if (cut != -1) {
+                result = result?.substring(cut + 1)
+            }
+        }
+        return result
     }
 
     private val ringtonePickerLauncher = registerForActivityResult(
@@ -445,7 +470,7 @@ class MainActivity : AppCompatActivity() {
             dataToBackup = jsonData
             val sdf = java.text.SimpleDateFormat("yyyyMMdd HHmmss", java.util.Locale.getDefault())
             val timestamp = sdf.format(java.util.Date())
-            val fileName = "floating task $timestamp.json"
+            val fileName = "floating task backup $timestamp.json"
             createDocumentLauncher.launch(fileName)
         }
 

@@ -309,10 +309,40 @@
             background: white;
             padding: 20px;
             border-radius: 12px;
-            width: 80%;
-            max-width: 300px;
+            width: 90%;
+            max-width: 450px;
+            max-height: 85vh;
+            overflow-y: auto;
         }
-        .modal-title { font-weight: bold; margin-bottom: 12px; }
+        .modal-title { font-weight: bold; margin-bottom: 12px; white-space: pre-wrap; }
+        .preview-section {
+            margin-bottom: 16px;
+            padding: 8px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .preview-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .preview-item {
+            margin-left: 24px;
+            color: #555;
+            white-space: pre-wrap;
+        }
+        .color-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            border: 1px solid #ddd;
+            vertical-align: middle;
+            margin: 0 4px;
+        }
         .modal-input {
             width: 100%;
             padding: 8px;
@@ -814,10 +844,15 @@
                 msg_import_success: "{0}件のタスクをインポートしました。",
                 msg_restore_success: "データの復元が完了しました。",
                 msg_restore_fail: "データの復元に失敗しました。",
+                msg_restore_preview: "復元する項目を選択してください",
+                label_tasks: "タスク一覧",
+                label_history: "完了履歴",
+                label_color_rules: "配色ルール",
+                msg_backup_confirm: "バックアップファイルを作成しますか？\n\n保存される情報の種類:\n・タスク一覧\n・完了履歴\n・カレンダーのマーク\n・フローティングウィンドウの設定\n・背景色の色分けルール",
                 msg_ad_limit: "タスク数は3つまでに制限されています。広告を視聴して制限を緩和しますか？",
                 msg_ad_confirm: "広告を視聴すると、アプリを完全に終了するまでの間、タスク登録数の制限がなくなります。広告を再生しますか？",
                 msg_ad_fail: "広告の読み込みに失敗しました。時間をおいて再度お試しください。",
-                msg_reward_earned: "タスクの制限が緩和されました。アプリを再起動するか、このままタスクを追加できます。",
+                msg_reward_earned: "タスクの制限が緩和されました。アプリを再起動するまでは、このままタスクを追加できます。",
                 msg_invalid_code: "解除コードが正しくありません",
                 msg_input_code: "解除コードを入力してください",
                 msg_history_no_data: "履歴はありません",
@@ -958,6 +993,11 @@
                 msg_import_success: "Imported {0} tasks.",
                 msg_restore_success: "Data restored successfully.",
                 msg_restore_fail: "Failed to restore data.",
+                msg_restore_preview: "Select items to restore",
+                label_tasks: "Task List",
+                label_history: "Completion History",
+                label_color_rules: "Dynamic Color Rules",
+                msg_backup_confirm: "Do you want to run a backup?\n\nInformation to be saved:\n- Task list\n- Completion history\n- Calendar markers\n- Floating window settings\n- Dynamic color rules",
                 msg_ad_limit: "Task limit reached (3). Watch an ad to unlock more?",
                 msg_ad_confirm: "Watching the ad will remove the task limit until the app is closed. Play ad?",
                 msg_ad_fail: "Failed to load ad. Please try again later.",
@@ -1502,7 +1542,11 @@
             const confirmBtn = document.getElementById('modalConfirmBtn');
             const cancelBtn = modal.querySelector('.modal-actions button:first-child');
 
-            titleEl.textContent = title;
+            if (options.useHTML) {
+                titleEl.innerHTML = title;
+            } else {
+                titleEl.textContent = title;
+            }
             inputEl.style.display = options.showInput ? 'block' : 'none';
             if (options.showInput) {
                 inputEl.value = options.inputValue || '';
@@ -2708,36 +2752,39 @@
         }
 
         function exportData() {
-            const data = {
-                tasks: tasks,
-                taskHistory: history,
-                calendarMark: calendarMark,
-                showAllInFloating: showAllInFloating,
-                floatX: localStorage.getItem('floatX'),
-                floatY: localStorage.getItem('floatY'),
-                floatWidth: localStorage.getItem('floatWidth'),
-                floatHeight: localStorage.getItem('floatHeight'),
-                floatScale: localStorage.getItem('floatScale'),
-                recheckInterval: localStorage.getItem('recheckInterval'),
-                bgThresholds: bgThresholds
-            };
-            if (typeof Android !== 'undefined') {
-                Android.backupData(JSON.stringify(data));
-            }
+            showModal(getTranslation('msg_backup_confirm'), {
+                onConfirm: () => {
+                    const data = {
+                        tasks: tasks,
+                        taskHistory: history,
+                        calendarMark: calendarMark,
+                        showAllInFloating: showAllInFloating,
+                        floatX: localStorage.getItem('floatX'),
+                        floatY: localStorage.getItem('floatY'),
+                        floatWidth: localStorage.getItem('floatWidth'),
+                        floatHeight: localStorage.getItem('floatHeight'),
+                        floatScale: localStorage.getItem('floatScale'),
+                        recheckInterval: localStorage.getItem('recheckInterval'),
+                        bgThresholds: bgThresholds
+                    };
+                    if (typeof Android !== 'undefined') {
+                        Android.backupData(JSON.stringify(data));
+                    }
+                }
+            });
         }
 
-        function applyRestoredData(jsonString) {
+        function applyRestoredData(jsonString, fileName) {
             try {
                 const data = JSON.parse(jsonString);
 
-                // 個別タスクのインポート処理
+                // 個別タスクのインポート処理 (既存機能)
                 if (data.type === 'partial_tasks' && Array.from(data.tasks)) {
-                    // IDが衝突しないように調整してリストの先頭に追加
                     const now = Date.now();
                     const newTasks = data.tasks.map((t, idx) => ({
                         ...t,
-                        id: now + idx, // 重複を避けるために新しいIDを付与
-                        completed: false // インポート時は未完了状態にする
+                        id: now + idx,
+                        completed: false
                     }));
                     tasks = [...newTasks, ...tasks];
                     saveTasks();
@@ -2745,32 +2792,112 @@
                     return;
                 }
 
-                if (data.tasks) {
+                // プレビュー表示の構築
+                let previewHtml = `<div style="text-align:left; margin-top:10px; white-space: normal;">
+<div style="background:#eee; padding:8px; border-radius:4px; margin-bottom:12px; font-size:12px; word-break:break-all;">
+📄 ${fileName || '---'}
+</div>
+<p style="margin-bottom:15px; font-weight:bold;">${getTranslation('msg_restore_preview')}</p>`;
+
+                // タスク一覧
+                if (data.tasks && data.tasks.length > 0) {
+                    previewHtml += `<div class="preview-section">
+                        <label class="preview-title"><input type="checkbox" id="restore-tasks" checked> ${getTranslation('label_tasks')}</label>
+                        <div class="preview-item">${data.tasks.map(t => '・' + t.text).join('\n')}</div>
+                    </div>`;
+                }
+
+                // 完了履歴
+                if (data.taskHistory && data.taskHistory.length > 0) {
+                    const h = data.taskHistory;
+                    const count = h.length;
+                    const dates = h.map(x => new Date(x.completedAt)).sort((a,b) => a-b);
+                    const start = dates[0].toLocaleString();
+                    const end = dates[dates.length-1].toLocaleString();
+                    previewHtml += `<div class="preview-section">
+                        <label class="preview-title"><input type="checkbox" id="restore-history" checked> ${getTranslation('label_history')}</label>
+                        <div class="preview-item">${count}件：${start} ～ ${end}</div>
+                    </div>`;
+                }
+
+                // カレンダーのマーク
+                if (data.calendarMark) {
+                    previewHtml += `<div class="preview-section">
+                        <label class="preview-title"><input type="checkbox" id="restore-calendar" checked> ${getTranslation('label_calendar_mark')}</label>
+                        <div class="preview-item">${data.calendarMark}</div>
+                    </div>`;
+                }
+
+                // フローティングウィンドウの設定
+                const hasFloatSettings = ['floatScale', 'floatWidth', 'floatHeight'].some(k => data[k] !== undefined);
+                if (hasFloatSettings) {
+                    previewHtml += `<div class="preview-section">
+                        <label class="preview-title"><input type="checkbox" id="restore-float" checked> ${getTranslation('btn_floating_settings')}</label>
+                        <div class="preview-item">表示倍率：${data.floatScale || 1.0}倍\n縦幅：${data.floatHeight || 0}px\n横幅：${data.floatWidth || 0}px</div>
+                    </div>`;
+                }
+
+                // 配色ルール
+                if (data.bgThresholds && data.bgThresholds.length > 0) {
+                    previewHtml += `<div class="preview-section">
+                        <label class="preview-title"><input type="checkbox" id="restore-colors" checked> ${getTranslation('label_color_rules')}</label>
+                        <div class="preview-item">${data.bgThresholds.map(r => {
+                            const mins = Math.floor(r.threshold / 60);
+                            return `${mins}分以下 <span class="color-dot" style="background:${r.bgColor};"></span> / <span class="color-dot" style="background:${r.textColor};"></span>`;
+                        }).join('\n')}</div>
+                    </div>`;
+                }
+
+                previewHtml += `</div>`;
+
+                showModal(previewHtml, {
+                    useHTML: true,
+                    onConfirm: () => {
+                        const options = {
+                            tasks: document.getElementById('restore-tasks')?.checked,
+                            history: document.getElementById('restore-history')?.checked,
+                            calendar: document.getElementById('restore-calendar')?.checked,
+                            float: document.getElementById('restore-float')?.checked,
+                            colors: document.getElementById('restore-colors')?.checked
+                        };
+                        performRestore(data, options);
+                    }
+                });
+            } catch (e) {
+                showModal(getTranslation('msg_restore_fail'), { hideCancel: true });
+                console.error(e);
+            }
+        }
+
+        function performRestore(data, options) {
+            try {
+                if (options.tasks && data.tasks) {
                     tasks = data.tasks;
                     localStorage.setItem('tasks', JSON.stringify(tasks));
                 }
-                if (data.taskHistory) {
+                if (options.history && data.taskHistory) {
                     history = data.taskHistory;
                     localStorage.setItem('taskHistory', JSON.stringify(history));
                 }
-                if (data.calendarMark) {
+                if (options.calendar && data.calendarMark) {
                     calendarMark = data.calendarMark;
                     localStorage.setItem('calendarMark', calendarMark);
                 }
-                if (data.showAllInFloating !== undefined) {
-                    showAllInFloating = data.showAllInFloating;
-                    localStorage.setItem('showAllInFloating', showAllInFloating);
+                if (options.float) {
+                    const keys = ['floatX', 'floatY', 'floatWidth', 'floatHeight', 'floatScale', 'recheckInterval'];
+                    if (data.showAllInFloating !== undefined) {
+                        localStorage.setItem('showAllInFloating', data.showAllInFloating);
+                    }
+                    keys.forEach(key => {
+                        if (data[key] !== undefined) {
+                            localStorage.setItem(key, data[key]);
+                        }
+                    });
                 }
-                if (data.bgThresholds) {
+                if (options.colors && data.bgThresholds) {
                     bgThresholds = data.bgThresholds;
                     localStorage.setItem('bgThresholds', JSON.stringify(bgThresholds));
                 }
-                const keys = ['floatX', 'floatY', 'floatWidth', 'floatHeight', 'floatScale', 'recheckInterval'];
-                keys.forEach(key => {
-                    if (data[key] !== undefined) {
-                        localStorage.setItem(key, data[key]);
-                    }
-                });
 
                 showModal(getTranslation('msg_restore_success'), {
                     hideCancel: true,
@@ -2780,7 +2907,6 @@
                 });
             } catch (e) {
                 showModal(getTranslation('msg_restore_fail'), { hideCancel: true });
-                console.error(e);
             }
         }
 
