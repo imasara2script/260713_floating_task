@@ -130,7 +130,7 @@
             justify-content: center;
             font-size: 12px;
             font-weight: bold;
-            color: #333;
+            color: inherit;
             text-align: center;
             line-height: 1.1;
             cursor: pointer;
@@ -143,9 +143,22 @@
         }
         .floating-timer-collapsed {
             font-size: 11px;
-            color: #d9534f;
+            color: inherit;
             margin-top: 2px;
             font-weight: normal;
+        }
+        .ft-tiny {
+            font-size: 8px;
+            line-height: 1;
+            opacity: 0.8;
+            color: inherit;
+        }
+        .timer-collapsed-large {
+            font-size: 18px;
+            font-weight: bold;
+            color: inherit;
+            line-height: 1;
+            margin-top: 1px;
         }
         .floating-drag-handle {
             width: 50px;
@@ -309,6 +322,62 @@
             box-sizing: border-box;
         }
         .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+        /* Color Rule Styles */
+        .color-rule-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+        .color-input-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .color-input-label {
+            font-size: 10px;
+            color: #666;
+        }
+        input[type="color"] {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: none;
+        }
+        .color-preview-hex {
+            font-family: monospace;
+            font-size: 10px;
+            padding: 4px;
+            border-radius: 4px;
+            min-width: 70px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 1.1;
+        }
+        .threshold-input-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-grow: 1;
+        }
+        .threshold-input {
+            width: 50px;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -365,38 +434,47 @@
 
             <div class="card" style="margin-bottom: 16px;">
                 <div id="settings-main-view">
-                    <button class="btn btn-primary" style="width: 100%; margin-bottom: 12px;" onclick="openFloatingSettings()" data-i18n="btn_floating_settings">フローティングウィンドウの設定</button>
+                    <!-- 1. 言語設定 -->
+                    <div>
+                        <label for="languageSelect" style="display: block; font-size: 13px; margin-bottom: 8px;" data-i18n="label_language">🌐 言語設定</label>
+                        <select id="languageSelect" onchange="updateLanguagePreference()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                            <option value="system" data-i18n="lang_auto">自動 (システム設定)</option>
+                            <option value="ja" data-i18n="lang_ja">日本語</option>
+                            <option value="en" data-i18n="lang_en">English</option>
+                        </select>
+                    </div>
 
+                    <!-- 2. システム権限関係 -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <div id="battery-status-text" style="font-size: 13px; margin-bottom: 8px;" data-i18n="battery_status_checking">🔋 バッテリー最適化の状態を確認中...</div>
-                        <button id="btn-request-battery" class="btn btn-secondary" onclick="requestBatteryExemption()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_battery">バッテリー最適化を解除する</button>
+                        <div style="font-size: 13px; font-weight: bold; margin-bottom: 12px;" data-i18n="label_system_permissions">⚙️ システム権限関係</div>
+
+                        <div style="margin-bottom: 12px;">
+                            <div id="battery-status-text" style="font-size: 13px; margin-bottom: 8px;" data-i18n="battery_status_checking">🔋 バッテリー最適化の状態を確認中...</div>
+                            <button id="btn-request-battery" class="btn btn-secondary" onclick="requestBatteryExemption()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_battery">バッテリー最適化を解除する</button>
+                        </div>
+
+                        <div style="border-top: 1px solid #f9f9f9; padding-top: 8px; margin-bottom: 12px;">
+                            <div id="overlay-status-text" style="font-size: 13px; margin-bottom: 8px;" data-i18n="overlay_status_checking">🔲 重ねて表示権限の状態を確認中...</div>
+                            <button id="btn-request-overlay" class="btn btn-secondary" onclick="requestOverlayPermission()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_overlay">重ねて表示を許可する</button>
+                        </div>
+
+                        <div style="border-top: 1px solid #f9f9f9; padding-top: 8px; margin-bottom: 12px;">
+                            <div id="notification-status-text" style="font-size: 13px; margin-bottom: 8px;" data-i18n="notification_status_checking">🔔 通知権限の状態を確認中...</div>
+                            <button id="btn-request-notification" class="btn btn-secondary" onclick="requestNotificationPermission()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_notification">通知を許可する</button>
+                        </div>
+
+                        <div style="border-top: 1px solid #f9f9f9; padding-top: 8px;">
+                            <div id="alarmStatus" style="font-size: 13px; margin-bottom: 8px;" data-i18n="alarm_status_checking">⏰ アラーム権限の状態を確認中...</div>
+                            <button id="btn-request-alarm" class="btn btn-secondary" onclick="Android.openExactAlarmSettings()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_alarm">アラーム権限を許可する</button>
+                        </div>
                     </div>
 
+                    <!-- 3. フローティングウィンドウの設定 -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <div id="overlay-status-text" style="font-size: 13px; margin-bottom: 8px;" data-i18n="overlay_status_checking">🔲 重ねて表示権限の状態を確認中...</div>
-                        <button id="btn-request-overlay" class="btn btn-secondary" onclick="requestOverlayPermission()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_overlay">重ねて表示を許可する</button>
+                        <button class="btn btn-primary" style="width: 100%;" onclick="openFloatingSettings()" data-i18n="btn_floating_settings">フローティングウィンドウの設定</button>
                     </div>
 
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <div id="notification-status-text" style="font-size: 13px; margin-bottom: 8px;" data-i18n="notification_status_checking">🔔 通知権限の状態を確認中...</div>
-                        <button id="btn-request-notification" class="btn btn-secondary" onclick="requestNotificationPermission()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_notification">通知を許可する</button>
-                    </div>
-
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <div id="alarmStatus" style="font-size: 13px; margin-bottom: 8px;" data-i18n="alarm_status_checking">⏰ アラーム権限の状態を確認中...</div>
-                        <button id="btn-request-alarm" class="btn btn-secondary" onclick="Android.openExactAlarmSettings()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_alarm">アラーム権限を許可する</button>
-                    </div>
-
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
-                        <label for="calendarMarkInput" style="display: block; margin-bottom: 8px;" data-i18n="label_calendar_mark">カレンダーのマーク (記号や絵文字):</label>
-                        <input type="text" id="calendarMarkInput" placeholder="例: ⭕, ✔, ⭐" onchange="updateCalendarMark()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
-                    </div>
-
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <div style="font-size: 13px; margin-bottom: 8px;" data-i18n="label_premium">🔓 プレミアム機能</div>
-                        <button class="btn btn-primary" onclick="unlockPremium()" style="width: 100%; font-size: 14px;" data-i18n="btn_unlock_code">解除コードを入力</button>
-                    </div>
-
+                    <!-- 4. データ管理 -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
                         <div style="font-size: 13px; margin-bottom: 8px;" data-i18n="label_data_management">💾 データ管理</div>
                         <div style="display: flex; gap: 8px;">
@@ -405,17 +483,15 @@
                         </div>
                     </div>
 
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <button class="btn btn-secondary" style="width: 100%; font-size: 14px;" onclick="openDeveloperModal()" data-i18n="btn_developer">開発者用</button>
+                    <!-- 5. カレンダーのマーク -->
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
+                        <label for="calendarMarkInput" style="display: block; margin-bottom: 8px;" data-i18n="label_calendar_mark">カレンダーのマーク (記号や絵文字):</label>
+                        <input type="text" id="calendarMarkInput" placeholder="例: ⭕, ✔, ⭐" onchange="updateCalendarMark()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
                     </div>
 
+                    <!-- 6. 開発者用 -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <label for="languageSelect" style="display: block; font-size: 13px; margin-bottom: 8px;" data-i18n="label_language">🌐 言語設定</label>
-                        <select id="languageSelect" onchange="updateLanguagePreference()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
-                            <option value="system" data-i18n="lang_auto">自動 (システム設定)</option>
-                            <option value="ja" data-i18n="lang_ja">日本語</option>
-                            <option value="en" data-i18n="lang_en">English</option>
-                        </select>
+                        <button class="btn btn-secondary" style="width: 100%; font-size: 14px;" onclick="openDeveloperModal()" data-i18n="btn_developer">開発者用</button>
                     </div>
                 </div>
 
@@ -463,10 +539,21 @@
                         </select>
                     </div>
 
-                    <label for="floatScale" style="display: block; margin-bottom: 4px;" data-i18n="label_scale">表示倍率:</label>
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-                        <input type="range" id="floatScale" min="0.5" max="2.0" step="0.1" oninput="document.getElementById('scaleVal').innerText = this.value; saveFloatingSettings()" style="flex-grow: 1;">
-                        <span id="scaleVal" style="width: 30px;">1.0</span>
+                    <div style="margin-bottom: 16px;">
+                        <label for="floatScale" style="display: block; margin-bottom: 4px;" data-i18n="label_scale">表示倍率:</label>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                            <input type="range" id="floatScale" min="0.5" max="2.0" step="0.1" oninput="document.getElementById('scaleVal').innerText = this.value; saveFloatingSettings()" style="flex-grow: 1;">
+                            <span id="scaleVal" style="width: 30px;">1.0</span>
+                        </div>
+                    </div>
+
+                    <!-- 配色ルールセクション -->
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <div style="font-weight: bold; font-size: 13px;" data-i18n="label_color_rules">🎨 時間経過による色の変化</div>
+                            <button class="btn btn-primary" onclick="addColorRule()" style="padding: 2px 8px; font-size: 11px;" data-i18n="btn_add_rule">＋ ルールを追加</button>
+                        </div>
+                        <div id="colorRulesList"></div>
                     </div>
 
                     <button class="btn btn-secondary" style="width: 100%; font-size: 13px; margin-bottom: 8px;" onclick="resetFloatingSettings()" data-i18n="btn_reset_default">設定をデフォルトに戻す</button>
@@ -480,9 +567,7 @@
     <!-- フローティング画面 -->
     <div id="floating-view" style="display: none; width: 100%; height: 100%;">
         <div id="floating-collapsed" class="floating-label-collapsed" onclick="if(!isDragging) toggleFloatingExpand(true)">
-            <div>Floating</div>
-            <div>task</div>
-            <div id="collapsed-timer-text" class="floating-timer-collapsed" style="display: none;"></div>
+            <!-- JavaScript で動的に生成 -->
         </div>
         <div id="floating-expanded" class="compact-container" style="display: none; width: 100%; height: 100%;">
             <div id="expanded-drag-handle" class="floating-drag-handle">
@@ -622,6 +707,11 @@
                     <button class="btn btn-primary" onclick="if(typeof Android !== 'undefined') Android.shareLog()" style="flex: 1; font-size: 13px;" data-i18n="btn_share_log">ログを出力 (共有)</button>
                     <button class="btn btn-danger" onclick="clearAppLog()" style="flex: 1; font-size: 13px;" data-i18n="btn_clear_log">ログを消去</button>
                 </div>
+
+                <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                    <div style="font-size: 13px; margin-bottom: 8px;" data-i18n="label_premium">🔓 プレミアム機能</div>
+                    <button class="btn btn-primary" onclick="unlockPremium()" style="width: 100%; font-size: 14px;" data-i18n="btn_unlock_code">解除コードを入力</button>
+                </div>
             </div>
 
             <div class="modal-actions" style="margin-top: 20px;">
@@ -753,6 +843,7 @@
                 calendar_sat: "土",
                 calendar_year_month: "{0}年 {1}月",
                 history_task_title: "「{0}」の履歴",
+                label_system_permissions: "⚙️ システム権限関係",
                 repeat_suffix: " (リピート)",
                 none: "なし",
                 btn_toggle_pending_title: "未完了のみ表示",
@@ -770,7 +861,13 @@
                 btn_log_comment: "コメントを記録",
                 msg_logging_confirm: "ログ出力を有効にしますか？\n\n収集される情報の種類:\n・サービスの起動/終了\n・メモリ不足等のシステム警告\n・ウィンドウの操作イベント\n・アプリの動作状態\n・手動入力コメント\n\n※個人情報は収集されません。",
                 msg_log_comment_success: "コメントを記録しました",
-                msg_log_cleared: "ログを消去しました"
+                msg_log_cleared: "ログを消去しました",
+                label_color_rules: "🎨 時間経過による色の変化",
+                label_threshold: "以下",
+                btn_add_rule: "＋ ルールを追加",
+                label_bg_color: "背景",
+                label_text_color: "文字",
+                msg_rule_delete_confirm: "この配色ルールを削除しますか？"
             },
             en: {
                 tab_tasks: "Tasks",
@@ -890,6 +987,7 @@
                 calendar_sat: "Sat",
                 calendar_year_month: "{1} {0}",
                 history_task_title: "History: {0}",
+                label_system_permissions: "⚙️ System Permissions",
                 repeat_suffix: " (Repeat)",
                 none: "None",
                 btn_toggle_pending_title: "Show Pending Only",
@@ -907,7 +1005,13 @@
                 btn_log_comment: "Log Comment",
                 msg_logging_confirm: "Enable log output?\n\nCollected Information:\n- Service start/stop\n- System memory warnings\n- Window interaction events\n- App status\n- Manual comments\n\n* No personal data is collected.",
                 msg_log_comment_success: "Comment logged",
-                msg_log_cleared: "Log cleared"
+                msg_log_cleared: "Log cleared",
+                label_color_rules: "🎨 Dynamic Color Rules",
+                label_threshold: "or less",
+                btn_add_rule: "+ Add Rule",
+                label_bg_color: "BG",
+                label_text_color: "Text",
+                msg_rule_delete_confirm: "Delete this color rule?"
             }
         };
 
@@ -970,6 +1074,17 @@
         let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
         let history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
         let calendarMark = localStorage.getItem('calendarMark') || '⭕';
+        let bgThresholds = JSON.parse(localStorage.getItem('bgThresholds') || '[]');
+
+        // 初期値の設定
+        if (bgThresholds.length === 0 && localStorage.getItem('bgThresholds') === null) {
+            bgThresholds = [
+                { threshold: 3600, bgColor: '#ffff00', textColor: '#000000' }, // 60分以下 -> 黄
+                { threshold: 600, bgColor: '#ffc0cb', textColor: '#d9534f' }   // 10分以下 -> ピンク
+            ];
+            localStorage.setItem('bgThresholds', JSON.stringify(bgThresholds));
+        }
+
         let showAllInFloating = localStorage.getItem('showAllInFloating') === 'true';
         let currentFloatingIndex = 0;
         let draggingElement = null;
@@ -2129,20 +2244,67 @@
             }
 
             const floatingContent = document.getElementById('floatingTaskContent');
-            const collapsedTimerEl = document.getElementById('collapsed-timer-text');
+            const collapsedEl = document.getElementById('floating-collapsed');
+            const expandedEl = document.getElementById('floating-expanded');
 
             // 縮小表示用の最短タイマー取得
             const activeTimers = tasks.filter(t => t.durationMs && !t.completed)
-                .map(t => ({...t, remaining: (t.startTime + t.durationMs) - Date.now()}))
+                .map(t => ({...t, remaining: Math.max(0, (t.startTime + t.durationMs) - Date.now())}))
                 .filter(t => t.remaining > 0)
                 .sort((a, b) => a.remaining - b.remaining);
 
-            if (collapsedTimerEl) {
+            // 配色ルールの適用
+            let appliedBgColor = '#ffffff';
+            let appliedTextColor = '#333333';
+
+            if (activeTimers.length > 0) {
+                const shortestRemaining = activeTimers[0].remaining / 1000; // 秒単位
+                // 判定前にしきい値の小さい順にソートする (コピーを作成してソート)
+                const sortedRules = [...bgThresholds].sort((a, b) => a.threshold - b.threshold);
+                const rule = sortedRules.find(r => shortestRemaining <= r.threshold);
+                if (rule) {
+                    appliedBgColor = rule.bgColor;
+                    appliedTextColor = rule.textColor;
+                }
+            }
+
+            if (mode === 'floating') {
+                if (collapsedEl) {
+                    collapsedEl.style.backgroundColor = appliedBgColor;
+                    collapsedEl.style.color = appliedTextColor;
+                    // FTの文字やタイマーの色も適用される（collapsedElの子要素）
+                }
+                if (expandedEl) {
+                    expandedEl.style.backgroundColor = appliedBgColor;
+                    expandedEl.style.color = appliedTextColor;
+                    // ドラッグハンドル部分の色も同期させる
+                    const dragHandle = document.getElementById('expanded-drag-handle');
+                    if (dragHandle) {
+                        dragHandle.style.backgroundColor = 'transparent'; // 親の背景を活かす
+                        dragHandle.style.color = 'inherit';
+                        dragHandle.style.borderRightColor = appliedTextColor; // 境界線を見えるように
+                        dragHandle.style.opacity = '0.8';
+                    }
+                }
+
+                // ネイティブ側に通知して角丸背景を更新
+                if (typeof Android !== 'undefined' && Android.updateFloatingColors) {
+                    Android.updateFloatingColors(appliedBgColor, appliedTextColor);
+                }
+            }
+
+            if (collapsedEl) {
                 if (activeTimers.length > 0) {
-                    collapsedTimerEl.textContent = getRemainingTimeText(activeTimers[0]);
-                    collapsedTimerEl.style.display = 'block';
+                    const timeText = getRemainingTimeText(activeTimers[0]);
+                    collapsedEl.innerHTML = `
+                        <div class="ft-tiny">FT</div>
+                        <div class="timer-collapsed-large">${timeText}</div>
+                    `;
                 } else {
-                    collapsedTimerEl.style.display = 'none';
+                    collapsedEl.innerHTML = `
+                        <div>Floating</div>
+                        <div>task</div>
+                    `;
                 }
             }
 
@@ -2168,7 +2330,7 @@
                                 <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})" style="width: 16px; height: 16px; margin-right: 6px; flex-shrink: 0;">
                                 <span class="floating-task-text" style="font-size: 14px; font-weight: bold; margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; ${t.completed ? 'text-decoration: line-through; color: #888;' : ''}">${t.text}</span>
                             </div>
-                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #555;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: inherit; opacity: 0.8;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     ${isTimer && !t.completed ? `<span class="${isExpired ? 'timer-expired' : ''}" onclick="toggleTimerDisplayMode()" style="font-variant-numeric: tabular-nums; cursor:pointer; background: #ffc107; padding: 1px 4px; border-radius: 3px; font-weight: bold;">${timerDisplay}</span>` : ''}
                                     ${isTimer && !t.completed ? `<button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size: 14px; padding: 0; background: none; border: none; cursor: pointer;">🔄</button>` : ''}
@@ -2207,6 +2369,7 @@
 
             if (m === 'manager') {
                 document.documentElement.style.height = 'auto';
+                document.documentElement.style.overflow = 'auto';
                 document.body.style.height = 'auto';
                 document.body.style.backgroundColor = '#f8f9fa';
                 document.body.style.padding = '16px';
@@ -2253,6 +2416,7 @@
         function openFloatingSettings() {
             document.getElementById('settings-main-view').style.display = 'none';
             document.getElementById('settings-floating-detail').style.display = 'block';
+            renderColorRules();
             if (typeof Android !== 'undefined' && Android.startFloatingWindow) {
                 Android.startFloatingWindow();
                 toggleFloatingExpand(true);
@@ -2474,6 +2638,75 @@
             localStorage.setItem('calendarMark', mark);
         }
 
+        function addColorRule() {
+            bgThresholds.push({ threshold: 300, bgColor: '#ffffff', textColor: '#333333' });
+            saveColorRules();
+        }
+
+        function removeColorRule(index) {
+            showModal(getTranslation('msg_rule_delete_confirm'), {
+                onConfirm: () => {
+                    bgThresholds.splice(index, 1);
+                    saveColorRules();
+                }
+            });
+        }
+
+        function saveColorRules() {
+            // しきい値で昇順にソート (小さい順)
+            bgThresholds.sort((a, b) => a.threshold - b.threshold);
+            localStorage.setItem('bgThresholds', JSON.stringify(bgThresholds));
+            render();
+            renderColorRules();
+        }
+
+        function updateColorRule(index, field, value) {
+            if (field === 'threshold') {
+                bgThresholds[index][field] = parseInt(value) || 0;
+            } else {
+                bgThresholds[index][field] = value;
+            }
+            localStorage.setItem('bgThresholds', JSON.stringify(bgThresholds));
+            render();
+            // 数値入力中に並べ替わるとフォーカスが外れるため、ここでは renderColorRules を呼ばず
+            // 背景色のプレビュー更新のみを個別に行う
+            const preview = document.querySelectorAll('.color-preview-hex')[index];
+            if (preview) {
+                preview.style.backgroundColor = bgThresholds[index].bgColor;
+                preview.style.color = bgThresholds[index].textColor;
+                preview.innerHTML = `<div>${bgThresholds[index].bgColor.toUpperCase()}</div><div>${bgThresholds[index].textColor.toUpperCase()}</div>`;
+            }
+        }
+
+        function renderColorRules() {
+            const list = document.getElementById('colorRulesList');
+            if (!list) return;
+
+            list.innerHTML = bgThresholds.map((rule, index) => `
+                <div class="color-rule-item">
+                    <div class="color-input-wrapper">
+                        <span class="color-input-label" data-i18n="label_bg_color">${getTranslation('label_bg_color')}</span>
+                        <input type="color" value="${rule.bgColor}" onchange="updateColorRule(${index}, 'bgColor', this.value)">
+                    </div>
+                    <div class="color-input-wrapper">
+                        <span class="color-input-label" data-i18n="label_text_color">${getTranslation('label_text_color')}</span>
+                        <input type="color" value="${rule.textColor}" onchange="updateColorRule(${index}, 'textColor', this.value)">
+                    </div>
+                    <div class="threshold-input-group">
+                        <input type="number" class="threshold-input" value="${Math.floor(rule.threshold / 60)}"
+                            onchange="updateColorRule(${index}, 'threshold', this.value * 60)"
+                            onblur="saveColorRules()">
+                        <span style="font-size: 12px;" data-i18n="label_threshold">${getTranslation('label_threshold')}</span>
+                    </div>
+                    <div class="color-preview-hex" style="background-color: ${rule.bgColor}; color: ${rule.textColor}; border: 1px solid #ddd;">
+                        <div>${rule.bgColor.toUpperCase()}</div>
+                        <div>${rule.textColor.toUpperCase()}</div>
+                    </div>
+                    <button class="btn-icon" onclick="removeColorRule(${index})">🗑️</button>
+                </div>
+            `).join('');
+        }
+
         function exportData() {
             const data = {
                 tasks: tasks,
@@ -2485,7 +2718,8 @@
                 floatWidth: localStorage.getItem('floatWidth'),
                 floatHeight: localStorage.getItem('floatHeight'),
                 floatScale: localStorage.getItem('floatScale'),
-                recheckInterval: localStorage.getItem('recheckInterval')
+                recheckInterval: localStorage.getItem('recheckInterval'),
+                bgThresholds: bgThresholds
             };
             if (typeof Android !== 'undefined') {
                 Android.backupData(JSON.stringify(data));
@@ -2526,6 +2760,10 @@
                 if (data.showAllInFloating !== undefined) {
                     showAllInFloating = data.showAllInFloating;
                     localStorage.setItem('showAllInFloating', showAllInFloating);
+                }
+                if (data.bgThresholds) {
+                    bgThresholds = data.bgThresholds;
+                    localStorage.setItem('bgThresholds', JSON.stringify(bgThresholds));
                 }
                 const keys = ['floatX', 'floatY', 'floatWidth', 'floatHeight', 'floatScale', 'recheckInterval'];
                 keys.forEach(key => {

@@ -431,6 +431,29 @@ class FloatingWindowService : Service() {
      */
     private inner class FloatingWebAppInterface {
         @JavascriptInterface
+        fun updateFloatingColors(bgColor: String, textColor: String) {
+            val handler = Handler(Looper.getMainLooper())
+            handler.post {
+                val view = floatingView ?: return@post
+                try {
+                    val color = android.graphics.Color.parseColor(bgColor)
+                    val tColor = android.graphics.Color.parseColor(textColor)
+                    
+                    val background = view.background
+                    if (background is android.graphics.drawable.GradientDrawable) {
+                        background.setColor(color)
+                    }
+                    
+                    // 閉じるボタンの文字色も同期（現在は非表示設定ですが、念のため）
+                    val closeButton: android.widget.Button = view.findViewById(R.id.closeButton)
+                    closeButton.setTextColor(tColor)
+                } catch (e: Exception) {
+                    AppLogger.log(this@FloatingWindowService, "Error updating colors: ${e.message}")
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun openMainActivity() {
             AppLogger.log(this@FloatingWindowService, "JS: openMainActivity called")
             val handler = Handler(Looper.getMainLooper())
