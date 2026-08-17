@@ -1,8 +1,9 @@
 <resources>
     <string name="app_name">floating task</string>
     <string name="permission_required_title">権限が必要です</string>
-    <string name="permission_required_message">このアプリを動作させるには「他のアプリの上に重ねて表示」権限を許可する必要があります。設定画面から許可してください。</string>
+    <string name="permission_required_message">このアプリは、他のアプリの画面上にフローティングウィンドウを表示できるようにするために、権限を有効化する必要があります。次の画面で表示されるアプリリストの中から\"floating task\"を選択し、\"他のアプリの上に重ねて表示できるようにする\"を有効化してください</string>
     <string name="go_to_settings">設定へ</string>
+    <string name="btn_allow">許可する</string>
     <string name="cancel">キャンセル</string>
     <string name="pick_melody">メロディを選択</string>
     <string name="timer_expired">タイマー終了</string>
@@ -12,4 +13,5 @@
     <string name="channel_timer_notifications">タイマー通知</string>
     <string name="channel_timer_silent">タイマー：消音</string>
     <string name="floating_window_service_name">フローティングウィンドウ・サービス</string>
+    <string name="notification_permission_required_message">このアプリは、タイマーが終了した際や未完了タスクがある場合に通知を表示するために、通知の送信権限が必要です。次の画面で表示されるダイアログで「許可」を選択してください。</string>
 </resources>

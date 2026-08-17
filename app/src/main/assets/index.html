@@ -373,6 +373,16 @@
                     </div>
 
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                        <div id="overlay-status-text" style="font-size: 13px; margin-bottom: 8px;" data-i18n="overlay_status_checking">🔲 重ねて表示権限の状態を確認中...</div>
+                        <button id="btn-request-overlay" class="btn btn-secondary" onclick="requestOverlayPermission()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_overlay">重ねて表示を許可する</button>
+                    </div>
+
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                        <div id="notification-status-text" style="font-size: 13px; margin-bottom: 8px;" data-i18n="notification_status_checking">🔔 通知権限の状態を確認中...</div>
+                        <button id="btn-request-notification" class="btn btn-secondary" onclick="requestNotificationPermission()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_notification">通知を許可する</button>
+                    </div>
+
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
                         <div id="alarmStatus" style="font-size: 13px; margin-bottom: 8px;" data-i18n="alarm_status_checking">⏰ アラーム権限の状態を確認中...</div>
                         <button id="btn-request-alarm" class="btn btn-secondary" onclick="Android.openExactAlarmSettings()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_alarm">アラーム権限を許可する</button>
                     </div>
@@ -648,6 +658,10 @@
                 btn_request_battery: "バッテリー最適化を解除する",
                 alarm_status_checking: "⏰ アラーム権限の状態を確認中...",
                 btn_request_alarm: "アラーム権限を許可する",
+                overlay_status_checking: "🔲 重ねて表示権限の状態を確認中...",
+                btn_request_overlay: "重ねて表示を許可する",
+                notification_status_checking: "🔔 通知権限の状態を確認中...",
+                btn_request_notification: "通知を許可する",
                 label_calendar_mark: "カレンダーのマーク (記号や絵文字):",
                 label_premium: "🔓 プレミアム機能",
                 btn_unlock_code: "解除コードを入力",
@@ -721,6 +735,10 @@
                 msg_task_history_empty: "このタスクの履歴はありません",
                 msg_battery_exempt: "✅ バッテリー最適化の除外設定：有効",
                 msg_battery_not_exempt: "⚠️ バッテリー最適化により動作が制限される可能性があります",
+                msg_overlay_enabled: "✅ 重ねて表示権限：有効",
+                msg_overlay_disabled: "⚠️ 重ねて表示権限が必要です（フローティング表示に影響します）",
+                msg_notification_enabled: "✅ 通知権限：有効",
+                msg_notification_disabled: "⚠️ 通知権限が必要です（タイマー終了の通知に影響します）",
                 msg_alarm_enabled: "✅ 毎日 AM 0:00 の自動リセット・通知が有効です",
                 msg_alarm_disabled: "⚠️ 正確なアラーム権限が必要です（AM 0:00 の自動リセットに影響します）",
                 unit_hour: "時間",
@@ -777,6 +795,10 @@
                 btn_request_battery: "Exempt from battery optimization",
                 alarm_status_checking: "⏰ Checking alarm permission...",
                 btn_request_alarm: "Allow exact alarm permission",
+                overlay_status_checking: "🔲 Checking overlay permission...",
+                btn_request_overlay: "Allow display over other apps",
+                notification_status_checking: "🔔 Checking notification permission...",
+                btn_request_notification: "Allow notifications",
                 label_calendar_mark: "Calendar mark (symbol or emoji):",
                 label_premium: "🔓 Premium Features",
                 btn_unlock_code: "Enter Unlock Code",
@@ -850,6 +872,10 @@
                 msg_task_history_empty: "No history for this task",
                 msg_battery_exempt: "✅ Battery optimization: Exempted",
                 msg_battery_not_exempt: "⚠️ Battery optimization may restrict background work",
+                msg_overlay_enabled: "✅ Overlay permission: Enabled",
+                msg_overlay_disabled: "⚠️ Overlay permission required for floating window",
+                msg_notification_enabled: "✅ Notification permission: Enabled",
+                msg_notification_disabled: "⚠️ Notification permission required for alerts",
                 msg_alarm_enabled: "✅ Daily auto-reset and notifications are active",
                 msg_alarm_disabled: "⚠️ Exact alarm permission required for auto-reset",
                 unit_hour: "hours",
@@ -1308,6 +1334,8 @@
             history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
             updateBatteryStatus();
             updateAlarmStatus();
+            updateNotificationStatus();
+            updateOverlayStatus();
             render();
         }
 
@@ -1340,6 +1368,8 @@
             if (tab === 'settings') {
                 updateBatteryStatus();
                 updateAlarmStatus();
+                updateNotificationStatus();
+                updateOverlayStatus();
             }
             if (tab === 'history' && !options.skipRenderHistory) {
                 renderHistory();
@@ -2088,8 +2118,8 @@
                     return `
                     <li class="task-item ${isTimer && !t.completed ? 'timer-active' : ''}" data-id="${t.id}">
                         ${isEditMode ? '<span class="drag-handle">☰</span>' : ''}
-                        ${isExportMode ? `<input type="checkbox" onchange="toggleExportSelection(${t.id})">` : ''}
-                        ${isDeleteMode ? `<input type="checkbox" onchange="toggleDeleteSelection(${t.id})">` : ''}
+                        ${isExportMode ? `<input type="checkbox" ${selectedExportIds.has(t.id) ? 'checked' : ''} onchange="toggleExportSelection(${t.id}); render();">` : ''}
+                        ${isDeleteMode ? `<input type="checkbox" ${selectedDeleteIds.has(t.id) ? 'checked' : ''} onchange="toggleDeleteSelection(${t.id}); render();">` : ''}
                         ${!isEditMode && !isExportMode && !isDeleteMode ? `<input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">` : ''}
                         ${isTimer && !t.completed ? `<span class="timer-badge ${isExpired ? 'timer-expired' : ''}" onclick="toggleTimerDisplayMode()" style="cursor:pointer;">${timerDisplay}</span>` : ''}
                         <span class="task-text ${t.completed ? 'completed' : ''} editable" onclick="${isExportMode ? `toggleExportSelection(${t.id}); render();` : (isDeleteMode ? `toggleDeleteSelection(${t.id}); render();` : `editTask(${t.id})`)}">${t.text}</span>
@@ -2380,6 +2410,56 @@
             }
         }
 
+        function requestOverlayPermission() {
+            if (typeof Android !== 'undefined' && Android.requestOverlayPermission) {
+                Android.requestOverlayPermission();
+            }
+        }
+
+        function updateOverlayStatus() {
+            if (typeof Android !== 'undefined' && Android.checkOverlayPermissionGranted) {
+                const isGranted = Android.checkOverlayPermissionGranted();
+                const textEl = document.getElementById('overlay-status-text');
+                const btnEl = document.getElementById('btn-request-overlay');
+                if (textEl && btnEl) {
+                    if (isGranted) {
+                        textEl.innerHTML = getTranslation('msg_overlay_enabled');
+                        textEl.style.color = "green";
+                        btnEl.style.display = "none";
+                    } else {
+                        textEl.innerHTML = getTranslation('msg_overlay_disabled');
+                        textEl.style.color = "orange";
+                        btnEl.style.display = "inline-block";
+                    }
+                }
+            }
+        }
+
+        function requestNotificationPermission() {
+            if (typeof Android !== 'undefined' && Android.requestNotificationPermission) {
+                Android.requestNotificationPermission();
+            }
+        }
+
+        function updateNotificationStatus() {
+            if (typeof Android !== 'undefined' && Android.checkNotificationPermissionGranted) {
+                const isGranted = Android.checkNotificationPermissionGranted();
+                const textEl = document.getElementById('notification-status-text');
+                const btnEl = document.getElementById('btn-request-notification');
+                if (textEl && btnEl) {
+                    if (isGranted) {
+                        textEl.innerHTML = getTranslation('msg_notification_enabled');
+                        textEl.style.color = "green";
+                        btnEl.style.display = "none";
+                    } else {
+                        textEl.innerHTML = getTranslation('msg_notification_disabled');
+                        textEl.style.color = "orange";
+                        btnEl.style.display = "inline-block";
+                    }
+                }
+            }
+        }
+
         function updateInterval() {
             const interval = document.getElementById('intervalSelect').value;
             localStorage.setItem('recheckInterval', interval);
@@ -2602,6 +2682,8 @@
                 checkDailyReset();
                 updateAlarmStatus();
                 updateBatteryStatus();
+                updateNotificationStatus();
+                updateOverlayStatus();
 
                 console.log("App initialized and daily reset checked.");
             } catch (e) {

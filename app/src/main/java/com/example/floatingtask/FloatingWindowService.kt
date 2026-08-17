@@ -301,48 +301,11 @@ class FloatingWindowService : Service() {
         webView.settings.domStorageEnabled = true
         webView.setBackgroundColor(0) // 透明に設定
 
-        webView.addJavascriptInterface(
-            object {
-                @JavascriptInterface
-                @Suppress("unused")
-                fun openMainActivity() {
-                    val intent = Intent(this@FloatingWindowService, MainActivity::class.java)
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                    startActivity(intent)
-                }
-
-            @JavascriptInterface
-            @Suppress("unused")
-            fun updatePendingTaskCount(count: Int) {
-                if (count == 0) {
-                    val handler = Handler(Looper.getMainLooper())
-                    handler.post { hideFloatingWindow() }
-                }
-            }
-
-            @JavascriptInterface
-            @Suppress("unused")
-            fun onDataChanged() {
-                // MainActivityに通知
-                val intent = Intent("com.example.floatingtask.DATA_CHANGED")
-                intent.setPackage(packageName)
-                sendBroadcast(intent)
-            }
-
-            @JavascriptInterface
-            @Suppress("unused")
-            fun toggleExpand(expanded: Boolean) {
-                val handler = Handler(Looper.getMainLooper())
-                handler.post {
-                    isExpanded = expanded
-                    updateWindowSize(expanded)
-                }
-            }
-            },
-            "Android",
-        )
+        webView.addJavascriptInterface(FloatingWebAppInterface(), "Android")
 
         webView.loadUrl("file:///android_asset/index.html?mode=floating&expanded=$isExpanded")
+
+        // 閉じるボタンの設定
 
         // 閉じるボタンの設定
         closeButton.setOnClickListener {
@@ -452,10 +415,73 @@ class FloatingWindowService : Service() {
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         AppLogger.log(this, "FloatingWindowService onTrimMemory: level=$level")
+        AppLogger.logMemoryStatus(this, "onTrimMemory level=$level", "FloatingWindow")
     }
 
     override fun onLowMemory() {
         super.onLowMemory()
         AppLogger.log(this, "FloatingWindowService onLowMemory")
+        AppLogger.logMemoryStatus(this, "onLowMemory", "FloatingWindow")
+    }
+
+    /**
+     * WebViewから呼び出されるインターフェースクラス。
+     * 匿名オブジェクトだとProGuard/R8やリフレクションの影響でメソッドが見つからない場合があるため、
+     * 明示的なクラスとして定義します。
+     */
+    private inner class FloatingWebAppInterface {
+        @JavascriptInterface
+        fun openMainActivity() {
+            AppLogger.log(this@FloatingWindowService, "JS: openMainActivity called")
+            val handler = Handler(Looper.getMainLooper())
+            handler.post {
+                try {
+                    // ランチャーから起動した際と同じ挙動にするため、getLaunchIntentForPackage を使用
+                    val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        // 既存のタスクを最前面に持ってくる
+                        addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                        // シングルインスタンス的に動作させる
+                        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    }
+                    if (intent != null) {
+                        startActivity(intent)
+                    } else {
+                        // 万が一取得できない場合は従来の明示的Intentを使用
+                        val explicitIntent = Intent(this@FloatingWindowService, MainActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        }
+                        startActivity(explicitIntent)
+                    }
+                } catch (e: Exception) {
+                    AppLogger.log(this@FloatingWindowService, "Error opening MainActivity: ${e.message}")
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun updatePendingTaskCount(count: Int) {
+            if (count == 0) {
+                val handler = Handler(Looper.getMainLooper())
+                handler.post { hideFloatingWindow() }
+            }
+        }
+
+        @JavascriptInterface
+        fun onDataChanged() {
+            // MainActivityに通知
+            val intent = Intent("com.example.floatingtask.DATA_CHANGED")
+            intent.setPackage(packageName)
+            sendBroadcast(intent)
+        }
+
+        @JavascriptInterface
+        fun toggleExpand(expanded: Boolean) {
+            val handler = Handler(Looper.getMainLooper())
+            handler.post {
+                isExpanded = expanded
+                updateWindowSize(expanded)
+            }
+        }
     }
 }

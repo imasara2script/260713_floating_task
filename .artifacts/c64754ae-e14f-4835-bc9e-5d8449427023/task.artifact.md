@@ -1,0 +1,6 @@
+- `[x]` `FloatingWindowService.kt` の修正
+    - `[x]` `openMainActivity` を `getLaunchIntentForPackage` を使用するように変更
+- `[x]` `MainActivity.kt` の修正
+    - `[x]` `onNewIntent` のオーバーライド追加
+    - `[x]` `onResume` での `webView.requestLayout()` 追加
+- `[x]` 動作確認 (ビルド確認)

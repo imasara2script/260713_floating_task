@@ -1,8 +1,9 @@
 <resources>
     <string name="app_name">floating task</string>
     <string name="permission_required_title">Permission Required</string>
-    <string name="permission_required_message">To operate this app, you need to allow the \"Display over other apps\" permission. Please enable it from the settings screen.</string>
+    <string name="permission_required_message">This app needs permission to display a floating window over other apps. In the next screen, please select \"floating task\" from the list of apps and enable \"Allow display over other apps\".</string>
     <string name="go_to_settings">Go to Settings</string>
+    <string name="btn_allow">Allow</string>
     <string name="cancel">Cancel</string>
     <string name="pick_melody">Select Melody</string>
     <string name="timer_expired">Timer Expired</string>
@@ -12,4 +13,5 @@
     <string name="channel_timer_notifications">Timer Notifications</string>
     <string name="channel_timer_silent">Timer: Silent</string>
     <string name="floating_window_service_name">Floating Window Service</string>
+    <string name="notification_permission_required_message">This app needs permission to send notifications to alert you when timers expire or if there are pending tasks. Please select \"Allow\" in the next dialog.</string>
 </resources>

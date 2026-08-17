@@ -18,6 +18,7 @@ import android.webkit.WebViewClient
 import android.view.View
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
@@ -39,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     private var rewardedAd: RewardedAd? = null
     private var isAdFree = false
     private var isLimitUnlockedByReward = false
+    private var overlayPermissionDialog: AlertDialog? = null
 
     private fun loadRewardedAd() {
         if (isAdFree || isLimitUnlockedByReward) return
@@ -72,8 +74,12 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.StartActivityForResult(),
     ) {
         if (Settings.canDrawOverlays(this)) {
+            overlayPermissionDialog?.dismiss()
+            overlayPermissionDialog = null
             startFloatingService(isSettingsMode = false)
         }
+        // 重ねて表示の設定から戻った後、通知権限のチェックを行う
+        checkNotificationPermission()
     }
 
     private var dataToBackup: String? = null
@@ -141,10 +147,9 @@ class MainActivity : AppCompatActivity() {
         // 初回起動時などにオーバーレイ権限をチェック
         if (!Settings.canDrawOverlays(this)) {
             showOverlayPermissionDialog()
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            // オーバーレイ権限が既にある場合は通知権限をチェック
+            checkNotificationPermission()
         }
 
         val webView: WebView = findViewById(R.id.webView)
@@ -229,21 +234,30 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun shareLog() {
+            // 共有直前に最新のシステム状態を記録
+            AppLogger.logSystemStatus(mContext)
+            
             val logFile = AppLogger.getLogFile(mContext)
             if (!logFile.exists()) return
 
-            val contentUri = androidx.core.content.FileProvider.getUriForFile(
-                mContext,
-                "${mContext.packageName}.fileprovider",
-                logFile,
-            )
+            runOnUiThread {
+                try {
+                    val contentUri = androidx.core.content.FileProvider.getUriForFile(
+                        mContext,
+                        "${mContext.packageName}.fileprovider",
+                        logFile
+                    )
 
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_STREAM, contentUri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_STREAM, contentUri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    mContext.startActivity(Intent.createChooser(intent, "Share Log"))
+                } catch (e: Exception) {
+                    AppLogger.log(mContext, "Error sharing log: ${e.message}")
+                }
             }
-            mContext.startActivity(Intent.createChooser(intent, "Share Log"))
         }
 
         @JavascriptInterface
@@ -264,13 +278,23 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun startFloatingWindow() {
             if (!Settings.canDrawOverlays(mContext)) {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    "package:${mContext.packageName}".toUri(),
-                )
-                overlayPermissionLauncher.launch(intent)
+                runOnUiThread {
+                    showOverlayPermissionDialog()
+                }
             } else {
                 startFloatingService(isSettingsMode = true)
+            }
+        }
+
+        @JavascriptInterface
+        fun checkOverlayPermissionGranted(): Boolean {
+            return Settings.canDrawOverlays(mContext)
+        }
+
+        @JavascriptInterface
+        fun requestOverlayPermission() {
+            runOnUiThread {
+                showOverlayPermissionDialog()
             }
         }
 
@@ -317,11 +341,29 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        @SuppressLint("BatteryLife")
         fun requestBatteryOptimizationExemption() {
             val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
             intent.data = "package:${mContext.packageName}".toUri()
             mContext.startActivity(intent)
+        }
+
+        @JavascriptInterface
+        fun checkNotificationPermissionGranted(): Boolean {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    mContext,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+        }
+
+        @JavascriptInterface
+        fun requestNotificationPermission() {
+            runOnUiThread {
+                showNotificationPermissionDialog()
+            }
         }
 
         @JavascriptInterface
@@ -486,6 +528,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        AppLogger.log(this, "MainActivity onNewIntent")
+    }
+
     override fun onResume() {
         super.onResume()
         AppLogger.log(this, "MainActivity onResume")
@@ -496,6 +544,9 @@ class MainActivity : AppCompatActivity() {
         // 全画面表示中はフローティングウィンドウを隠す。
         // ただし、設定画面のフローティング調整中はこの限りではない（JS側から表示指示が出る）。
         if (Settings.canDrawOverlays(this)) {
+            overlayPermissionDialog?.dismiss()
+            overlayPermissionDialog = null
+
             val intent = Intent(this, FloatingWindowService::class.java)
             intent.action = "ACTION_HIDE"
             startService(intent)
@@ -504,6 +555,7 @@ class MainActivity : AppCompatActivity() {
         // 日付を跨いでいた場合、リセットを確認する。そうでない場合もデータを同期する。
         if (isPageLoaded) {
             val webView: WebView = findViewById(R.id.webView)
+            webView.requestLayout() // 再描画を強制
             webView.evaluateJavascript("checkDailyReset();", null)
             
             // バナー広告の表示更新
@@ -529,6 +581,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        AppLogger.log(this, "MainActivity onTrimMemory: level=$level")
+        AppLogger.logMemoryStatus(this, "onTrimMemory level=$level", "MainActivity")
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        AppLogger.log(this, "MainActivity onLowMemory")
+        AppLogger.logMemoryStatus(this, "onLowMemory", "MainActivity")
+    }
+
     private fun startFloatingService(isSettingsMode: Boolean) {
         val intent = Intent(this, FloatingWindowService::class.java)
         intent.action = "ACTION_SHOW"
@@ -537,7 +601,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showOverlayPermissionDialog() {
-        android.app.AlertDialog.Builder(this)
+        if (overlayPermissionDialog?.isShowing == true) return
+
+        overlayPermissionDialog = AlertDialog.Builder(this)
             .setTitle(R.string.permission_required_title)
             .setMessage(R.string.permission_required_message)
             .setPositiveButton(R.string.go_to_settings) { _, _ ->
@@ -545,7 +611,37 @@ class MainActivity : AppCompatActivity() {
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     "package:$packageName".toUri(),
                 )
-                startActivity(intent)
+                overlayPermissionLauncher.launch(intent)
+            }
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                overlayPermissionDialog = null
+                // キャンセルされた場合も一応通知権限のチェックへ進む
+                checkNotificationPermission()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                showNotificationPermissionDialog()
+            }
+        }
+    }
+
+    private fun showNotificationPermissionDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.permission_required_title)
+            .setMessage(R.string.notification_permission_required_message)
+            .setPositiveButton(R.string.btn_allow) { _, _ ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
             }
             .setNegativeButton(R.string.cancel, null)
             .setCancelable(false)
