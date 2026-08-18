@@ -697,6 +697,7 @@
             <div id="taskViewContainer" style="display: none;">
                 <div id="viewTaskText" style="font-size: 18px; font-weight: bold; margin-bottom: 12px; word-break: break-all;"></div>
                 <div id="viewTaskTimer" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none;"></div>
+                <div id="viewTaskReminders" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none; background: #f0f7ff; padding: 8px; border-radius: 6px;"></div>
                 <div style="color: #666; font-size: 12px; margin-bottom: 4px;" data-i18n="label_note">補足文章：</div>
                 <div id="viewTaskNote" style="font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 6px; min-height: 40px; white-space: pre-wrap; margin-bottom: 20px; border: 1px solid #eee; word-break: break-all;"></div>
             </div>
@@ -729,6 +730,11 @@
                         <option value="custom" data-i18n="melody_custom">端末内から選択...</option>
                     </select>
                     <div id="customMelodyName" style="font-size: 11px; color: #666; margin-top: 4px; display: none;"></div>
+                </div>
+                <div id="reminderGroup" style="margin-bottom: 12px; display: none; border-top: 1px solid #eee; padding-top: 12px;">
+                    <label style="color: #666; font-size: 14px; display: block; margin-bottom: 8px;" data-i18n="label_reminder_notifications">リマインド通知：</label>
+                    <div id="reminderList"></div>
+                    <button class="btn btn-secondary" onclick="addReminderItem()" style="width: 100%; font-size: 13px; margin-top: 4px;" data-i18n="btn_add_reminder">＋通知を追加</button>
                 </div>
                 <div style="margin-bottom: 20px;">
                     <label for="taskNote" style="color: #666; font-size: 14px; display: block; margin-bottom: 4px;" data-i18n="label_note">補足文章：</label>
@@ -866,6 +872,10 @@
                 melody_alarm: "アラーム音",
                 melody_chime: "チャイム",
                 melody_custom: "端末内から選択...",
+                label_reminder_notifications: "リマインド通知：",
+                btn_add_reminder: "＋通知を追加",
+                placeholder_reminder_msg: "追加メッセージ(任意)",
+                btn_test_notification: "テスト",
                 label_note: "補足文章：",
                 placeholder_note: "補足情報を入力...",
                 btn_save: "保存",
@@ -888,10 +898,10 @@
                 label_tasks: "タスク一覧",
                 label_history: "完了履歴",
                 label_color_rules: "配色ルール",
-                msg_backup_confirm: "バックアップファイルを作成しますか？\n\n保存される情報の種類:\n・タスク一覧\n・完了履歴\n・カレンダーのマーク\n・フローティングウィンドウの設定\n・背景色の色分けルール",
+                msg_backup_confirm: "バックアップファイルを作成しますか？\n\n保存される情報の種類:\n・タスク一覧\n・完了履歴\n・カレンダーのマーク\n・フローティングウィンドウの設定\n・背景色の色分けルール\n\n※コインの保有数はバックアップ・復元できません",
                 msg_ad_limit: "タスク数は3つまでに制限されています。広告を視聴して制限を緩和しますか？",
                 msg_ad_confirm: "広告を視聴すると、アプリを完全に終了するまでの間、タスク登録数の制限がなくなります。広告を再生しますか？",
-                msg_ad_fail: "広告の読み込みに失敗しました。時間をおいて再度お試しください。",
+                msg_ad_fail: "広告の読み込みに失敗しました。\n時間をおいて再度お試しください。\n\n\n\n\n\n\n",
                 msg_reward_earned: "タスクの制限が緩和されました。アプリを再起動するまでは、このままタスクを追加できます。",
                 msg_coin_earned: "１コインを獲得しました。本日視聴できる残り回数は{0}回です。",
                 msg_daily_bonus_earned: "デイリーログインボーナスとして１コインを獲得しました！",
@@ -1039,6 +1049,10 @@
                 melody_alarm: "Alarm",
                 melody_chime: "Chime",
                 melody_custom: "Select from device...",
+                label_reminder_notifications: "Remind Notifications:",
+                btn_add_reminder: "+ Add Notification",
+                placeholder_reminder_msg: "Extra message (optional)",
+                btn_test_notification: "Test",
                 label_note: "Notes:",
                 placeholder_note: "Enter notes here...",
                 btn_save: "Save",
@@ -1061,7 +1075,7 @@
                 label_tasks: "Task List",
                 label_history: "Completion History",
                 label_color_rules: "Dynamic Color Rules",
-                msg_backup_confirm: "Do you want to run a backup?\n\nInformation to be saved:\n- Task list\n- Completion history\n- Calendar markers\n- Floating window settings\n- Dynamic color rules",
+                msg_backup_confirm: "Do you want to run a backup?\n\nInformation to be saved:\n- Task list\n- Completion history\n- Calendar markers\n- Floating window settings\n- Dynamic color rules\n\n* Coin balance cannot be backed up or restored.",
                 msg_ad_limit: "Task limit reached (3). Watch an ad to unlock more?",
                 msg_ad_confirm: "Watching the ad will remove the task limit until the app is closed. Play ad?",
                 msg_ad_fail: "Failed to load ad. Please try again later.",
@@ -1223,6 +1237,7 @@
         let currentCalendarDate = new Date();
         let currentCalendarTaskId = null;
         let editingTaskId = null;
+        let currentTaskReminders = [];
         let selectedCustomUri = null;
         let selectedCustomName = null;
         let isFloatingExpanded = (urlParams.get('expanded') === 'true');
@@ -1232,12 +1247,54 @@
         let isPremium = false;
         let pendingAction = null; // 'backup' or 'restore'
         let isImportMode = false;
+        let pendingRestoreData = null;
+        let pendingRestoreOptions = null;
 
         function checkAdFree() {
             if (typeof Android !== 'undefined') {
                 if (Android.isAdFree) isAdFree = Android.isAdFree();
                 if (Android.isPremium) isPremium = Android.isPremium();
             }
+        }
+
+        function testReminder(id) {
+            const r = currentTaskReminders.find(x => x.id == id);
+            if (!r) return;
+            const taskText = document.getElementById('taskInput').value || "Test Task";
+            if (typeof Android !== 'undefined' && Android.testReminderNotification) {
+                Android.testReminderNotification(taskText, r.message);
+            }
+        }
+
+        function addReminderItem(time = "", message = "") {
+            const id = Date.now() + Math.random();
+            currentTaskReminders.push({ id, time, message });
+            renderReminderList();
+        }
+
+        function removeReminderItem(id) {
+            currentTaskReminders = currentTaskReminders.filter(r => r.id !== id);
+            renderReminderList();
+        }
+
+        function renderReminderList() {
+            const list = document.getElementById('reminderList');
+            if (!list) return;
+            list.innerHTML = currentTaskReminders.map(r => `
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; padding: 8px; background: #f8f9fa; border-radius: 6px; border: 1px solid #eee;">
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <input type="time" value="${r.time}" onchange="updateReminderData('${r.id}', 'time', this.value)" style="padding: 4px; border-radius: 4px; border: 1px solid #ddd; font-size: 14px; background: white;">
+                        <button class="btn btn-secondary" onclick="testReminder('${r.id}')" style="padding: 4px 8px; font-size: 11px;" data-i18n="btn_test_notification">${getTranslation('btn_test_notification')}</button>
+                        <button class="btn-icon" onclick="removeReminderItem('${r.id}')" style="margin-left: auto;">🗑️</button>
+                    </div>
+                    <input type="text" value="${r.message}" placeholder="${getTranslation('placeholder_reminder_msg')}" oninput="updateReminderData('${r.id}', 'message', this.value)" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; box-sizing: border-box;">
+                </div>
+            `).join('');
+        }
+
+        function updateReminderData(id, field, value) {
+            const r = currentTaskReminders.find(x => x.id == id);
+            if (r) r[field] = value;
         }
 
         function toggleFloatingExpand(expand, fromAndroid = false) {
@@ -1418,6 +1475,13 @@
             }
             showModal(getTranslation('msg_delete_bulk_confirm', selectedDeleteIds.size), {
                 onConfirm: () => {
+                    tasks.forEach(t => {
+                        if (selectedDeleteIds.has(t.id)) {
+                            if (t.reminders && typeof Android !== 'undefined' && Android.setReminderAlarms) {
+                                Android.setReminderAlarms(t.id, t.text, "[]");
+                            }
+                        }
+                    });
                     tasks = tasks.filter(t => !selectedDeleteIds.has(t.id));
                     saveTasks();
                     cancelDeleteMode();
@@ -1552,6 +1616,12 @@
                         updatedTask.startTime = now.getTime();
                         updatedTask.durationMs = target.getTime() - now.getTime();
                     }
+
+                    // Android 側の完了状態もリセット
+                    if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
+                        Android.updateTaskCompletionState(t.id, false);
+                    }
+
                     return updatedTask;
                 });
                 localStorage.setItem('lastResetDate', today);
@@ -1685,8 +1755,19 @@
             }
 
             confirmBtn.onclick = () => {
-                closeModal();
-                if (options.onConfirm) options.onConfirm(inputEl.value);
+                const val = inputEl.value;
+                const onConfirm = options.onConfirm;
+
+                // Read content before potentially closing or overwriting
+                const previousContent = titleEl.innerHTML;
+
+                if (onConfirm) onConfirm(val);
+
+                // If a new modal was opened by onConfirm, titleEl.innerHTML will have changed.
+                // In that case, we should NOT call closeModal() as it would close the new modal.
+                if (titleEl.innerHTML === previousContent) {
+                    closeModal();
+                }
             };
 
             cancelBtn.onclick = () => {
@@ -1781,9 +1862,20 @@
                 document.getElementById('taskInput').value = task.text;
                 document.getElementById('taskNote').value = task.note || '';
 
+                currentTaskReminders = (task.reminders || []).map(r => ({ ...r, id: Math.random() }));
+                renderReminderList();
+
                 // Populate View Mode
                 document.getElementById('viewTaskText').textContent = task.text;
                 document.getElementById('viewTaskNote').textContent = task.note || getTranslation('none');
+
+                if (task.reminders && task.reminders.length > 0) {
+                    const reminderText = task.reminders.map(r => `⏰ ${r.time}${r.message ? ` (${r.message})` : ''}`).join('\n');
+                    document.getElementById('viewTaskReminders').innerHTML = `<div style="font-weight:bold; margin-bottom:4px;">${getTranslation('label_reminder_notifications')}</div><div style="white-space:pre-wrap;">${reminderText}</div>`;
+                    document.getElementById('viewTaskReminders').style.display = 'block';
+                } else {
+                    document.getElementById('viewTaskReminders').style.display = 'none';
+                }
 
                 if (task.durationMs) {
                     if (task.targetTime) {
@@ -1836,6 +1928,8 @@
                 document.getElementById('timerValue').value = '';
                 document.getElementById('timerUnit').value = 'none';
                 document.getElementById('melodySelect').value = 'default';
+                currentTaskReminders = [];
+                renderReminderList();
                 if (historyBtn) historyBtn.style.display = 'none';
                 if (deleteBtn) deleteBtn.style.display = 'none';
                 if (editBtn) editBtn.style.display = 'none';
@@ -1898,9 +1992,8 @@
             }
             if (pendingAction === 'restore') {
                 pendingAction = null;
-                if (typeof Android !== 'undefined') {
-                    // isImportMode は startRestore で設定済み
-                    Android.restoreData();
+                if (pendingRestoreData && pendingRestoreOptions) {
+                    performRestore(pendingRestoreData, pendingRestoreOptions);
                 }
                 return;
             }
@@ -1909,6 +2002,26 @@
                 hideCancel: true,
                 onConfirm: () => {
                     // 必要なら location.reload();
+                }
+            });
+        }
+
+        function onAdFailed(type) {
+            showModal(getTranslation('msg_ad_fail'), {
+                hideCancel: true,
+                onConfirm: () => {
+                    if (type === 'limit') {
+                        if (pendingAction === 'restore' && pendingRestoreData) {
+                            requestPaymentAndRestore(pendingRestoreData, pendingRestoreOptions);
+                        } else if (pendingAction === 'backup') {
+                            exportData();
+                        } else {
+                            // 通常のタスク制限解除の失敗
+                            // 特に何もしなくてもメイン画面に戻るだけなので問題なし
+                        }
+                    } else if (type === 'coin') {
+                        earnCoinReward();
+                    }
                 }
             });
         }
@@ -1932,11 +2045,13 @@
             const input = document.getElementById('timerValue');
             const timeInput = document.getElementById('timeValue');
             const melodyGroup = document.getElementById('melodyGroup');
+            const reminderGroup = document.getElementById('reminderGroup');
             const isVisible = (unit !== 'none');
 
             input.style.display = (isVisible && unit !== 'at') ? 'inline-block' : 'none';
             timeInput.style.display = (unit === 'at') ? 'inline-block' : 'none';
             melodyGroup.style.display = isVisible ? 'block' : 'none';
+            reminderGroup.style.display = !isVisible ? 'block' : 'none';
 
             if (unit === 'at') {
                 setTimeout(() => timeInput.focus(), 50);
@@ -2058,12 +2173,27 @@
                         }
                     }
                 }
+                delete targetTask.reminders;
+                if (typeof Android !== 'undefined' && Android.setReminderAlarms) {
+                    Android.setReminderAlarms(targetTask.id, text, "[]");
+                }
             } else {
                 // タイマーなしに設定
                 delete targetTask.startTime;
                 delete targetTask.durationMs;
                 delete targetTask.targetTime;
                 delete targetTask.melody;
+
+                // リマインド通知の設定
+                const validReminders = currentTaskReminders.filter(r => r.time).map(r => ({ time: r.time, message: r.message }));
+                targetTask.reminders = validReminders;
+                if (typeof Android !== 'undefined' && Android.setReminderAlarms) {
+                    Android.setReminderAlarms(targetTask.id, text, JSON.stringify(validReminders));
+                }
+                // 完了状態も同期
+                if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
+                    Android.updateTaskCompletionState(targetTask.id, targetTask.completed);
+                }
             }
 
             if (!editingTaskId) {
@@ -2188,6 +2318,12 @@
                             t.lastCompletedDate = today;
                         }
                     }
+
+                    // Android 側に完了状態を通知
+                    if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
+                        Android.updateTaskCompletionState(t.id, newState);
+                    }
+
                     return { ...t, completed: newState };
                 }
                 return t;
@@ -2228,6 +2364,9 @@
             if (task) {
                 showModal(getTranslation('msg_delete_confirm', task.text), {
                     onConfirm: () => {
+                        if (task.reminders && typeof Android !== 'undefined' && Android.setReminderAlarms) {
+                            Android.setReminderAlarms(task.id, task.text, "[]");
+                        }
                         tasks = tasks.filter(t => t.id !== id);
                         saveTasks();
                         closeTaskModal();
@@ -3081,16 +3220,21 @@
 
         function startRestore(isImport = false) {
             isImportMode = !!isImport;
+            if (typeof Android !== 'undefined') {
+                Android.restoreData();
+            }
+        }
+
+        function requestPaymentAndRestore(data, options) {
+            pendingRestoreData = data;
+            pendingRestoreOptions = options;
+
             const isPremium = (typeof Android !== 'undefined' && Android.isPremium && Android.isPremium());
             const coins = (typeof Android !== 'undefined' && Android.getCoins) ? Android.getCoins() : 0;
             const msg = getTranslation(isImportMode ? 'msg_import_confirm' : 'msg_restore_confirm');
 
             if (isPremium) {
-                showModal(msg, {
-                    onConfirm: () => {
-                        if (typeof Android !== 'undefined') Android.restoreData();
-                    }
-                });
+                performRestore(pendingRestoreData, pendingRestoreOptions);
                 return;
             }
 
@@ -3101,7 +3245,7 @@
                     onConfirm: () => {
                         if (typeof Android !== 'undefined' && Android.consumeCoin()) {
                             updateCoinDisplay();
-                            Android.restoreData();
+                            performRestore(pendingRestoreData, pendingRestoreOptions);
                         }
                     },
                     onNeutral: () => {
@@ -3211,7 +3355,12 @@
                             float: document.getElementById('restore-float')?.checked,
                             colors: document.getElementById('restore-colors')?.checked
                         };
-                        performRestore(data, options);
+                        if (isImportMode) {
+                            options.selectedTaskIndices = Array.from(document.querySelectorAll('.import-task-item-check'))
+                                .filter(el => el.checked)
+                                .map(el => parseInt(el.getAttribute('data-index')));
+                        }
+                        requestPaymentAndRestore(data, options);
                     }
                 });
             } catch (e) {
@@ -3223,13 +3372,10 @@
         function performRestore(data, options) {
             try {
                 let importedCount = 0;
-                if (data.tasks) {
+                if (data.tasks && data.tasks.length > 0) {
                     if (isImportMode) {
-                        const selectedIndices = Array.from(document.querySelectorAll('.import-task-item-check'))
-                            .filter(el => el.checked)
-                            .map(el => parseInt(el.getAttribute('data-index')));
-
-                        const selectedTasks = selectedIndices.map(idx => data.tasks[idx]);
+                        const selectedIndices = options.selectedTaskIndices || [];
+                        const selectedTasks = selectedIndices.map(idx => data.tasks[idx]).filter(t => t !== undefined);
                         importedCount = selectedTasks.length;
 
                         if (selectedTasks.length > 0) {
@@ -3290,6 +3436,12 @@
                 showModal(getTranslation(isImportMode ? 'msg_import_success' : 'msg_restore_success', importedCount), {
                     hideCancel: true,
                     onConfirm: () => {
+                        // 全タスクの完了状態を Android 側に同期
+                        if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
+                            tasks.forEach(t => Android.updateTaskCompletionState(t.id, t.completed));
+                        }
+                        pendingRestoreData = null;
+                        pendingRestoreOptions = null;
                         window.location.reload();
                     }
                 });

@@ -1,44 +1,71 @@
-# 履歴タブへのフィルター機能の追加
+# リマインド通知機能の追加
 
-履歴タブに「フィルター」というグループを追加し、表示期間（全期間、日、週、月）およびタスク（すべてのタスク、特定のタスク）で表示データを絞り込めるようにします。
+タスク編集画面に「リマインド通知時刻」を追加し、タイマー無しタスクにおいて指定時刻に未完了の場合に通知を送信する機能を実装します。一つのタスクに対して複数の通知時刻を設定可能にします。
 
 ## ユーザーレビューが必要な事項
 
-- **UIデザイン**: 「フィルター」グループは履歴リストの上にカード形式で追加します。
-- **期間フィルター**:
-    - 「全期間」「日」「週」「月」の選択肢を提供します。
-    - 「日」「週」「月」を選択した場合、それぞれの範囲（日付、週、月）を選択する入力フォームを表示します。
-- **タスクフィルター**:
-    - タスク名を入力するテキストボックス（`input type="text"`）を追加します。
-    - 入力された文字列が含まれるタスクの履歴のみを表示します。
-    - 未入力の場合は、すべてのタスクを対象とします。
-- **フィルタリングの適用**:
-    - 期間とタスクの両方の条件に合致する履歴のみを表示します。
-- **カレンダー表示との整合性**:
-    - タスク一覧から特定のタスクの履歴（カレンダー）を表示した場合は、このフィルター設定とは別に、そのタスクの全履歴が表示される既存の挙動を維持するか検討が必要です。今回は「全体履歴表示時」の利便性向上を主眼とします。
+- **通知の仕組み**: 通知はシステムのアラーム機能を使用してスケジュールされます。正確な時刻に通知するために「正確なアラーム」権限が必要です（既存の機能ですでに要求されています）。
+- **未完了状態の確認**: 通知送信時にタスクが完了済みかどうかを判定するため、タスクの完了状態を Android 側の SharedPreferences にも同期する仕組みを導入します。
 
-## Proposed Changes
+## 通知文字列の構成
 
-### UI (index.html)
+通知にはタスク名と、ユーザーが設定した任意の追加メッセージが表示されます。
+
+- **構成**: リマインド: [タスク名]（[追加メッセージ]）
+- **例 (追加メッセージあり)**:
+    - 日本語: 「リマインド: 健康管理（薬を飲む）」
+    - 英語: "Reminder: Health Check (Take medicine)"
+- **例 (追加メッセージなし)**:
+    - 日本語: 「リマインド: 健康管理」
+    - 英語: "Reminder: Health Check"
+
+## 提案される変更点
+
+### [Android アプリ (Kotlin)]
+
+#### [MODIFY] [AlarmScheduler.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/AlarmScheduler.kt)
+- 特定のタスクに対して指定時刻（HH:mm）にリマインド通知を予約する `scheduleReminderAlarm` メソッドを追加します。
+- 特定のタスクのリマインドアラームをすべてキャンセルする `cancelReminderAlarms` メソッドを追加します。
+- 各アラームの識別には `taskId` と時刻のハッシュを組み合わせた `requestCode` を使用します。
+
+#### [MODIFY] [AlarmReceiver.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/AlarmReceiver.kt)
+- `ACTION_REMINDER` インテントの受信処理を追加します。
+- 通知を表示する前に、SharedPreferences を参照して該当タスクが「未完了」であるか確認します。
+- 毎日 0:00 のリセット時に翌日のリマインドアラームを再スケジュールするか、`AlarmReceiver` で当日分のみスケジュールし、翌日分は 0:00 に再設定する運用にします。
+
+#### [MODIFY] [MainActivity.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MainActivity.kt)
+- `WebAppInterface` に以下のメソッドを追加します：
+    - `setReminderAlarms(taskId: Long, taskText: String, jsonReminders: String)`: JavaScript から通知設定リスト（時刻とメッセージのペア）を受け取り、スケジュールします。
+    - `updateTaskCompletionState(taskId: Long, isCompleted: Boolean)`: タスクの完了状態を同期します。
+    - `testReminderNotification(taskText: String, message: String)`: 指定された内容で即座に通知を表示するテスト機能です。
+- `sha256` などの既存メソッドはそのまま利用します。
+
+#### [MODIFY] [strings.xml](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/res/values/strings.xml)
+- 新しい通知チャンネル名や「リマインド通知」のラベルを追加します。
+
+### [WebView 画面 (HTML/JS)]
 
 #### [MODIFY] [index.html](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/index.html)
-- `#history-content` 内の履歴リストの上に、「フィルター」設定用の新しいカードを追加します。
-- 期間選択（ラジオボタンまたはセレクト）と、動的な範囲選択フォームを追加します。
-- タスク名入力用のテキストボックス（`input type="text"`）を追加します。
-- `translations` に新しい文言を追加します。
+- **UI**: タスク編集モーダル (`taskModal`) に「リマインド通知時刻」セクションを追加します。
+    - 時刻の選択と、それに対応するメッセージ入力欄、削除ボタンのセットを表示します。
+    - 各セットに「テスト通知」ボタンを配置し、即座に通知を確認できるようにします。
+    - 「＋通知を追加」ボタンで新しいセットを追加できます。
+    - タイマーが「無し」の場合のみ表示するように制御します。
+- **データ構造**: タスクオブジェクトに `reminders: { time: string, message: string }[]` を追加します。
+- **ロジック**:
+    - `addTask()` 時に `Android.setReminderAlarms()` を呼び出します。
+    - `toggleTask()` 時に `Android.updateTaskCompletionState()` を呼び出します。
+    - 既存の `tasks` データの読み込み時（`openTaskModal`）に `reminders` を反映します。
+- **翻訳**: `translations` オブジェクトに日本語と英語の文字列を追加します。
 
-### Logic (index.html)
+## 検証プラン
 
-#### [MODIFY] [index.html](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/index.html)
-- フィルター状態を管理するグローバル変数（`historyFilterPeriodType`, `historyFilterPeriodValue`, `historyFilterQuery`）を追加します。
-- フィルター変更時に呼び出される関数 `updateHistoryFilter()` を追加します。
-- `renderHistory()` 関数を修正し、フィルター状態に基づいて `history` 配列を絞り込んでから表示するようにします。
+### 自動テスト
+- 現在のプロジェクト構造に基づき、必要に応じて単体テストを追加または手動確認を行います。
 
-## Verification Plan
-
-### Manual Verification
-1. 履歴タブを開き、「フィルター」グループが表示されていることを確認します。
-2. 期間フィルター（日・週・月）を切り替え、正しく絞り込まれることを確認します。
-3. タスクフィルターに文字を入力し、その文字列を含むタスクの履歴のみが表示されることを確認します。
-4. 期間とタスクキーワードの両方を指定し、積集合で絞り込まれることを確認します。
-5. 「全期間」を選択し、タスク入力を空にしたときに、すべての履歴が表示されることを確認します。
+### 手動検証
+1. タスク編集画面でタイマーを「無し」にし、リマインド通知時刻を現在時刻の数分後に設定して保存する。
+2. 指定時刻に通知が届くことを確認する。
+3. タスクを完了状態（チェックあり）にしてから指定時刻を待つと、通知が届かないことを確認する。
+4. 複数の通知時刻を設定し、それぞれで通知が届くことを確認する。
+5. タイマーを有効にした場合、リマインド通知の設定項目が非表示になることを確認する。

@@ -75,6 +75,62 @@ object AlarmScheduler {
         setExactAlarm(alarmManager, triggerAt, pendingIntent)
     }
 
+    fun scheduleReminderAlarm(context: Context, taskId: Long, taskText: String, timeStr: String, message: String) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            action = "ACTION_REMINDER"
+            putExtra("EXTRA_TASK_ID", taskId)
+            putExtra("EXTRA_TASK_TEXT", taskText)
+            putExtra("EXTRA_REMINDER_MSG", message)
+            putExtra("EXTRA_TIME_STR", timeStr)
+        }
+        
+        // requestCodeは taskId と時刻文字列のハッシュを組み合わせて一意にする
+        val requestCode = (taskId.toString() + timeStr).hashCode()
+        
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val parts = timeStr.split(":").map { it.toInt() }
+        val hour = parts[0]
+        val minute = parts[1]
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            if (timeInMillis <= System.currentTimeMillis()) {
+                add(Calendar.DAY_OF_YEAR, 1)
+            }
+        }
+
+        setExactAlarm(alarmManager, calendar.timeInMillis, pendingIntent)
+    }
+
+    fun cancelReminderAlarms(context: Context, taskId: Long, timeStrings: List<String>) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        timeStrings.forEach { timeStr ->
+            val intent = Intent(context, AlarmReceiver::class.java).apply {
+                action = "ACTION_REMINDER"
+            }
+            val requestCode = (taskId.toString() + timeStr).hashCode()
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                intent,
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+            )
+            if (pendingIntent != null) {
+                alarmManager.cancel(pendingIntent)
+                pendingIntent.cancel()
+            }
+        }
+    }
+
     private fun setExactAlarm(alarmManager: AlarmManager, triggerAt: Long, pendingIntent: PendingIntent) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (alarmManager.canScheduleExactAlarms()) {

@@ -12,6 +12,10 @@
     <string name="channel_timer_custom">Timer: Custom</string>
     <string name="channel_timer_notifications">Timer Notifications</string>
     <string name="channel_timer_silent">Timer: Silent</string>
+    <string name="channel_reminders">Remind Notifications</string>
+    <string name="reminder_title">Reminder</string>
+    <string name="reminder_body_with_msg">\"%1$s\" (%2$s)</string>
+    <string name="reminder_body_no_msg">\"%1$s\"</string>
     <string name="floating_window_service_name">Floating Window Service</string>
     <string name="notification_permission_required_message">This app needs permission to send notifications to alert you when timers expire or if there are pending tasks. Please select \"Allow\" in the next dialog.</string>
 </resources>

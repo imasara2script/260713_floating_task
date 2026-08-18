@@ -34,6 +34,12 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import org.json.JSONArray
+import org.json.JSONObject
+import android.util.Log
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import androidx.core.app.NotificationCompat
 import java.security.MessageDigest
 
 class MainActivity : AppCompatActivity() {
@@ -336,6 +342,76 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun setReminderAlarms(taskId: Long, taskText: String, jsonReminders: String) {
+            val prefs = mContext.getSharedPreferences("task_reminders_prefs", Context.MODE_PRIVATE)
+            val oldTimesJson = prefs.getString(taskId.toString(), null)
+            if (oldTimesJson != null) {
+                try {
+                    val oldTimes = JSONArray(oldTimesJson)
+                    val timeList = mutableListOf<String>()
+                    for (i in 0 until oldTimes.length()) {
+                        timeList.add(oldTimes.getString(i))
+                    }
+                    AlarmScheduler.cancelReminderAlarms(mContext, taskId, timeList)
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Error parsing old reminders", e)
+                }
+            }
+
+            try {
+                val reminders = JSONArray(jsonReminders)
+                val newTimes = JSONArray()
+                for (i in 0 until reminders.length()) {
+                    val obj = reminders.getJSONObject(i)
+                    val time = obj.getString("time")
+                    val message = obj.optString("message", "")
+                    AlarmScheduler.scheduleReminderAlarm(mContext, taskId, taskText, time, message)
+                    newTimes.put(time)
+                }
+                prefs.edit().putString(taskId.toString(), newTimes.toString()).apply()
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error parsing reminders", e)
+            }
+        }
+
+        @JavascriptInterface
+        fun updateTaskCompletionState(taskId: Long, isCompleted: Boolean) {
+            val prefs = mContext.getSharedPreferences("task_completion_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean(taskId.toString(), isCompleted).apply()
+        }
+
+        @JavascriptInterface
+        fun testReminderNotification(taskText: String, message: String) {
+            val channelId = "reminders_channel"
+            val manager = mContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(
+                    channelId,
+                    mContext.getString(R.string.channel_reminders),
+                    NotificationManager.IMPORTANCE_HIGH
+                )
+                manager.createNotificationChannel(channel)
+            }
+
+            val body = if (message.isNotEmpty()) {
+                mContext.getString(R.string.reminder_body_with_msg, taskText, message)
+            } else {
+                mContext.getString(R.string.reminder_body_no_msg, taskText)
+            }
+
+            val notification = NotificationCompat.Builder(mContext, channelId)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(mContext.getString(R.string.reminder_title))
+                .setContentText(body)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .build()
+
+            manager.notify(System.currentTimeMillis().toInt(), notification)
+        }
+
+        @JavascriptInterface
         fun onDataChanged() {
             val intent = Intent("com.example.floatingtask.DATA_CHANGED")
             intent.setPackage(mContext.packageName)
@@ -509,6 +585,8 @@ class MainActivity : AppCompatActivity() {
 
                         override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                             AppLogger.log(mContext, "Rewarded ad failed to show: ${adError.message}")
+                            val webView: WebView = findViewById(R.id.webView)
+                            webView.evaluateJavascript("onAdFailed('$lastRewardType');", null)
                             loadRewardedAd()
                         }
                     }
@@ -528,7 +606,7 @@ class MainActivity : AppCompatActivity() {
                     // 広告がロードされていない場合
                     AppLogger.log(mContext, "Rewarded ad NOT loaded: type=$type")
                     val webView: WebView = findViewById(R.id.webView)
-                    webView.evaluateJavascript("showModal(getTranslation('msg_ad_fail'), {hideCancel: true});", null)
+                    webView.evaluateJavascript("onAdFailed('$type');", null)
                     loadRewardedAd()
                 }
             }

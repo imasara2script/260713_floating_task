@@ -79,7 +79,55 @@ class AlarmReceiver : BroadcastReceiver() {
             
             // 次の日の AM0時を再スケジュール
             AlarmScheduler.scheduleMidnightAlarm(context)
+        } else if (intent.action == "ACTION_REMINDER") {
+            val taskId = intent.getLongExtra("EXTRA_TASK_ID", -1L)
+            val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: ""
+            val message = intent.getStringExtra("EXTRA_REMINDER_MSG") ?: ""
+            val timeStr = intent.getStringExtra("EXTRA_TIME_STR") ?: ""
+
+            // 完了状態を SharedPreferences からチェック
+            val prefs = context.getSharedPreferences("task_completion_prefs", Context.MODE_PRIVATE)
+            val isCompleted = prefs.getBoolean(taskId.toString(), false)
+
+            if (!isCompleted) {
+                showReminderNotification(context, taskText, message)
+            }
+
+            // 翌日のアラームを再スケジュール
+            if (timeStr.isNotEmpty()) {
+                AlarmScheduler.scheduleReminderAlarm(context, taskId, taskText, timeStr, message)
+            }
         }
+    }
+
+    private fun showReminderNotification(context: Context, taskText: String, message: String) {
+        val channelId = "reminders_channel"
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                context.getString(R.string.channel_reminders),
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            manager.createNotificationChannel(channel)
+        }
+
+        val body = if (message.isNotEmpty()) {
+            context.getString(R.string.reminder_body_with_msg, taskText, message)
+        } else {
+            context.getString(R.string.reminder_body_no_msg, taskText)
+        }
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(context.getString(R.string.reminder_title))
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+
+        manager.notify(System.currentTimeMillis().toInt(), notification)
     }
 
     private fun showNotification(context: Context, title: String, message: String, melody: String) {
