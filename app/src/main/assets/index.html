@@ -453,6 +453,33 @@
                 <button id="btn-back-history" class="btn btn-secondary" onclick="renderHistory()" style="display: none; padding: 4px 12px; font-size: 14px;" data-i18n="btn_back">戻る</button>
             </div>
             <div id="calendar-view" style="display: none; margin-bottom: 20px;"></div>
+
+            <!-- フィルターグループ -->
+            <div id="history-filter" class="card" style="margin-bottom: 16px;">
+                <div style="font-weight: bold; margin-bottom: 8px; font-size: 14px;" data-i18n="filter_title">フィルター</div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- 期間フィルター -->
+                    <div>
+                        <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;" data-i18n="filter_period">表示期間</label>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                            <label style="font-size: 14px;"><input type="radio" name="filter-period" value="all" checked onchange="setHistoryPeriodFilter('all')"> <span data-i18n="filter_all">全期間</span></label>
+                            <label style="font-size: 14px;"><input type="radio" name="filter-period" value="day" onchange="setHistoryPeriodFilter('day')"> <span data-i18n="filter_day">日</span></label>
+                            <label style="font-size: 14px;"><input type="radio" name="filter-period" value="week" onchange="setHistoryPeriodFilter('week')"> <span data-i18n="filter_week">週</span></label>
+                            <label style="font-size: 14px;"><input type="radio" name="filter-period" value="month" onchange="setHistoryPeriodFilter('month')"> <span data-i18n="filter_month">月</span></label>
+
+                            <input type="date" id="filter-date" style="display: none; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;" onchange="updateHistoryFilterValue(this.value)">
+                            <input type="week" id="filter-week" style="display: none; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;" onchange="updateHistoryFilterValue(this.value)">
+                            <input type="month" id="filter-month" style="display: none; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;" onchange="updateHistoryFilterValue(this.value)">
+                        </div>
+                    </div>
+                    <!-- タスク名フィルター -->
+                    <div>
+                        <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;" data-i18n="filter_task_name">タスク名検索</label>
+                        <input type="text" id="filter-task-query" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" data-i18n-placeholder="placeholder_filter_task" placeholder="タスク名を入力..." oninput="updateHistoryQueryFilter(this.value)">
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
                 <div id="historyList"></div>
                 <button id="btn-clear-history" class="btn btn-danger" style="margin-top: 12px; width: 100%;" onclick="clearHistory()" data-i18n="btn_clear_history">履歴を削除</button>
@@ -898,6 +925,14 @@
                 repeat_suffix: " (リピート)",
                 none: "なし",
                 btn_toggle_pending_title: "未完了のみ表示",
+                filter_title: "フィルター",
+                filter_period: "表示期間",
+                filter_all: "全期間",
+                filter_day: "日",
+                filter_week: "週",
+                filter_month: "月",
+                filter_task_name: "タスク名検索",
+                placeholder_filter_task: "タスク名を入力...",
                 btn_toggle_all_title: "すべて表示",
                 btn_next_task_title: "次のタスク",
                 btn_full_screen_title: "全画面表示",
@@ -1062,6 +1097,14 @@
                 repeat_suffix: " (Repeat)",
                 none: "None",
                 btn_toggle_pending_title: "Show Pending Only",
+                filter_title: "Filter",
+                filter_period: "Period",
+                filter_all: "All",
+                filter_day: "Day",
+                filter_week: "Week",
+                filter_month: "Month",
+                filter_task_name: "Task Search",
+                placeholder_filter_task: "Search by task name...",
                 btn_toggle_all_title: "Show All",
                 btn_next_task_title: "Next Task",
                 btn_full_screen_title: "Full Screen",
@@ -1151,6 +1194,9 @@
 
         let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
         let history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+        let historyFilterPeriodType = 'all'; // all, day, week, month
+        let historyFilterPeriodValue = '';
+        let historyFilterQuery = '';
         let calendarMark = localStorage.getItem('calendarMark') || '⭕';
         let bgThresholds = JSON.parse(localStorage.getItem('bgThresholds') || '[]');
 
@@ -2201,6 +2247,7 @@
             const calendarView = document.getElementById('calendar-view');
             const historyTitle = document.getElementById('history-title');
             const backBtn = document.getElementById('btn-back-history');
+            const filterGroup = document.getElementById('history-filter');
             const task = tasks.find(t => t.id === targetTaskId);
 
             if (!task) {
@@ -2213,6 +2260,7 @@
             currentCalendarDate = date;
 
             calendarView.style.display = 'block';
+            filterGroup.style.display = 'none';
             historyTitle.innerHTML = `${getTranslation('history_task_title', task.text)} ${!task.durationMs ? `<span class="streak-badge" onclick="editStreak(${task.id})" style="cursor:pointer; font-size:14px; background:#e9ecef; padding:2px 8px; border-radius:4px; margin-left:8px; color:#495057; font-weight:normal;" title="クリックして回数を編集">🔥 ${task.streak || 0}</span>` : ''}`;
             backBtn.style.display = 'inline-block';
 
@@ -2284,11 +2332,49 @@
             `).join('');
         }
 
+        function getISOWeek(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
+        }
+
+        function setHistoryPeriodFilter(type) {
+            historyFilterPeriodType = type;
+            historyFilterPeriodValue = ''; // タイプ変更時は一旦リセット
+
+            document.getElementById('filter-date').style.display = (type === 'day') ? 'inline-block' : 'none';
+            document.getElementById('filter-week').style.display = (type === 'week') ? 'inline-block' : 'none';
+            document.getElementById('filter-month').style.display = (type === 'month') ? 'inline-block' : 'none';
+
+            // 入力値をクリア
+            document.getElementById('filter-date').value = '';
+            document.getElementById('filter-week').value = '';
+            document.getElementById('filter-month').value = '';
+
+            if (type === 'all') {
+                renderHistory();
+            }
+        }
+
+        function updateHistoryFilterValue(value) {
+            historyFilterPeriodValue = value;
+            renderHistory();
+        }
+
+        function updateHistoryQueryFilter(query) {
+            historyFilterQuery = query.toLowerCase();
+            renderHistory();
+        }
+
         function renderHistory() {
             const historyList = document.getElementById('historyList');
             const calendarView = document.getElementById('calendar-view');
             const historyTitle = document.getElementById('history-title');
             const backBtn = document.getElementById('btn-back-history');
+            const filterGroup = document.getElementById('history-filter');
 
             if (!historyList) return;
 
@@ -2296,13 +2382,47 @@
             calendarView.style.display = 'none';
             historyTitle.textContent = getTranslation('history_title');
             backBtn.style.display = 'none';
+            filterGroup.style.display = 'block';
 
-            if (history.length === 0) {
+            let filtered = history;
+
+            // タスク名でフィルタリング
+            if (historyFilterQuery) {
+                filtered = filtered.filter(h => h.text.toLowerCase().includes(historyFilterQuery));
+            }
+
+            // 期間でフィルタリング
+            if (historyFilterPeriodType !== 'all' && historyFilterPeriodValue) {
+                if (historyFilterPeriodType === 'day') {
+                    // YYYY-MM-DD
+                    filtered = filtered.filter(h => {
+                        const d = new Date(h.completedAt);
+                        const dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                        return dateStr === historyFilterPeriodValue;
+                    });
+                } else if (historyFilterPeriodType === 'week') {
+                    // YYYY-Www
+                    filtered = filtered.filter(h => {
+                        const d = new Date(h.completedAt);
+                        const weekStr = getISOWeek(d);
+                        return weekStr === historyFilterPeriodValue;
+                    });
+                } else if (historyFilterPeriodType === 'month') {
+                    // YYYY-MM
+                    filtered = filtered.filter(h => {
+                        const d = new Date(h.completedAt);
+                        const monthStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                        return monthStr === historyFilterPeriodValue;
+                    });
+                }
+            }
+
+            if (filtered.length === 0) {
                 historyList.innerHTML = `<p style="color:#888; text-align:center;">${getTranslation('msg_history_no_data')}</p>`;
                 return;
             }
 
-            historyList.innerHTML = history.map(h => `
+            historyList.innerHTML = filtered.map(h => `
                 <div class="history-item">
                     <div>${(h.type === 'coin' || h.type === 'coin_ad' || h.type === 'coin_daily') ? '🪙 ' : ''}${h.text}</div>
                     <div class="history-date">${new Date(h.completedAt).toLocaleString()}</div>
