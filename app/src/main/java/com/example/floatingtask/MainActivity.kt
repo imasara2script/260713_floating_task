@@ -26,8 +26,10 @@ import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.rewarded.RewardedAd
@@ -41,10 +43,11 @@ class MainActivity : AppCompatActivity() {
     private var rewardedAd: RewardedAd? = null
     private var isAdFree = false
     private var isLimitUnlockedByReward = false
+    private var lastRewardType: String? = null
     private var overlayPermissionDialog: AlertDialog? = null
 
     private fun loadRewardedAd() {
-        if (isAdFree || isLimitUnlockedByReward) return
+        if (isAdFree) return
         val adRequest = AdRequest.Builder().build()
         RewardedAd.load(
             this,
@@ -208,8 +211,10 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
         isAdFree = prefs.getBoolean("isAdFree", false)
         
-        MobileAds.initialize(this) {}
-        loadRewardedAd()
+        MobileAds.initialize(this) {
+            AppLogger.log(this, "AdMob initialized")
+            loadRewardedAd()
+        }
         
         val adView: AdView = findViewById(R.id.adView)
         if (isAdFree) {
@@ -470,7 +475,7 @@ class MainActivity : AppCompatActivity() {
             dataToBackup = jsonData
             val sdf = java.text.SimpleDateFormat("yyyyMMdd HHmmss", java.util.Locale.getDefault())
             val timestamp = sdf.format(java.util.Date())
-            val fileName = "floating task backup $timestamp.json"
+            val fileName = "floating task $timestamp.json"
             createDocumentLauncher.launch(fileName)
         }
 
@@ -481,17 +486,47 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun showRewardedAd() {
+            showRewardedAdWithType("limit")
+        }
+
+        @JavascriptInterface
+        fun showRewardedAdForCoin() {
+            showRewardedAdWithType("coin")
+        }
+
+        private fun showRewardedAdWithType(type: String) {
             runOnUiThread {
+                lastRewardType = type
                 if (rewardedAd != null) {
-                    rewardedAd?.show(this@MainActivity) { _ ->
-                        // 報酬付与: タスク制限を一時的に緩和（JS側で処理）
-                        isLimitUnlockedByReward = true
+                    val ad = rewardedAd
+                    rewardedAd = null // 早期にnullをセットして再ロード可能にする
+                    
+                    ad?.fullScreenContentCallback = object : FullScreenContentCallback() {
+                        override fun onAdDismissedFullScreenContent() {
+                            AppLogger.log(mContext, "Rewarded ad dismissed: type=$lastRewardType")
+                            loadRewardedAd()
+                        }
+
+                        override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                            AppLogger.log(mContext, "Rewarded ad failed to show: ${adError.message}")
+                            loadRewardedAd()
+                        }
+                    }
+                    
+                    ad?.show(this@MainActivity) { _ ->
+                        AppLogger.log(mContext, "Rewarded ad reward earned: type=$lastRewardType")
                         val webView: WebView = findViewById(R.id.webView)
-                        webView.evaluateJavascript("onRewardEarned();", null)
-                        loadRewardedAd()
+                        if (lastRewardType == "limit") {
+                            isLimitUnlockedByReward = true
+                            webView.evaluateJavascript("onRewardEarned('limit');", null)
+                        } else if (lastRewardType == "coin") {
+                            val remaining = earnCoin()
+                            webView.evaluateJavascript("onRewardEarned('coin', $remaining);", null)
+                        }
                     }
                 } else {
                     // 広告がロードされていない場合
+                    AppLogger.log(mContext, "Rewarded ad NOT loaded: type=$type")
                     val webView: WebView = findViewById(R.id.webView)
                     webView.evaluateJavascript("showModal(getTranslation('msg_ad_fail'), {hideCancel: true});", null)
                     loadRewardedAd()
@@ -500,8 +535,77 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun getCoins(): Int {
+            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+            return prefs.getInt("coins", 0)
+        }
+
+        @JavascriptInterface
+        fun canEarnCoinToday(): Boolean {
+            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+            val lastAdDate = prefs.getString("lastAdDate", "")
+            val dailyCount = if (lastAdDate == today) prefs.getInt("dailyAdCount", 0) else 0
+            return dailyCount < 10
+        }
+
+        private fun earnCoin(): Int {
+            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+            val coins = prefs.getInt("coins", 0)
+            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+            val lastAdDate = prefs.getString("lastAdDate", "")
+            var dailyCount = if (lastAdDate == today) prefs.getInt("dailyAdCount", 0) else 0
+
+            dailyCount++
+            prefs.edit {
+                putInt("coins", coins + 1)
+                putString("lastAdDate", today)
+                putInt("dailyAdCount", dailyCount)
+            }
+            return 10 - dailyCount
+        }
+
+        @JavascriptInterface
+        fun consumeCoin(): Boolean {
+            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+            val coins = prefs.getInt("coins", 0)
+            if (coins > 0) {
+                prefs.edit { putInt("coins", coins - 1) }
+                return true
+            }
+            return false
+        }
+
+        @JavascriptInterface
+        fun checkDailyCoinBonus(): Boolean {
+            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+            val lastBonusDate = prefs.getString("lastBonusDate", "")
+
+            if (lastBonusDate != today) {
+                val coins = prefs.getInt("coins", 0)
+                prefs.edit {
+                    putInt("coins", coins + 1)
+                    putString("lastBonusDate", today)
+                }
+                return true
+            }
+            return false
+        }
+
+        @JavascriptInterface
+        fun isRewardedAdReady(): Boolean {
+            return rewardedAd != null
+        }
+
+        @JavascriptInterface
         fun isAdFree(): Boolean {
             return isAdFree || isLimitUnlockedByReward
+        }
+
+        @JavascriptInterface
+        fun isPremium(): Boolean {
+            return isAdFree
         }
 
         @JavascriptInterface

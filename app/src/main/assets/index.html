@@ -509,11 +509,18 @@
                         <div style="font-size: 13px; margin-bottom: 8px;" data-i18n="label_data_management">💾 データ管理</div>
                         <div style="display: flex; gap: 8px;">
                             <button class="btn btn-secondary" onclick="exportData()" style="flex: 1; font-size: 14px;" data-i18n="btn_backup">バックアップ</button>
-                            <button class="btn btn-secondary" onclick="if(typeof Android !== 'undefined') Android.restoreData()" style="flex: 1; font-size: 14px;" data-i18n="btn_restore">復元</button>
+                            <button class="btn btn-secondary" onclick="startRestore(false)" style="flex: 1; font-size: 14px;" data-i18n="btn_restore">復元</button>
                         </div>
                     </div>
 
-                    <!-- 5. カレンダーのマーク -->
+                    <!-- 5. コイン管理 -->
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                        <div style="font-size: 13px; margin-bottom: 8px;" data-i18n="label_coin_management">🪙 コイン</div>
+                        <button class="btn btn-primary" onclick="earnCoinReward()" style="width: 100%; font-size: 14px; margin-bottom: 8px;" data-i18n="btn_get_coin_reward">リワード広告を視聴して１コインをゲット</button>
+                        <div id="coin-display" style="font-size: 14px; text-align: center; color: #666;"></div>
+                    </div>
+
+                    <!-- 6. カレンダーのマーク -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
                         <label for="calendarMarkInput" style="display: block; margin-bottom: 8px;" data-i18n="label_calendar_mark">カレンダーのマーク (記号や絵文字):</label>
                         <input type="text" id="calendarMarkInput" placeholder="例: ⭕, ✔, ⭐" onchange="updateCalendarMark()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
@@ -630,7 +637,7 @@
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <button class="btn btn-secondary" onclick="startSortMode()" style="width: 100%; background: #f8f9fa; color: #333; border: 1px solid #ddd; text-align: left; padding: 12px;" data-i18n="btn_menu_sort">↕️ 並べ替え</button>
                 <button class="btn btn-secondary" onclick="startExportMode()" style="width: 100%; background: #f8f9fa; color: #333; border: 1px solid #ddd; text-align: left; padding: 12px;" data-i18n="btn_menu_export">📤 タスクをエクスポート</button>
-                <button class="btn btn-secondary" onclick="if(typeof Android !== 'undefined') Android.restoreData()" style="width: 100%; background: #f8f9fa; color: #333; border: 1px solid #ddd; text-align: left; padding: 12px;" data-i18n="btn_menu_import">📥 タスクをインポート</button>
+                <button class="btn btn-secondary" onclick="startRestore(true)" style="width: 100%; background: #f8f9fa; color: #333; border: 1px solid #ddd; text-align: left; padding: 12px;" data-i18n="btn_menu_import">📥 タスクをインポート</button>
                 <button class="btn btn-secondary" onclick="startDeleteMode()" style="width: 100%; background: #fff5f5; color: #dc3545; border: 1px solid #ffdada; text-align: left; padding: 12px;" data-i18n="btn_menu_delete">🗑️ まとめて削除</button>
             </div>
             <div class="modal-actions" style="margin-top: 16px;">
@@ -646,7 +653,8 @@
             <label for="modalInput" style="display:none;">Input</label>
             <input type="text" id="modalInput" class="modal-input" style="display: none;" aria-labelledby="modalTitle">
             <div class="modal-actions">
-                <button class="btn" onclick="closeModal()">キャンセル</button>
+                <button id="modalNeutralBtn" class="btn btn-secondary" style="display: none;"></button>
+                <button id="modalCancelBtn" class="btn" onclick="closeModal()">キャンセル</button>
                 <button id="modalConfirmBtn" class="btn btn-primary">OK</button>
             </div>
         </div>
@@ -845,6 +853,10 @@
                 msg_restore_success: "データの復元が完了しました。",
                 msg_restore_fail: "データの復元に失敗しました。",
                 msg_restore_preview: "復元する項目を選択してください",
+                msg_import_preview: "追加する項目を選択してください",
+                msg_restore_confirm: "データを復元しますか？\n現在の設定や履歴が上書きされます。",
+                msg_import_confirm: "データをインポートしますか？\nタスクと履歴が現在のリストに追加されます。",
+                msg_ad_notice: "この機能は利用の都度、広告視聴が必要です。OKボタンを押すと広告再生を開始します。",
                 label_tasks: "タスク一覧",
                 label_history: "完了履歴",
                 label_color_rules: "配色ルール",
@@ -853,6 +865,8 @@
                 msg_ad_confirm: "広告を視聴すると、アプリを完全に終了するまでの間、タスク登録数の制限がなくなります。広告を再生しますか？",
                 msg_ad_fail: "広告の読み込みに失敗しました。時間をおいて再度お試しください。",
                 msg_reward_earned: "タスクの制限が緩和されました。アプリを再起動するまでは、このままタスクを追加できます。",
+                msg_coin_earned: "１コインを獲得しました。本日視聴できる残り回数は{0}回です。",
+                msg_daily_bonus_earned: "デイリーログインボーナスとして１コインを獲得しました！",
                 msg_invalid_code: "解除コードが正しくありません",
                 msg_input_code: "解除コードを入力してください",
                 msg_history_no_data: "履歴はありません",
@@ -878,6 +892,8 @@
                 calendar_sat: "土",
                 calendar_year_month: "{0}年 {1}月",
                 history_task_title: "「{0}」の履歴",
+                history_coin_ad: "コインを獲得しました (広告視聴)",
+                history_coin_daily: "コインを獲得しました (ログインボーナス)",
                 label_system_permissions: "⚙️ システム権限関係",
                 repeat_suffix: " (リピート)",
                 none: "なし",
@@ -902,7 +918,14 @@
                 btn_add_rule: "＋ ルールを追加",
                 label_bg_color: "背景",
                 label_text_color: "文字",
-                msg_rule_delete_confirm: "この配色ルールを削除しますか？"
+                msg_rule_delete_confirm: "この配色ルールを削除しますか？",
+                label_coin_management: "🪙 コイン",
+                btn_get_coin_reward: "リワード広告を視聴して１コインをゲット",
+                label_current_coins: "現在のコイン: {0}",
+                msg_confirm_reward_ad: "バックアップ機能や復元機能を使用する際に、１コインを消費することで広告視聴をスキップできます。リワード広告の視聴でコインをゲットできる回数は１日１０回までです。リワード広告を視聴しますか？",
+                msg_ad_limit_reached: "本日の広告視聴回数が上限に達しました。",
+                btn_use_coin: "コインを消費して実行 (-1)",
+                btn_watch_ad: "広告を視聴して実行"
             },
             en: {
                 tab_tasks: "Tasks",
@@ -994,6 +1017,10 @@
                 msg_restore_success: "Data restored successfully.",
                 msg_restore_fail: "Failed to restore data.",
                 msg_restore_preview: "Select items to restore",
+                msg_import_preview: "Select items to add",
+                msg_restore_confirm: "Do you want to restore data?\nCurrent settings and history will be overwritten.",
+                msg_import_confirm: "Do you want to import data?\nTasks and history will be added to the current list.",
+                msg_ad_notice: "This feature requires watching an ad each time. Press OK to start the ad.",
                 label_tasks: "Task List",
                 label_history: "Completion History",
                 label_color_rules: "Dynamic Color Rules",
@@ -1002,6 +1029,8 @@
                 msg_ad_confirm: "Watching the ad will remove the task limit until the app is closed. Play ad?",
                 msg_ad_fail: "Failed to load ad. Please try again later.",
                 msg_reward_earned: "Limit unlocked. You can now add more tasks.",
+                msg_coin_earned: "Earned 1 coin. Remaining views today: {0}",
+                msg_daily_bonus_earned: "Earned 1 coin as a daily login bonus!",
                 msg_invalid_code: "Invalid unlock code",
                 msg_input_code: "Please enter the unlock code",
                 msg_history_no_data: "No history found",
@@ -1027,6 +1056,8 @@
                 calendar_sat: "Sat",
                 calendar_year_month: "{1} {0}",
                 history_task_title: "History: {0}",
+                history_coin_ad: "Earned a coin (Watch ad)",
+                history_coin_daily: "Earned a coin (Login bonus)",
                 label_system_permissions: "⚙️ System Permissions",
                 repeat_suffix: " (Repeat)",
                 none: "None",
@@ -1051,7 +1082,14 @@
                 btn_add_rule: "+ Add Rule",
                 label_bg_color: "BG",
                 label_text_color: "Text",
-                msg_rule_delete_confirm: "Delete this color rule?"
+                msg_rule_delete_confirm: "Delete this color rule?",
+                label_coin_management: "🪙 Coins",
+                btn_get_coin_reward: "Watch ad to get 1 coin",
+                label_current_coins: "Current Coins: {0}",
+                msg_confirm_reward_ad: "You can skip ads during backup or restore by consuming 1 coin. You can earn up to 10 coins per day by watching rewarded ads. Watch ad now?",
+                msg_ad_limit_reached: "Daily ad limit reached.",
+                btn_use_coin: "Use coin to skip (-1)",
+                btn_watch_ad: "Watch Ad"
             }
         };
 
@@ -1142,10 +1180,14 @@
         let isDragging = false;
         let timerDisplayMode = 'countdown'; // 'countdown' or 'endtime'
         let isAdFree = false;
+        let isPremium = false;
+        let pendingAction = null; // 'backup' or 'restore'
+        let isImportMode = false;
 
         function checkAdFree() {
-            if (typeof Android !== 'undefined' && Android.isAdFree) {
-                isAdFree = Android.isAdFree();
+            if (typeof Android !== 'undefined') {
+                if (Android.isAdFree) isAdFree = Android.isAdFree();
+                if (Android.isPremium) isPremium = Android.isPremium();
             }
         }
 
@@ -1480,6 +1522,23 @@
                 }
             });
 
+            // デイリーボーナスチェック
+            if (typeof Android !== 'undefined' && Android.checkDailyCoinBonus) {
+                if (Android.checkDailyCoinBonus()) {
+                    history.unshift({
+                        id: Date.now(),
+                        type: 'coin_daily',
+                        text: getTranslation('history_coin_daily'),
+                        completedAt: new Date().toISOString()
+                    });
+                    if (history.length > 500) history.pop();
+                    saveTasks(); // 内部で render() も呼ばれる
+                    updateCoinDisplay();
+
+                    showModal(getTranslation('msg_daily_bonus_earned'), { hideCancel: true });
+                }
+            }
+
             // 常に最新の状態（バッテリー最適化等）を確認するために呼び出す
             refreshData();
         }
@@ -1487,6 +1546,9 @@
         function refreshData() {
             tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
             history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+
+            checkAdFree();
+
             updateBatteryStatus();
             updateAlarmStatus();
             updateNotificationStatus();
@@ -1540,7 +1602,8 @@
             const titleEl = document.getElementById('modalTitle');
             const inputEl = document.getElementById('modalInput');
             const confirmBtn = document.getElementById('modalConfirmBtn');
-            const cancelBtn = modal.querySelector('.modal-actions button:first-child');
+            const cancelBtn = document.getElementById('modalCancelBtn');
+            const neutralBtn = document.getElementById('modalNeutralBtn');
 
             if (options.useHTML) {
                 titleEl.innerHTML = title;
@@ -1555,6 +1618,22 @@
 
             // キャンセルボタンの表示制御
             cancelBtn.style.display = options.hideCancel ? 'none' : 'inline-block';
+
+            confirmBtn.textContent = options.confirmText || 'OK';
+            cancelBtn.textContent = options.cancelText || getTranslation('btn_cancel');
+
+            if (neutralBtn) {
+                if (options.neutralText) {
+                    neutralBtn.style.display = 'inline-block';
+                    neutralBtn.textContent = options.neutralText;
+                    neutralBtn.onclick = () => {
+                        closeModal();
+                        if (options.onNeutral) options.onNeutral();
+                    };
+                } else {
+                    neutralBtn.style.display = 'none';
+                }
+            }
 
             confirmBtn.onclick = () => {
                 closeModal();
@@ -1744,9 +1823,39 @@
             }
         }
 
-        function onRewardEarned() {
+        function onRewardEarned(type, remaining) {
             checkAdFree();
+            updateCoinDisplay();
             render();
+
+            if (type === 'coin') {
+                history.unshift({
+                    id: Date.now(),
+                    type: 'coin_ad',
+                    text: getTranslation('history_coin_ad'),
+                    completedAt: new Date().toISOString()
+                });
+                if (history.length > 500) history.pop();
+                saveTasks();
+
+                showModal(getTranslation('msg_coin_earned', remaining), { hideCancel: true });
+                return;
+            }
+
+            if (pendingAction === 'backup') {
+                pendingAction = null;
+                performBackup();
+                return;
+            }
+            if (pendingAction === 'restore') {
+                pendingAction = null;
+                if (typeof Android !== 'undefined') {
+                    // isImportMode は startRestore で設定済み
+                    Android.restoreData();
+                }
+                return;
+            }
+
             showModal(getTranslation('msg_reward_earned'), {
                 hideCancel: true,
                 onConfirm: () => {
@@ -2195,7 +2304,7 @@
 
             historyList.innerHTML = history.map(h => `
                 <div class="history-item">
-                    <div>${h.text}</div>
+                    <div>${(h.type === 'coin' || h.type === 'coin_ad' || h.type === 'coin_daily') ? '🪙 ' : ''}${h.text}</div>
                     <div class="history-date">${new Date(h.completedAt).toLocaleString()}</div>
                 </div>
             `).join('');
@@ -2237,6 +2346,11 @@
                     addBtn.style.borderColor = '#007bff';
                     addBtn.style.color = '#007bff';
                 }
+            }
+
+            const coinBtn = document.querySelector('button[onclick="earnCoinReward()"]');
+            if (coinBtn) {
+                coinBtn.textContent = getTranslation('btn_get_coin_reward');
             }
 
             const managerTasks = isEditMode ? tasks : [
@@ -2752,23 +2866,108 @@
         }
 
         function exportData() {
-            showModal(getTranslation('msg_backup_confirm'), {
+            const isPremium = (typeof Android !== 'undefined' && Android.isPremium && Android.isPremium());
+            const coins = (typeof Android !== 'undefined' && Android.getCoins) ? Android.getCoins() : 0;
+            const msg = getTranslation('msg_backup_confirm');
+
+            if (isPremium) {
+                showModal(msg, {
+                    onConfirm: performBackup
+                });
+                return;
+            }
+
+            if (coins > 0) {
+                showModal(msg, {
+                    confirmText: getTranslation('btn_use_coin'),
+                    neutralText: getTranslation('btn_watch_ad'),
+                    onConfirm: () => {
+                        if (typeof Android !== 'undefined' && Android.consumeCoin()) {
+                            updateCoinDisplay();
+                            performBackup();
+                        }
+                    },
+                    onNeutral: () => {
+                        pendingAction = 'backup';
+                        if (typeof Android !== 'undefined' && Android.showRewardedAd) {
+                            Android.showRewardedAd();
+                        }
+                    }
+                });
+                return;
+            }
+
+            showModal(msg + "\n\n" + getTranslation('msg_ad_notice'), {
+                confirmText: getTranslation('btn_watch_ad'),
                 onConfirm: () => {
-                    const data = {
-                        tasks: tasks,
-                        taskHistory: history,
-                        calendarMark: calendarMark,
-                        showAllInFloating: showAllInFloating,
-                        floatX: localStorage.getItem('floatX'),
-                        floatY: localStorage.getItem('floatY'),
-                        floatWidth: localStorage.getItem('floatWidth'),
-                        floatHeight: localStorage.getItem('floatHeight'),
-                        floatScale: localStorage.getItem('floatScale'),
-                        recheckInterval: localStorage.getItem('recheckInterval'),
-                        bgThresholds: bgThresholds
-                    };
-                    if (typeof Android !== 'undefined') {
-                        Android.backupData(JSON.stringify(data));
+                    pendingAction = 'backup';
+                    if (typeof Android !== 'undefined' && Android.showRewardedAd) {
+                        Android.showRewardedAd();
+                    }
+                }
+            });
+        }
+
+        function performBackup() {
+            const data = {
+                tasks: tasks,
+                taskHistory: history,
+                calendarMark: calendarMark,
+                showAllInFloating: showAllInFloating,
+                floatX: localStorage.getItem('floatX'),
+                floatY: localStorage.getItem('floatY'),
+                floatWidth: localStorage.getItem('floatWidth'),
+                floatHeight: localStorage.getItem('floatHeight'),
+                floatScale: localStorage.getItem('floatScale'),
+                recheckInterval: localStorage.getItem('recheckInterval'),
+                bgThresholds: bgThresholds
+            };
+            if (typeof Android !== 'undefined') {
+                Android.backupData(JSON.stringify(data));
+            }
+        }
+
+        function startRestore(isImport = false) {
+            isImportMode = !!isImport;
+            const isPremium = (typeof Android !== 'undefined' && Android.isPremium && Android.isPremium());
+            const coins = (typeof Android !== 'undefined' && Android.getCoins) ? Android.getCoins() : 0;
+            const msg = getTranslation(isImportMode ? 'msg_import_confirm' : 'msg_restore_confirm');
+
+            if (isPremium) {
+                showModal(msg, {
+                    onConfirm: () => {
+                        if (typeof Android !== 'undefined') Android.restoreData();
+                    }
+                });
+                return;
+            }
+
+            if (coins > 0) {
+                showModal(msg, {
+                    confirmText: getTranslation('btn_use_coin'),
+                    neutralText: getTranslation('btn_watch_ad'),
+                    onConfirm: () => {
+                        if (typeof Android !== 'undefined' && Android.consumeCoin()) {
+                            updateCoinDisplay();
+                            Android.restoreData();
+                        }
+                    },
+                    onNeutral: () => {
+                        pendingAction = 'restore';
+                        if (typeof Android !== 'undefined' && Android.showRewardedAd) {
+                            Android.showRewardedAd();
+                        }
+                    }
+                });
+                return;
+            }
+
+            showModal(msg + "\n\n" + getTranslation('msg_ad_notice'), {
+                confirmText: getTranslation('btn_watch_ad'),
+                onConfirm: () => {
+                    pendingAction = 'restore';
+                    if (typeof Android !== 'undefined' && Android.showRewardedAd) {
+                        Android.showRewardedAd();
                     }
                 }
             });
@@ -2778,33 +2977,33 @@
             try {
                 const data = JSON.parse(jsonString);
 
-                // 個別タスクのインポート処理 (既存機能)
-                if (data.type === 'partial_tasks' && Array.from(data.tasks)) {
-                    const now = Date.now();
-                    const newTasks = data.tasks.map((t, idx) => ({
-                        ...t,
-                        id: now + idx,
-                        completed: false
-                    }));
-                    tasks = [...newTasks, ...tasks];
-                    saveTasks();
-                    showModal(getTranslation('msg_import_success', newTasks.length), { hideCancel: true });
-                    return;
-                }
-
                 // プレビュー表示の構築
                 let previewHtml = `<div style="text-align:left; margin-top:10px; white-space: normal;">
 <div style="background:#eee; padding:8px; border-radius:4px; margin-bottom:12px; font-size:12px; word-break:break-all;">
 📄 ${fileName || '---'}
 </div>
-<p style="margin-bottom:15px; font-weight:bold;">${getTranslation('msg_restore_preview')}</p>`;
+<p style="margin-bottom:15px; font-weight:bold;">${getTranslation(isImportMode ? 'msg_import_preview' : 'msg_restore_preview')}</p>`;
 
                 // タスク一覧
                 if (data.tasks && data.tasks.length > 0) {
-                    previewHtml += `<div class="preview-section">
-                        <label class="preview-title"><input type="checkbox" id="restore-tasks" checked> ${getTranslation('label_tasks')}</label>
-                        <div class="preview-item">${data.tasks.map(t => '・' + t.text).join('\n')}</div>
-                    </div>`;
+                    if (isImportMode) {
+                        previewHtml += `<div class="preview-section">
+                            <label class="preview-title"><input type="checkbox" id="restore-tasks" checked onchange="toggleAllImportTasks(this.checked)"> ${getTranslation('label_tasks')}</label>
+                            <div class="preview-item" style="max-height: 200px; overflow-y: auto;">
+                                ${data.tasks.map((t, idx) => `
+                                    <div style="margin-bottom: 4px; display: flex; align-items: flex-start; gap: 6px;">
+                                        <input type="checkbox" class="import-task-item-check" data-index="${idx}" checked id="task-idx-${idx}" onchange="updateImportHeaderCheckbox()">
+                                        <label for="task-idx-${idx}" style="font-weight: normal; cursor: pointer; flex: 1; word-break: break-all;">${t.text}</label>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>`;
+                    } else {
+                        previewHtml += `<div class="preview-section">
+                            <label class="preview-title"><input type="checkbox" id="restore-tasks" checked> ${getTranslation('label_tasks')}</label>
+                            <div class="preview-item">${data.tasks.map(t => '・' + t.text).join('\n')}</div>
+                        </div>`;
+                    }
                 }
 
                 // 完了履歴
@@ -2821,7 +3020,7 @@
                 }
 
                 // カレンダーのマーク
-                if (data.calendarMark) {
+                if (!isImportMode && data.calendarMark) {
                     previewHtml += `<div class="preview-section">
                         <label class="preview-title"><input type="checkbox" id="restore-calendar" checked> ${getTranslation('label_calendar_mark')}</label>
                         <div class="preview-item">${data.calendarMark}</div>
@@ -2830,7 +3029,7 @@
 
                 // フローティングウィンドウの設定
                 const hasFloatSettings = ['floatScale', 'floatWidth', 'floatHeight'].some(k => data[k] !== undefined);
-                if (hasFloatSettings) {
+                if (!isImportMode && hasFloatSettings) {
                     previewHtml += `<div class="preview-section">
                         <label class="preview-title"><input type="checkbox" id="restore-float" checked> ${getTranslation('btn_floating_settings')}</label>
                         <div class="preview-item">表示倍率：${data.floatScale || 1.0}倍\n縦幅：${data.floatHeight || 0}px\n横幅：${data.floatWidth || 0}px</div>
@@ -2838,7 +3037,7 @@
                 }
 
                 // 配色ルール
-                if (data.bgThresholds && data.bgThresholds.length > 0) {
+                if (!isImportMode && data.bgThresholds && data.bgThresholds.length > 0) {
                     previewHtml += `<div class="preview-section">
                         <label class="preview-title"><input type="checkbox" id="restore-colors" checked> ${getTranslation('label_color_rules')}</label>
                         <div class="preview-item">${data.bgThresholds.map(r => {
@@ -2871,35 +3070,72 @@
 
         function performRestore(data, options) {
             try {
-                if (options.tasks && data.tasks) {
-                    tasks = data.tasks;
-                    localStorage.setItem('tasks', JSON.stringify(tasks));
+                let importedCount = 0;
+                if (data.tasks) {
+                    if (isImportMode) {
+                        const selectedIndices = Array.from(document.querySelectorAll('.import-task-item-check'))
+                            .filter(el => el.checked)
+                            .map(el => parseInt(el.getAttribute('data-index')));
+
+                        const selectedTasks = selectedIndices.map(idx => data.tasks[idx]);
+                        importedCount = selectedTasks.length;
+
+                        if (selectedTasks.length > 0) {
+                            const now = Date.now();
+                            const newTasks = selectedTasks.map((t, idx) => ({
+                                ...t,
+                                id: now + idx,
+                                completed: false // インポート時は未完了状態で追加
+                            }));
+                            tasks = [...tasks, ...newTasks];
+                            localStorage.setItem('tasks', JSON.stringify(tasks));
+                        }
+                    } else if (options.tasks) {
+                        tasks = data.tasks;
+                        importedCount = tasks.length;
+                        localStorage.setItem('tasks', JSON.stringify(tasks));
+                    }
                 }
                 if (options.history && data.taskHistory) {
-                    history = data.taskHistory;
+                    if (isImportMode) {
+                        // インポートの場合は履歴に追加 (重複はスキップ)
+                        const existingEntries = new Set(history.map(h => `${h.text}|${h.completedAt}`));
+                        const newEntries = data.taskHistory.filter(h => !existingEntries.has(`${h.text}|${h.completedAt}`));
+
+                        history = [...history, ...newEntries];
+                        // 履歴が上限を超える場合は古い順に削除 (日付でソートしてから pop するのが理想的だが、現状 unshift で管理されているため末尾を削る)
+                        if (history.length > 500) {
+                            history.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+                            history = history.slice(0, 500);
+                        }
+                    } else {
+                        history = data.taskHistory;
+                    }
                     localStorage.setItem('taskHistory', JSON.stringify(history));
                 }
-                if (options.calendar && data.calendarMark) {
-                    calendarMark = data.calendarMark;
-                    localStorage.setItem('calendarMark', calendarMark);
-                }
-                if (options.float) {
-                    const keys = ['floatX', 'floatY', 'floatWidth', 'floatHeight', 'floatScale', 'recheckInterval'];
-                    if (data.showAllInFloating !== undefined) {
-                        localStorage.setItem('showAllInFloating', data.showAllInFloating);
+                if (!isImportMode) {
+                    if (options.calendar && data.calendarMark) {
+                        calendarMark = data.calendarMark;
+                        localStorage.setItem('calendarMark', calendarMark);
                     }
-                    keys.forEach(key => {
-                        if (data[key] !== undefined) {
-                            localStorage.setItem(key, data[key]);
+                    if (options.float) {
+                        const keys = ['floatX', 'floatY', 'floatWidth', 'floatHeight', 'floatScale', 'recheckInterval'];
+                        if (data.showAllInFloating !== undefined) {
+                            localStorage.setItem('showAllInFloating', data.showAllInFloating);
                         }
-                    });
-                }
-                if (options.colors && data.bgThresholds) {
-                    bgThresholds = data.bgThresholds;
-                    localStorage.setItem('bgThresholds', JSON.stringify(bgThresholds));
+                        keys.forEach(key => {
+                            if (data[key] !== undefined) {
+                                localStorage.setItem(key, data[key]);
+                            }
+                        });
+                    }
+                    if (options.colors && data.bgThresholds) {
+                        bgThresholds = data.bgThresholds;
+                        localStorage.setItem('bgThresholds', JSON.stringify(bgThresholds));
+                    }
                 }
 
-                showModal(getTranslation('msg_restore_success'), {
+                showModal(getTranslation(isImportMode ? 'msg_import_success' : 'msg_restore_success', importedCount), {
                     hideCancel: true,
                     onConfirm: () => {
                         window.location.reload();
@@ -2908,6 +3144,22 @@
             } catch (e) {
                 showModal(getTranslation('msg_restore_fail'), { hideCancel: true });
             }
+        }
+
+        function toggleAllImportTasks(checked) {
+            document.querySelectorAll('.import-task-item-check').forEach(el => {
+                el.checked = checked;
+            });
+        }
+
+        function updateImportHeaderCheckbox() {
+            const header = document.getElementById('restore-tasks');
+            if (!header) return;
+            const items = document.querySelectorAll('.import-task-item-check');
+            const checkedCount = Array.from(items).filter(el => el.checked).length;
+
+            header.checked = checkedCount > 0;
+            header.indeterminate = checkedCount > 0 && checkedCount < items.length;
         }
 
         window.addEventListener('storage', () => {
@@ -3011,6 +3263,37 @@
             }
         }
 
+        function updateCoinDisplay() {
+            if (typeof Android !== 'undefined' && Android.getCoins) {
+                const coins = Android.getCoins();
+                const display = document.getElementById('coin-display');
+                if (display) {
+                    display.textContent = getTranslation('label_current_coins', coins);
+                }
+            }
+        }
+
+        function earnCoinReward() {
+            console.log("earnCoinReward clicked");
+            if (typeof Android !== 'undefined' && Android.canEarnCoinToday) {
+                if (!Android.canEarnCoinToday()) {
+                    showModal(getTranslation('msg_ad_limit_reached'), { hideCancel: true });
+                    return;
+                }
+            }
+
+            showModal(getTranslation('msg_confirm_reward_ad'), {
+                onConfirm: () => {
+                    console.log("earnCoinReward confirmed");
+                    if (typeof Android !== 'undefined' && Android.showRewardedAdForCoin) {
+                        Android.showRewardedAdForCoin();
+                    } else {
+                        console.error("Android.showRewardedAdForCoin is undefined");
+                    }
+                }
+            });
+        }
+
         // 並べ替えのためのイベントリスナー登録
         const managerList = document.getElementById('managerTaskList');
         if (managerList) {
@@ -3048,6 +3331,7 @@
                 updateBatteryStatus();
                 updateNotificationStatus();
                 updateOverlayStatus();
+                updateCoinDisplay();
 
                 console.log("App initialized and daily reset checked.");
             } catch (e) {

@@ -1,0 +1,7 @@
+- [x] `MainActivity.kt`: プレミアム状態（恒久的）を確認するメソッドを追加
+- [x] `index.html`: 翻訳テキストの更新（バックアップ確認、復元確認の追加）
+- [x] `index.html`: 広告視聴後の保留アクション (`pendingAction`) の管理ロジック実装
+- [x] `index.html`: 「バックアップ」ボタンの処理 (`exportData`) の更新
+- [x] `index.html`: 「復元」ボタンの処理 (`startRestore`) の実装とHTMLからの呼び出し変更
+- [x] `index.html`: `onRewardEarned` で保留アクションを実行するように修正
+- [x] 動作確認
