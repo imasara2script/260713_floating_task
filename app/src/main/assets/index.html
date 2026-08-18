@@ -481,6 +481,7 @@
             </div>
 
             <div class="card">
+                <div id="history-summary" style="font-size: 13px; color: #666; margin-bottom: 8px; font-weight: bold;"></div>
                 <div id="historyList"></div>
                 <button id="btn-clear-history" class="btn btn-danger" style="margin-top: 12px; width: 100%;" onclick="clearHistory()" data-i18n="btn_clear_history">履歴を削除</button>
             </div>
@@ -898,6 +899,7 @@
                 msg_input_code: "解除コードを入力してください",
                 msg_history_no_data: "履歴はありません",
                 msg_history_clear_confirm: "履歴をすべて削除しますか？",
+                history_count: "件数: {0}件",
                 msg_task_history_empty: "このタスクの履歴はありません",
                 msg_battery_exempt: "✅ バッテリー最適化の除外設定：有効",
                 msg_battery_not_exempt: "⚠️ バッテリー最適化により動作が制限される可能性があります",
@@ -1070,6 +1072,7 @@
                 msg_input_code: "Please enter the unlock code",
                 msg_history_no_data: "No history found",
                 msg_history_clear_confirm: "Are you sure to clear all history?",
+                history_count: "Count: {0}",
                 msg_task_history_empty: "No history for this task",
                 msg_battery_exempt: "✅ Battery optimization: Exempted",
                 msg_battery_not_exempt: "⚠️ Battery optimization may restrict background work",
@@ -2314,10 +2317,15 @@
             currentCalendarTaskId = taskId;
 
             const historyList = document.getElementById('historyList');
+            const historySummary = document.getElementById('history-summary');
             const filteredHistory = history.filter(h => h.taskId === taskId);
 
             switchTab('history', { skipRenderHistory: true });
             renderCalendar(taskId);
+
+            if (historySummary) {
+                historySummary.textContent = getTranslation('history_count', filteredHistory.length);
+            }
 
             if (filteredHistory.length === 0) {
                 historyList.innerHTML = `<p style="color:#888; text-align:center;">${getTranslation('msg_task_history_empty')}</p>`;
@@ -2343,20 +2351,33 @@
 
         function setHistoryPeriodFilter(type) {
             historyFilterPeriodType = type;
-            historyFilterPeriodValue = ''; // タイプ変更時は一旦リセット
+
+            const now = new Date();
+            const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+            const monthStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+            const weekStr = getISOWeek(now);
 
             document.getElementById('filter-date').style.display = (type === 'day') ? 'inline-block' : 'none';
             document.getElementById('filter-week').style.display = (type === 'week') ? 'inline-block' : 'none';
             document.getElementById('filter-month').style.display = (type === 'month') ? 'inline-block' : 'none';
 
-            // 入力値をクリア
-            document.getElementById('filter-date').value = '';
-            document.getElementById('filter-week').value = '';
-            document.getElementById('filter-month').value = '';
-
-            if (type === 'all') {
-                renderHistory();
+            if (type === 'day') {
+                historyFilterPeriodValue = todayStr;
+                document.getElementById('filter-date').value = todayStr;
+            } else if (type === 'week') {
+                historyFilterPeriodValue = weekStr;
+                document.getElementById('filter-week').value = weekStr;
+            } else if (type === 'month') {
+                historyFilterPeriodValue = monthStr;
+                document.getElementById('filter-month').value = monthStr;
+            } else {
+                historyFilterPeriodValue = '';
+                document.getElementById('filter-date').value = '';
+                document.getElementById('filter-week').value = '';
+                document.getElementById('filter-month').value = '';
             }
+
+            renderHistory();
         }
 
         function updateHistoryFilterValue(value) {
@@ -2371,6 +2392,7 @@
 
         function renderHistory() {
             const historyList = document.getElementById('historyList');
+            const historySummary = document.getElementById('history-summary');
             const calendarView = document.getElementById('calendar-view');
             const historyTitle = document.getElementById('history-title');
             const backBtn = document.getElementById('btn-back-history');
@@ -2386,9 +2408,15 @@
 
             let filtered = history;
 
-            // タスク名でフィルタリング
+            // タスク名でフィルタリング (スペース区切りでの AND 検索に対応)
             if (historyFilterQuery) {
-                filtered = filtered.filter(h => h.text.toLowerCase().includes(historyFilterQuery));
+                const keywords = historyFilterQuery.split(/\s+/).filter(k => k.length > 0);
+                if (keywords.length > 0) {
+                    filtered = filtered.filter(h => {
+                        const taskText = h.text.toLowerCase();
+                        return keywords.every(k => taskText.includes(k));
+                    });
+                }
             }
 
             // 期間でフィルタリング
@@ -2415,6 +2443,10 @@
                         return monthStr === historyFilterPeriodValue;
                     });
                 }
+            }
+
+            if (historySummary) {
+                historySummary.textContent = getTranslation('history_count', filtered.length);
             }
 
             if (filtered.length === 0) {
