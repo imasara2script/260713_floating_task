@@ -506,5 +506,39 @@ class FloatingWindowService : Service() {
                 updateWindowSize(expanded)
             }
         }
+
+        @JavascriptInterface
+        fun requestHeight(heightDp: Int) {
+            val handler = Handler(Looper.getMainLooper())
+            handler.post {
+                val view = floatingView ?: return@post
+                val params = view.layoutParams as WindowManager.LayoutParams
+                val scale = getSharedPreferences("prefs", MODE_PRIVATE).getFloat("floatScale", 1.0f)
+                val density = resources.displayMetrics.density
+
+                params.height = (heightDp * density * scale).toInt()
+                windowManager.updateViewLayout(view, params)
+            }
+        }
+
+        @JavascriptInterface
+        fun setFocusable(focusable: Boolean) {
+            val handler = Handler(Looper.getMainLooper())
+            handler.post {
+                val view = floatingView ?: return@post
+                val params = view.layoutParams as WindowManager.LayoutParams
+                val webView: WebView = view.findViewById(R.id.floatingWebView)
+                
+                if (focusable) {
+                    // FLAG_NOT_FOCUSABLE を除外して入力を可能にする
+                    params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+                    webView.requestFocus()
+                } else {
+                    // FLAG_NOT_FOCUSABLE を追加して背後の操作を優先する
+                    params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                }
+                windowManager.updateViewLayout(view, params)
+            }
+        }
     }
 }

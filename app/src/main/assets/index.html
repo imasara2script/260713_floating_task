@@ -232,8 +232,55 @@
             padding: 8px;
             border-bottom: 1px solid #eee;
             font-size: 14px;
+            cursor: pointer;
         }
+        .history-item:hover { background-color: #f0f0f0; }
         .history-date { color: #888; font-size: 12px; }
+        .history-memo {
+            margin-top: 4px;
+            font-size: 13px;
+            color: #555;
+            white-space: pre-wrap;
+            background: #fff9e6;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border-left: 3px solid #ffc107;
+        }
+
+        /* Floating Comment Area */
+        .floating-comment-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            padding: 8px;
+            gap: 8px;
+        }
+        .floating-comment-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: inherit;
+        }
+        .floating-comment-textarea {
+            flex-grow: 1;
+            width: 100%;
+            padding: 6px;
+            font-size: 13px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: none;
+            outline: none;
+        }
+        .floating-comment-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .btn-tiny {
+            padding: 4px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
 
         /* Calendar Styles */
         .calendar-container { margin-top: 10px; }
@@ -680,6 +727,8 @@
             <div id="modalTitle" class="modal-title"></div>
             <label for="modalInput" style="display:none;">Input</label>
             <input type="text" id="modalInput" class="modal-input" style="display: none;" aria-labelledby="modalTitle">
+            <label for="modalTextarea" style="display:none;">Textarea</label>
+            <textarea id="modalTextarea" class="modal-input" style="display: none; height: 150px; resize: vertical;" aria-labelledby="modalTitle"></textarea>
             <div class="modal-actions">
                 <button id="modalNeutralBtn" class="btn btn-secondary" style="display: none;"></button>
                 <button id="modalCancelBtn" class="btn" onclick="closeModal()">キャンセル</button>
@@ -735,6 +784,12 @@
                     <label style="color: #666; font-size: 14px; display: block; margin-bottom: 8px;" data-i18n="label_reminder_notifications">リマインド通知：</label>
                     <div id="reminderList"></div>
                     <button class="btn btn-secondary" onclick="addReminderItem()" style="width: 100%; font-size: 13px; margin-top: 4px;" data-i18n="btn_add_reminder">＋通知を追加</button>
+                </div>
+                <div style="margin-bottom: 12px; border-top: 1px solid #eee; padding-top: 12px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+                        <input type="checkbox" id="showCommentOnCheck">
+                        <span data-i18n="label_show_comment_on_check">チェックを入れた時にコメント記入欄を表示</span>
+                    </label>
                 </div>
                 <div style="margin-bottom: 20px;">
                     <label for="taskNote" style="color: #666; font-size: 14px; display: block; margin-bottom: 4px;" data-i18n="label_note">補足文章：</label>
@@ -966,6 +1021,11 @@
                 label_bg_color: "背景",
                 label_text_color: "文字",
                 msg_rule_delete_confirm: "この配色ルールを削除しますか？",
+                label_history_memo: "メモ",
+                placeholder_history_memo: "メモを入力してください...",
+                modal_edit_memo_title: "メモを編集",
+                label_show_comment_on_check: "チェックを入れた時にコメント記入欄を表示",
+                btn_save_comment: "保存",
                 label_coin_management: "🪙 コイン",
                 btn_get_coin_reward: "リワード広告を視聴して１コインをゲット",
                 label_current_coins: "現在のコイン: {0}",
@@ -1143,6 +1203,11 @@
                 label_bg_color: "BG",
                 label_text_color: "Text",
                 msg_rule_delete_confirm: "Delete this color rule?",
+                label_history_memo: "Memo",
+                placeholder_history_memo: "Enter memo here...",
+                modal_edit_memo_title: "Edit Memo",
+                label_show_comment_on_check: "Show comment input when checked",
+                btn_save_comment: "Save",
                 label_coin_management: "🪙 Coins",
                 btn_get_coin_reward: "Watch ad to get 1 coin",
                 label_current_coins: "Current Coins: {0}",
@@ -1214,6 +1279,7 @@
         let historyFilterPeriodType = 'all'; // all, day, week, month
         let historyFilterPeriodValue = '';
         let historyFilterQuery = '';
+        let inputtingCommentForTaskId = null;
         let calendarMark = localStorage.getItem('calendarMark') || '⭕';
         let bgThresholds = JSON.parse(localStorage.getItem('bgThresholds') || '[]');
 
@@ -1307,6 +1373,17 @@
             // 背景（ドラッグハンドル）のクリック透過設定などをネイティブ側に任せる
             if (!fromAndroid && typeof Android !== 'undefined' && Android.toggleExpand) {
                 Android.toggleExpand(expand);
+            }
+
+            // メモ入力中のフォーカス制御
+            if (inputtingCommentForTaskId !== null && typeof Android !== 'undefined' && Android.setFocusable) {
+                Android.setFocusable(expand);
+            }
+
+            if (expand && inputtingCommentForTaskId !== null) {
+                if (typeof Android !== 'undefined' && Android.requestHeight) {
+                    Android.requestHeight(150);
+                }
             }
             render();
         }
@@ -1648,6 +1725,7 @@
                         id: Date.now(),
                         type: 'coin_daily',
                         text: getTranslation('history_coin_daily'),
+                        memo: "",
                         completedAt: new Date().toISOString()
                     });
                     if (history.length > 500) history.pop();
@@ -1720,6 +1798,7 @@
             const modal = document.getElementById('customModal');
             const titleEl = document.getElementById('modalTitle');
             const inputEl = document.getElementById('modalInput');
+            const textareaEl = document.getElementById('modalTextarea');
             const confirmBtn = document.getElementById('modalConfirmBtn');
             const cancelBtn = document.getElementById('modalCancelBtn');
             const neutralBtn = document.getElementById('modalNeutralBtn');
@@ -1729,10 +1808,17 @@
             } else {
                 titleEl.textContent = title;
             }
+
             inputEl.style.display = options.showInput ? 'block' : 'none';
+            textareaEl.style.display = options.showTextarea ? 'block' : 'none';
+
             if (options.showInput) {
                 inputEl.value = options.inputValue || '';
                 inputEl.type = options.inputType || 'text';
+            }
+            if (options.showTextarea) {
+                textareaEl.value = options.inputValue || '';
+                textareaEl.placeholder = options.placeholder || '';
             }
 
             // キャンセルボタンの表示制御
@@ -1755,7 +1841,7 @@
             }
 
             confirmBtn.onclick = () => {
-                const val = inputEl.value;
+                const val = options.showTextarea ? textareaEl.value : inputEl.value;
                 const onConfirm = options.onConfirm;
 
                 // Read content before potentially closing or overwriting
@@ -1861,6 +1947,7 @@
                 confirmBtn.textContent = getTranslation('btn_save');
                 document.getElementById('taskInput').value = task.text;
                 document.getElementById('taskNote').value = task.note || '';
+                document.getElementById('showCommentOnCheck').checked = !!task.showCommentOnCheck;
 
                 currentTaskReminders = (task.reminders || []).map(r => ({ ...r, id: Math.random() }));
                 renderReminderList();
@@ -1925,6 +2012,7 @@
                 confirmBtn.textContent = getTranslation('btn_add');
                 document.getElementById('taskInput').value = '';
                 document.getElementById('taskNote').value = '';
+                document.getElementById('showCommentOnCheck').checked = false;
                 document.getElementById('timerValue').value = '';
                 document.getElementById('timerUnit').value = 'none';
                 document.getElementById('melodySelect').value = 'default';
@@ -1976,6 +2064,7 @@
                     id: Date.now(),
                     type: 'coin_ad',
                     text: getTranslation('history_coin_ad'),
+                    memo: "",
                     completedAt: new Date().toISOString()
                 });
                 if (history.length > 500) history.pop();
@@ -2085,9 +2174,10 @@
                 targetTask = tasks.find(t => t.id === editingTaskId);
                 targetTask.text = text;
                 targetTask.note = note;
+                targetTask.showCommentOnCheck = document.getElementById('showCommentOnCheck').checked;
             } else {
                 const id = Date.now();
-                targetTask = { id: id, text: text, note: note, completed: false };
+                targetTask = { id: id, text: text, note: note, completed: false, showCommentOnCheck: document.getElementById('showCommentOnCheck').checked };
             }
 
             if (unitSelect.value !== 'none') {
@@ -2216,6 +2306,7 @@
                         id: Date.now(),
                         taskId: t.id,
                         text: t.text + getTranslation('repeat_suffix'),
+                        memo: "",
                         completedAt: new Date().toISOString()
                     });
                     if (history.length > 500) history.pop();
@@ -2225,6 +2316,9 @@
                 return t;
             });
             saveTasks();
+            if (historyIdToEdit) {
+                editHistoryMemo(historyIdToEdit);
+            }
         }
 
         function toggleTimerDisplayMode() {
@@ -2294,17 +2388,32 @@
         }
 
         function toggleTask(id) {
+            let historyIdToEdit = null;
             tasks = tasks.map(t => {
                 if (t.id === id) {
                     const newState = !t.completed;
                     if (newState) {
+                        const historyId = Date.now();
                         history.unshift({
-                            id: Date.now(),
+                            id: historyId,
                             taskId: t.id,
                             text: t.text,
+                            memo: "",
                             completedAt: new Date().toISOString()
                         });
                         if (history.length > 500) history.pop();
+
+                        if (t.showCommentOnCheck) {
+                            if (mode === 'manager') {
+                                historyIdToEdit = historyId;
+                            } else if (mode === 'floating') {
+                                inputtingCommentForTaskId = id;
+                                if (typeof Android !== 'undefined') {
+                                    if (Android.requestHeight) Android.requestHeight(150);
+                                    if (Android.setFocusable) Android.setFocusable(true);
+                                }
+                            }
+                        }
 
                         // 連続実行回数の更新 (タイマーなしタスクのみ)
                         if (!t.durationMs) {
@@ -2329,6 +2438,9 @@
                 return t;
             });
             saveTasks();
+            if (historyIdToEdit) {
+                editHistoryMemo(historyIdToEdit);
+            }
         }
 
         function editStreak(id) {
@@ -2472,9 +2584,10 @@
             }
 
             historyList.innerHTML = filteredHistory.map(h => `
-                <div class="history-item">
+                <div class="history-item" onclick="editHistoryMemo(${h.id})">
                     <div>${h.text}</div>
                     <div class="history-date">${new Date(h.completedAt).toLocaleString()}</div>
+                    ${h.memo ? `<div class="history-memo">${h.memo}</div>` : ''}
                 </div>
             `).join('');
         }
@@ -2594,11 +2707,73 @@
             }
 
             historyList.innerHTML = filtered.map(h => `
-                <div class="history-item">
+                <div class="history-item" onclick="editHistoryMemo(${h.id})">
                     <div>${(h.type === 'coin' || h.type === 'coin_ad' || h.type === 'coin_daily') ? '🪙 ' : ''}${h.text}</div>
                     <div class="history-date">${new Date(h.completedAt).toLocaleString()}</div>
+                    ${h.memo ? `<div class="history-memo">${h.memo}</div>` : ''}
                 </div>
             `).join('');
+        }
+
+        function editHistoryMemo(historyId) {
+            const h = history.find(item => item.id === historyId);
+            if (!h) return;
+
+            const dateStr = new Date(h.completedAt).toLocaleString();
+            const modalTitle = `${getTranslation('modal_edit_memo_title')}<div style="font-size: 14px; font-weight: normal; margin-top: 8px; color: #666; word-break: break-all;">${h.text}<br>${dateStr}</div>`;
+
+            showModal(modalTitle, {
+                useHTML: true,
+                showTextarea: true,
+                inputValue: h.memo || "",
+                placeholder: getTranslation('placeholder_history_memo'),
+                onConfirm: (val) => {
+                    saveHistoryMemo(historyId, val);
+                }
+            });
+        }
+
+        function saveHistoryMemo(historyId, memo) {
+            history = history.map(h => {
+                if (h.id === historyId) {
+                    return { ...h, memo: memo };
+                }
+                return h;
+            });
+            saveTasks();
+            if (currentCalendarTaskId) {
+                renderTaskHistory(currentCalendarTaskId);
+            } else {
+                renderHistory();
+            }
+        }
+
+        function saveFloatingComment() {
+            const ta = document.getElementById('floatingCommentText');
+            const memo = ta ? ta.value : "";
+            const taskId = inputtingCommentForTaskId;
+            if (taskId === null) return;
+
+            // 最新の履歴（そのタスクの最新）にメモを保存
+            const latestHistory = history.find(h => h.taskId === taskId);
+            if (latestHistory) {
+                latestHistory.memo = memo;
+            }
+
+            finishFloatingComment();
+        }
+
+        function cancelFloatingComment() {
+            finishFloatingComment();
+        }
+
+        function finishFloatingComment() {
+            inputtingCommentForTaskId = null;
+            if (typeof Android !== 'undefined') {
+                if (Android.toggleExpand) Android.toggleExpand(true);
+                if (Android.setFocusable) Android.setFocusable(false);
+            }
+            saveTasks();
         }
 
         function render() {
@@ -2758,6 +2933,29 @@
             }
 
             if (floatingContent) {
+                if (inputtingCommentForTaskId !== null) {
+                    // すでに表示されている場合は何もしない（フォーカスとキーボードを維持するため）
+                    if (document.getElementById('floatingCommentText')) return;
+
+                    const t = tasks.find(x => x.id === inputtingCommentForTaskId);
+                    floatingContent.innerHTML = `
+                        <div class="floating-comment-container">
+                            <div class="floating-comment-title">${t ? t.text : ''}</div>
+                            <textarea id="floatingCommentText" class="floating-comment-textarea" placeholder="${getTranslation('placeholder_history_memo')}"></textarea>
+                            <div class="floating-comment-actions">
+                                <button class="btn btn-tiny" onclick="cancelFloatingComment()">${getTranslation('btn_cancel')}</button>
+                                <button class="btn btn-primary btn-tiny" onclick="saveFloatingComment()">${getTranslation('btn_save_comment')}</button>
+                            </div>
+                        </div>
+                    `;
+                    // フォーカスを当てる
+                    setTimeout(() => {
+                        const ta = document.getElementById('floatingCommentText');
+                        if (ta) ta.focus();
+                    }, 100);
+                    return;
+                }
+
                 if (floatingTasks.length === 0) {
                     floatingContent.innerHTML = `<p style="color:#888; font-size:12px; margin:0;">${getTranslation('none')}</p>`;
                 } else {
