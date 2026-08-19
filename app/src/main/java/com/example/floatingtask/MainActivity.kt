@@ -74,8 +74,18 @@ class MainActivity : AppCompatActivity() {
     private val dataChangeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val webView: WebView = findViewById(R.id.webView)
-            if (isPageLoaded) {
-                webView.evaluateJavascript("refreshData();", null)
+            if (!isPageLoaded) return
+            
+            when (intent?.action) {
+                "com.example.floatingtask.DATA_CHANGED" -> {
+                    webView.evaluateJavascript("refreshData();", null)
+                }
+                "com.example.floatingtask.POSITION_CHANGED" -> {
+                    val x = intent.getIntExtra("x", 0)
+                    val y = intent.getIntExtra("y", 0)
+                    val isExpanded = intent.getBooleanExtra("isExpanded", false)
+                    webView.evaluateJavascript("onFloatingPositionChanged($x, $y, $isExpanded);", null)
+                }
             }
         }
     }
@@ -242,7 +252,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         // ブロードキャストレシーバーの登録
-        val filter = IntentFilter("com.example.floatingtask.DATA_CHANGED")
+        val filter = IntentFilter().apply {
+            addAction("com.example.floatingtask.DATA_CHANGED")
+            addAction("com.example.floatingtask.POSITION_CHANGED")
+        }
         ContextCompat.registerReceiver(
             this,
             dataChangeReceiver,
@@ -520,6 +533,40 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun updateFloatingSettingsExtended(
+            cX: Int, cY: Int, cScale: Float, showEmpty: Boolean, moveC: Boolean,
+            eX: Int, eY: Int, eScale: Float, moveE: Boolean,
+            width: Int, height: Int, showClose: Boolean
+        ) {
+            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+            prefs.edit {
+                putInt("floatCollapsedX", cX)
+                putInt("floatCollapsedY", cY)
+                putFloat("floatCollapsedScale", cScale)
+                putBoolean("showWhenEmpty", showEmpty)
+                putBoolean("alwaysMoveCollapsed", moveC)
+                
+                putInt("floatExpandedX", eX)
+                putInt("floatExpandedY", eY)
+                putFloat("floatExpandedScale", eScale)
+                putBoolean("alwaysMoveExpanded", moveE)
+                
+                putInt("floatWidth", width)
+                putInt("floatHeight", height)
+                putBoolean("showCloseButtonExpanded", showClose)
+
+                // 互換性のための古いキーも更新しておく
+                putInt("floatX", eX)
+                putInt("floatY", eY)
+                putFloat("floatScale", eScale)
+            }
+            // サービスが実行中なら更新を通知
+            val intent = Intent(mContext, FloatingWindowService::class.java)
+            intent.action = "ACTION_UPDATE_SETTINGS"
+            mContext.startService(intent)
+        }
+
+        @JavascriptInterface
         fun updateFloatingSettings(x: Int, y: Int, width: Int, height: Int, scale: Float) {
             val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
             prefs.edit {
@@ -782,8 +829,10 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
         prefs.edit { putBoolean("isAppInForeground", false) }
 
-        // アプリがバックグラウンドに回った時、未完了タスクがあれば表示する
-        if ((pendingTaskCount > 0) && Settings.canDrawOverlays(this)) {
+        val showWhenEmpty = prefs.getBoolean("showWhenEmpty", false)
+
+        // アプリがバックグラウンドに回った時、未完了タスクがあるか、またはタスクゼロでも表示設定の場合に表示する
+        if (((pendingTaskCount > 0) || showWhenEmpty) && Settings.canDrawOverlays(this)) {
             startFloatingService(isSettingsMode = false)
         }
     }

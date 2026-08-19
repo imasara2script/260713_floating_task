@@ -618,25 +618,90 @@
                         ラベル部分を上下にドラッグすると数値を素早く調整できます。
                     </div>
 
-                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                        <div style="flex: 1;">
-                            <label for="floatX" id="labelFloatX" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_x">位置 (X) (ドラッグ):</label>
-                            <input type="number" id="floatX" onchange="saveFloatingSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                    <!-- 縮小表示モードセクション -->
+                    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 16px; background: #fff;">
+                        <div style="font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 4px;" data-i18n="section_collapsed">縮小表示モードの設定</div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label for="floatCollapsedScale" style="display: block; margin-bottom: 4px;" data-i18n="label_scale">表示倍率:</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="range" id="floatCollapsedScale" min="0.5" max="2.0" step="0.1" oninput="document.getElementById('collapsedScaleVal').innerText = this.value; saveFloatingSettings('collapsed')" style="flex-grow: 1;">
+                                <span id="collapsedScaleVal" style="width: 30px;">1.0</span>
+                            </div>
                         </div>
-                        <div style="flex: 1;">
-                            <label for="floatY" id="labelFloatY" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_y">位置 (Y) (ドラッグ):</label>
-                            <input type="number" id="floatY" onchange="saveFloatingSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="showWhenEmpty" onchange="saveFloatingSettings('collapsed')">
+                                <span data-i18n="label_show_when_zero">未完のタスクがゼロでも表示する</span>
+                            </label>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="alwaysMoveCollapsed" onchange="toggleFixedPositionInputs('collapsed'); saveFloatingSettings('collapsed')">
+                                <span data-i18n="label_always_move_collapsed">縮小時は常に設定された位置に移動する</span>
+                            </label>
+                        </div>
+
+                        <div id="collapsedPositionInputs" style="display: none; gap: 8px; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <label for="floatCollapsedX" id="labelFloatCollapsedX" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_x">位置 (X) (ドラッグ):</label>
+                                <input type="number" id="floatCollapsedX" onchange="saveFloatingSettings('collapsed')" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label for="floatCollapsedY" id="labelFloatCollapsedY" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_y">位置 (Y) (ドラッグ):</label>
+                                <input type="number" id="floatCollapsedY" onchange="saveFloatingSettings('collapsed')" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                            </div>
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                        <div style="flex: 1;">
-                            <label for="floatWidth" id="labelFloatWidth" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_width">横幅 (px) (ドラッグ):</label>
-                            <input type="number" id="floatWidth" onchange="saveFloatingSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                    <!-- 展開表示モードセクション -->
+                    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 16px; background: #fff;">
+                        <div style="font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 4px;" data-i18n="section_expanded">展開表示モードの設定</div>
+
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <label for="floatWidth" id="labelFloatWidth" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_width">横幅 (px) (ドラッグ):</label>
+                                <input type="number" id="floatWidth" onchange="saveFloatingSettings('expanded')" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label for="floatHeight" id="labelFloatHeight" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_height">縦幅 (px) (ドラッグ):</label>
+                                <input type="number" id="floatHeight" onchange="saveFloatingSettings('expanded')" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                            </div>
                         </div>
-                        <div style="flex: 1;">
-                            <label for="floatHeight" id="labelFloatHeight" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_height">縦幅 (px) (ドラッグ):</label>
-                            <input type="number" id="floatHeight" onchange="saveFloatingSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+
+                        <div style="margin-bottom: 12px;">
+                            <label for="floatExpandedScale" style="display: block; margin-bottom: 4px;" data-i18n="label_scale">表示倍率:</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="range" id="floatExpandedScale" min="0.5" max="2.0" step="0.1" oninput="document.getElementById('expandedScaleVal').innerText = this.value; saveFloatingSettings('expanded')" style="flex-grow: 1;">
+                                <span id="expandedScaleVal" style="width: 30px;">1.0</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="alwaysMoveExpanded" onchange="toggleFixedPositionInputs('expanded'); saveFloatingSettings('expanded')">
+                                <span data-i18n="label_always_move_expanded">展開時は常に設定された位置に移動する</span>
+                            </label>
+                        </div>
+
+                        <div id="expandedPositionInputs" style="display: none; gap: 8px; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <label for="floatExpandedX" id="labelFloatExpandedX" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_x">位置 (X) (ドラッグ):</label>
+                                <input type="number" id="floatExpandedX" onchange="saveFloatingSettings('expanded')" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label for="floatExpandedY" id="labelFloatExpandedY" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_y">位置 (Y) (ドラッグ):</label>
+                                <input type="number" id="floatExpandedY" onchange="saveFloatingSettings('expanded')" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="showCloseButtonExpanded" onchange="saveFloatingSettings('expanded')">
+                                <span data-i18n="label_show_close_button_expanded">フローティングウィンドウを一時的に閉じるボタンを表示</span>
+                            </label>
                         </div>
                     </div>
 
@@ -649,14 +714,6 @@
                             <option value="30" data-i18n="interval_30min">30分ごと</option>
                             <option value="60" data-i18n="interval_1hour">1時間ごと</option>
                         </select>
-                    </div>
-
-                    <div style="margin-bottom: 16px;">
-                        <label for="floatScale" style="display: block; margin-bottom: 4px;" data-i18n="label_scale">表示倍率:</label>
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-                            <input type="range" id="floatScale" min="0.5" max="2.0" step="0.1" oninput="document.getElementById('scaleVal').innerText = this.value; saveFloatingSettings()" style="flex-grow: 1;">
-                            <span id="scaleVal" style="width: 30px;">1.0</span>
-                        </div>
                     </div>
 
                     <!-- 配色ルールセクション -->
@@ -1032,7 +1089,13 @@
                 msg_confirm_reward_ad: "バックアップ機能や復元機能を使用する際に、１コインを消費することで広告視聴をスキップできます。リワード広告の視聴でコインをゲットできる回数は１日１０回までです。リワード広告を視聴しますか？",
                 msg_ad_limit_reached: "本日の広告視聴回数が上限に達しました。",
                 btn_use_coin: "コインを消費して実行 (-1)",
-                btn_watch_ad: "広告を視聴して実行"
+                btn_watch_ad: "広告を視聴して実行",
+                section_collapsed: "縮小表示モードの設定",
+                section_expanded: "展開表示モードの設定",
+                label_show_when_zero: "未完のタスクがゼロでも表示する",
+                label_always_move_collapsed: "縮小時は常に設定された位置に移動する",
+                label_always_move_expanded: "展開時は常に設定された位置に移動する",
+                label_show_close_button_expanded: "フローティングウィンドウを一時的に閉じるボタンを表示"
             },
             en: {
                 tab_tasks: "Tasks",
@@ -1214,7 +1277,13 @@
                 msg_confirm_reward_ad: "You can skip ads during backup or restore by consuming 1 coin. You can earn up to 10 coins per day by watching rewarded ads. Watch ad now?",
                 msg_ad_limit_reached: "Daily ad limit reached.",
                 btn_use_coin: "Use coin to skip (-1)",
-                btn_watch_ad: "Watch Ad"
+                btn_watch_ad: "Watch Ad",
+                section_collapsed: "Collapsed Mode Settings",
+                section_expanded: "Expanded Mode Settings",
+                label_show_when_zero: "Show even if no pending tasks",
+                label_always_move_collapsed: "Always move to set position (Collapsed)",
+                label_always_move_expanded: "Always move to set position (Expanded)",
+                label_show_close_button_expanded: "Show temporary close button"
             }
         };
 
@@ -1370,6 +1439,12 @@
             if (collapsedEl) collapsedEl.style.display = expand ? 'none' : 'flex';
             if (expandedEl) expandedEl.style.display = expand ? 'flex' : 'none';
 
+            // 倍率の再適用（個別の設定を反映させるため）
+            const scale = expand ?
+                (localStorage.getItem('floatExpandedScale') || '1.0') :
+                (localStorage.getItem('floatCollapsedScale') || '1.0');
+            updateScale(scale);
+
             // 背景（ドラッグハンドル）のクリック透過設定などをネイティブ側に任せる
             if (!fromAndroid && typeof Android !== 'undefined' && Android.toggleExpand) {
                 Android.toggleExpand(expand);
@@ -1399,6 +1474,7 @@
         }
 
         function updateScale(scale) {
+            if (mode !== 'floating') return;
             document.body.style.transform = `scale(${scale})`;
             document.body.style.transformOrigin = 'top left';
             document.body.style.width = (100 / parseFloat(scale)) + '%';
@@ -1408,6 +1484,28 @@
         // ネイティブ側からドラッグ中かどうかを通知してもらうための関数
         function setIsDragging(dragging) {
             isDragging = dragging;
+        }
+
+        // ネイティブ側から位置変更を通知してもらうための関数
+        function onFloatingPositionChanged(x, y, expanded) {
+            if (expanded) {
+                localStorage.setItem('floatExpandedX', x);
+                localStorage.setItem('floatExpandedY', y);
+                const inputX = document.getElementById('floatExpandedX');
+                const inputY = document.getElementById('floatExpandedY');
+                if (inputX) inputX.value = x;
+                if (inputY) inputY.value = y;
+            } else {
+                localStorage.setItem('floatCollapsedX', x);
+                localStorage.setItem('floatCollapsedY', y);
+                const inputX = document.getElementById('floatCollapsedX');
+                const inputY = document.getElementById('floatCollapsedY');
+                if (inputX) inputX.value = x;
+                if (inputY) inputY.value = y;
+            }
+            // 互換性キーも更新
+            localStorage.setItem('floatX', x);
+            localStorage.setItem('floatY', y);
         }
 
         function handleMelodyChange() {
@@ -3051,13 +3149,23 @@
                 document.body.style.overflow = 'hidden';
 
                 // 倍率適用
-                const scale = localStorage.getItem('floatScale') || '1.0';
+                const scale = isFloatingExpanded ?
+                    (localStorage.getItem('floatExpandedScale') || '1.0') :
+                    (localStorage.getItem('floatCollapsedScale') || '1.0');
                 updateScale(scale);
 
                 // フローティングモードなら初期の展開状態を反映
                 toggleFloatingExpand(isFloatingExpanded, true);
             }
             render();
+        }
+
+        function toggleFixedPositionInputs(mode) {
+            const checkbox = document.getElementById(mode === 'collapsed' ? 'alwaysMoveCollapsed' : 'alwaysMoveExpanded');
+            const container = document.getElementById(mode === 'collapsed' ? 'collapsedPositionInputs' : 'expandedPositionInputs');
+            if (checkbox && container) {
+                container.style.display = checkbox.checked ? 'flex' : 'none';
+            }
         }
 
         function openFloatingSettings() {
@@ -3079,37 +3187,59 @@
         }
 
         function loadFloatingSettings() {
-            const x = localStorage.getItem('floatX') || '100';
-            const y = localStorage.getItem('floatY') || '100';
-            const width = localStorage.getItem('floatWidth') || '300';
-            const height = localStorage.getItem('floatHeight') || '32';
-            const scale = localStorage.getItem('floatScale') || '1.0';
+            // 縮小モード
+            const cScale = localStorage.getItem('floatCollapsedScale') || '1.0';
+            const showEmpty = localStorage.getItem('showWhenEmpty') === 'true';
+            const moveC = localStorage.getItem('alwaysMoveCollapsed') === 'true';
+            const cX = localStorage.getItem('floatCollapsedX') || '100';
+            const cY = localStorage.getItem('floatCollapsedY') || '100';
 
-            if (document.getElementById('floatX')) document.getElementById('floatX').value = x;
-            if (document.getElementById('floatY')) document.getElementById('floatY').value = y;
-            if (document.getElementById('floatWidth')) document.getElementById('floatWidth').value = width;
-            if (document.getElementById('floatHeight')) document.getElementById('floatHeight').value = height;
-            if (document.getElementById('floatScale')) {
-                document.getElementById('floatScale').value = scale;
-                document.getElementById('scaleVal').innerText = scale;
-            }
+            document.getElementById('floatCollapsedScale').value = cScale;
+            document.getElementById('collapsedScaleVal').innerText = cScale;
+            document.getElementById('showWhenEmpty').checked = showEmpty;
+            document.getElementById('alwaysMoveCollapsed').checked = moveC;
+            document.getElementById('floatCollapsedX').value = cX;
+            document.getElementById('floatCollapsedY').value = cY;
+            toggleFixedPositionInputs('collapsed');
 
-            setupDraggableLabel('labelFloatX', 'floatX');
-            setupDraggableLabel('labelFloatY', 'floatY');
-            setupDraggableLabel('labelFloatWidth', 'floatWidth');
-            setupDraggableLabel('labelFloatHeight', 'floatHeight');
+            // 展開モード
+            const eWidth = localStorage.getItem('floatWidth') || '300';
+            const eHeight = localStorage.getItem('floatHeight') || '44';
+            const eScale = localStorage.getItem('floatExpandedScale') || '1.0';
+            const moveE = localStorage.getItem('alwaysMoveExpanded') === 'true';
+            const eX = localStorage.getItem('floatExpandedX') || '100';
+            const eY = localStorage.getItem('floatExpandedY') || '100';
+            const showClose = localStorage.getItem('showCloseButtonExpanded') === 'true';
+
+            document.getElementById('floatWidth').value = eWidth;
+            document.getElementById('floatHeight').value = eHeight;
+            document.getElementById('floatExpandedScale').value = eScale;
+            document.getElementById('expandedScaleVal').innerText = eScale;
+            document.getElementById('alwaysMoveExpanded').checked = moveE;
+            document.getElementById('floatExpandedX').value = eX;
+            document.getElementById('floatExpandedY').value = eY;
+            document.getElementById('showCloseButtonExpanded').checked = showClose;
+            toggleFixedPositionInputs('expanded');
+
+            setupDraggableLabel('labelFloatCollapsedX', 'floatCollapsedX', 'collapsed');
+            setupDraggableLabel('labelFloatCollapsedY', 'floatCollapsedY', 'collapsed');
+            setupDraggableLabel('labelFloatWidth', 'floatWidth', 'expanded');
+            setupDraggableLabel('labelFloatHeight', 'floatHeight', 'expanded');
+            setupDraggableLabel('labelFloatExpandedX', 'floatExpandedX', 'expanded');
+            setupDraggableLabel('labelFloatExpandedY', 'floatExpandedY', 'expanded');
         }
 
-        function setupDraggableLabel(labelId, inputId) {
+        function setupDraggableLabel(labelId, inputId, mode) {
             const label = document.getElementById(labelId);
             const input = document.getElementById(inputId);
+            if (!label || !input) return;
             let startY, startVal;
 
             const onMove = (e) => {
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                 const delta = startY - clientY;
                 input.value = Math.max(0, startVal + delta);
-                saveFloatingSettings();
+                saveFloatingSettings(mode);
             };
 
             const onEnd = () => {
@@ -3123,12 +3253,10 @@
                 startY = e.touches ? e.touches[0].clientY : e.clientY;
                 startVal = parseInt(input.value) || 0;
 
-                // 調整開始時にフローティングウィンドウを表示・展開
+                // 調整開始時にフローティングウィンドウを表示・指定モードへ切り替え
                 if (typeof Android !== 'undefined') {
                     if (Android.startFloatingWindow) Android.startFloatingWindow();
-                    // toggleFloatingExpand() は isFloatingExpanded をチェックして
-                    // すでに展開済みなら Android.toggleExpand を呼ばない
-                    toggleFloatingExpand(true);
+                    toggleFloatingExpand(mode === 'expanded');
                 }
 
                 document.addEventListener('mousemove', onMove);
@@ -3139,27 +3267,61 @@
             };
         }
 
-        function saveFloatingSettings() {
-            const x = document.getElementById('floatX').value;
-            const y = document.getElementById('floatY').value;
+        function saveFloatingSettings(targetMode) {
+            // 縮小モード
+            const cScale = document.getElementById('floatCollapsedScale').value;
+            const showEmpty = document.getElementById('showWhenEmpty').checked;
+            const moveC = document.getElementById('alwaysMoveCollapsed').checked;
+            const cX = document.getElementById('floatCollapsedX').value;
+            const cY = document.getElementById('floatCollapsedY').value;
+
+            localStorage.setItem('floatCollapsedScale', cScale);
+            localStorage.setItem('showWhenEmpty', showEmpty);
+            localStorage.setItem('alwaysMoveCollapsed', moveC);
+            localStorage.setItem('floatCollapsedX', cX);
+            localStorage.setItem('floatCollapsedY', cY);
+
+            // 展開モード
             const width = document.getElementById('floatWidth').value;
             const height = document.getElementById('floatHeight').value;
-            const scale = document.getElementById('floatScale').value;
+            const eScale = document.getElementById('floatExpandedScale').value;
+            const moveE = document.getElementById('alwaysMoveExpanded').checked;
+            const eX = document.getElementById('floatExpandedX').value;
+            const eY = document.getElementById('floatExpandedY').value;
+            const showClose = document.getElementById('showCloseButtonExpanded').checked;
 
-            localStorage.setItem('floatX', x);
-            localStorage.setItem('floatY', y);
             localStorage.setItem('floatWidth', width);
             localStorage.setItem('floatHeight', height);
-            localStorage.setItem('floatScale', scale);
+            localStorage.setItem('floatExpandedScale', eScale);
+            localStorage.setItem('alwaysMoveExpanded', moveE);
+            localStorage.setItem('floatExpandedX', eX);
+            localStorage.setItem('floatExpandedY', eY);
+            localStorage.setItem('showCloseButtonExpanded', showClose);
 
             if (typeof Android !== 'undefined') {
-                if (Android.updateFloatingSettings) {
-                    Android.updateFloatingSettings(parseInt(x), parseInt(y), parseInt(width), parseInt(height), parseFloat(scale));
+                if (Android.updateFloatingSettingsExtended) {
+                    Android.updateFloatingSettingsExtended(
+                        parseInt(cX), parseInt(cY), parseFloat(cScale), showEmpty, moveC,
+                        parseInt(eX), parseInt(eY), parseFloat(eScale), moveE,
+                        parseInt(width), parseInt(height), showClose
+                    );
+                } else if (Android.updateFloatingSettings) {
+                    // 互換性のため古いメソッドも呼ぶ（必要なら）
+                    Android.updateFloatingSettings(parseInt(eX), parseInt(eY), parseInt(width), parseInt(height), parseFloat(eScale));
                 }
 
-                // まだ展開状態でなければ表示・展開を行う（手入力時やドラッグ開始漏れ対策）
+                // まだ表示されていなければ表示する
                 if (Android.startFloatingWindow) Android.startFloatingWindow();
-                toggleFloatingExpand(true);
+
+                // 指定されたモードへ切り替える（スライダー操作時など）
+                if (targetMode === 'collapsed') {
+                    toggleFloatingExpand(false);
+                } else if (targetMode === 'expanded') {
+                    toggleFloatingExpand(true);
+                } else {
+                    // デフォルトは現在の状態を維持（ドラッグハンドルでの操作時など、targetMode未指定時）
+                    // ただし初期化時は展開でプレビューするのが無難かもしれない
+                }
             }
         }
 
@@ -3167,31 +3329,41 @@
             let defaultX = 100;
             let defaultY = 100;
             let defaultWidth = 300;
-            let defaultHeight = 44; // デフォルトを少し厚めに (px)
+            let defaultHeight = 44;
             let defaultScale = 1.0;
 
             if (typeof Android !== 'undefined' && Android.getDisplayMetrics) {
                 try {
                     const metrics = JSON.parse(Android.getDisplayMetrics());
                     const density = metrics.density || 1;
-                    const widthPx = metrics.widthPixels; // 物理ピクセル (例: 1080)
+                    const widthPx = metrics.widthPixels;
 
-                    // 物理ピクセルベースで計算
-                    defaultWidth = Math.floor(widthPx * 0.9); // 画面幅の90% (例: 972px)
-                    defaultX = Math.floor((widthPx - defaultWidth) / 2); // 左右中央
-                    defaultY = Math.floor(100 * density); // 上部から100dpの位置
-                    defaultHeight = Math.floor(44 * density); // 44dp相当の高さ (Pixel 7なら約115px)
+                    defaultWidth = Math.floor(widthPx * 0.9);
+                    defaultX = Math.floor((widthPx - defaultWidth) / 2);
+                    defaultY = Math.floor(100 * density);
+                    defaultHeight = Math.floor(44 * density);
                 } catch(e) {
                     console.error("Failed to get display metrics", e);
                 }
             }
 
-            document.getElementById('floatX').value = defaultX;
-            document.getElementById('floatY').value = defaultY;
+            // 縮小モード初期値
+            document.getElementById('floatCollapsedScale').value = 1.0;
+            document.getElementById('collapsedScaleVal').innerText = "1.0";
+            document.getElementById('showWhenEmpty').checked = false;
+            document.getElementById('alwaysMoveCollapsed').checked = false;
+            document.getElementById('floatCollapsedX').value = defaultX;
+            document.getElementById('floatCollapsedY').value = defaultY;
+
+            // 展開モード初期値
             document.getElementById('floatWidth').value = defaultWidth;
             document.getElementById('floatHeight').value = defaultHeight;
-            document.getElementById('floatScale').value = defaultScale;
-            document.getElementById('scaleVal').innerText = defaultScale;
+            document.getElementById('floatExpandedScale').value = 1.0;
+            document.getElementById('expandedScaleVal').innerText = "1.0";
+            document.getElementById('alwaysMoveExpanded').checked = false;
+            document.getElementById('floatExpandedX').value = defaultX;
+            document.getElementById('floatExpandedY').value = defaultY;
+            document.getElementById('showCloseButtonExpanded').checked = false;
 
             saveFloatingSettings();
         }
@@ -3408,6 +3580,16 @@
                 floatWidth: localStorage.getItem('floatWidth'),
                 floatHeight: localStorage.getItem('floatHeight'),
                 floatScale: localStorage.getItem('floatScale'),
+                floatCollapsedScale: localStorage.getItem('floatCollapsedScale'),
+                floatExpandedScale: localStorage.getItem('floatExpandedScale'),
+                showWhenEmpty: localStorage.getItem('showWhenEmpty') === 'true',
+                alwaysMoveCollapsed: localStorage.getItem('alwaysMoveCollapsed') === 'true',
+                alwaysMoveExpanded: localStorage.getItem('alwaysMoveExpanded') === 'true',
+                floatCollapsedX: localStorage.getItem('floatCollapsedX'),
+                floatCollapsedY: localStorage.getItem('floatCollapsedY'),
+                floatExpandedX: localStorage.getItem('floatExpandedX'),
+                floatExpandedY: localStorage.getItem('floatExpandedY'),
+                showCloseButtonExpanded: localStorage.getItem('showCloseButtonExpanded') === 'true',
                 recheckInterval: localStorage.getItem('recheckInterval'),
                 bgThresholds: bgThresholds
             };
@@ -3615,13 +3797,26 @@
                         localStorage.setItem('calendarMark', calendarMark);
                     }
                     if (options.float) {
-                        const keys = ['floatX', 'floatY', 'floatWidth', 'floatHeight', 'floatScale', 'recheckInterval'];
+                        const keys = [
+                            'floatX', 'floatY', 'floatWidth', 'floatHeight', 'floatScale',
+                            'floatCollapsedScale', 'floatExpandedScale',
+                            'floatCollapsedX', 'floatCollapsedY', 'floatExpandedX', 'floatExpandedY',
+                            'recheckInterval'
+                        ];
+                        const boolKeys = [
+                            'showWhenEmpty', 'alwaysMoveCollapsed', 'alwaysMoveExpanded', 'showCloseButtonExpanded'
+                        ];
                         if (data.showAllInFloating !== undefined) {
                             localStorage.setItem('showAllInFloating', data.showAllInFloating);
                         }
                         keys.forEach(key => {
                             if (data[key] !== undefined) {
                                 localStorage.setItem(key, data[key]);
+                            }
+                        });
+                        boolKeys.forEach(key => {
+                            if (data[key] !== undefined) {
+                                localStorage.setItem(key, data[key] ? 'true' : 'false');
                             }
                         });
                     }

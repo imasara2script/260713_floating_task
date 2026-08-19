@@ -139,18 +139,14 @@ class FloatingWindowService : Service() {
             return
         }
 
-        val params = view.layoutParams as WindowManager.LayoutParams
-
-        val x = prefs.getInt("floatX", 100)
-        val y = prefs.getInt("floatY", 100)
-        val scale = prefs.getFloat("floatScale", 1.0f)
-
-        // 位置の更新（updateWindowSize内で境界チェックが行われる）
-        params.x = x
-        params.y = y
-
         // 現在の状態（展開/縮小）を維持しつつ、新しい設定（スケールやサイズ）を反映
         updateWindowSize(isExpanded)
+        
+        val scale = if (isExpanded) {
+            prefs.getFloat("floatExpandedScale", 1.0f)
+        } else {
+            prefs.getFloat("floatCollapsedScale", 1.0f)
+        }
         
         // WebView内にもリロードを促す（スケール変更などを反映させるため）
         val webView: WebView = view.findViewById(R.id.floatingWebView)
@@ -177,8 +173,13 @@ class FloatingWindowService : Service() {
 
     private fun applySettingsToParams(params: WindowManager.LayoutParams) {
         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
-        val scale = prefs.getFloat("floatScale", 1.0f)
         val density = resources.displayMetrics.density
+
+        val scale = if (isExpanded) {
+            prefs.getFloat("floatExpandedScale", 1.0f)
+        } else {
+            prefs.getFloat("floatCollapsedScale", 1.0f)
+        }
 
         if (isExpanded) {
             val width = prefs.getInt("floatWidth", (300 * density).toInt())
@@ -195,8 +196,14 @@ class FloatingWindowService : Service() {
         val screenWidth = displayMetrics.widthPixels
         val screenHeight = displayMetrics.heightPixels
 
-        val x = prefs.getInt("floatX", 100)
-        val y = prefs.getInt("floatY", 100)
+        val xKey = if (isExpanded) "floatExpandedX" else "floatCollapsedX"
+        val yKey = if (isExpanded) "floatExpandedY" else "floatCollapsedY"
+        val fallbackXKey = "floatX"
+        val fallbackYKey = "floatY"
+
+        val x = prefs.getInt(xKey, prefs.getInt(fallbackXKey, 100))
+        val y = prefs.getInt(yKey, prefs.getInt(fallbackYKey, 100))
+
         params.gravity = Gravity.TOP or Gravity.START
         params.x = x.coerceIn(0, (screenWidth - params.width).coerceAtLeast(0))
         params.y = y.coerceIn(0, (screenHeight - params.height).coerceAtLeast(0))
@@ -210,8 +217,13 @@ class FloatingWindowService : Service() {
         val view = floatingView ?: return
         val params = view.layoutParams as WindowManager.LayoutParams
         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
-        val scale = prefs.getFloat("floatScale", 1.0f)
         val density = resources.displayMetrics.density
+
+        val scale = if (expanded) {
+            prefs.getFloat("floatExpandedScale", 1.0f)
+        } else {
+            prefs.getFloat("floatCollapsedScale", 1.0f)
+        }
 
         if (expanded) {
             val width = prefs.getInt("floatWidth", (300 * density).toInt())
@@ -224,9 +236,30 @@ class FloatingWindowService : Service() {
             params.height = (52 * density * scale).toInt()
         }
 
-        // 閉じるボタンの表示切り替え（ユーザー要望により常に非表示）
+        // 固定位置の設定
+        val alwaysMove = if (expanded) {
+            prefs.getBoolean("alwaysMoveExpanded", false)
+        } else {
+            prefs.getBoolean("alwaysMoveCollapsed", false)
+        }
+
+        if (alwaysMove) {
+            val xKey = if (expanded) "floatExpandedX" else "floatCollapsedX"
+            val yKey = if (expanded) "floatExpandedY" else "floatCollapsedY"
+            val fallbackXKey = "floatX"
+            val fallbackYKey = "floatY"
+            params.x = prefs.getInt(xKey, prefs.getInt(fallbackXKey, 100))
+            params.y = prefs.getInt(yKey, prefs.getInt(fallbackYKey, 100))
+        }
+
+        // 閉じるボタンの表示切り替え
+        val showClose = if (expanded) {
+            prefs.getBoolean("showCloseButtonExpanded", false)
+        } else {
+            false
+        }
         val closeButton: Button = view.findViewById(R.id.closeButton)
-        closeButton.visibility = View.GONE
+        closeButton.visibility = if (showClose) View.VISIBLE else View.GONE
 
         // ドラッグハンドルの設定（展開時は左側の「Floating task」部分のみドラッグ可能にする）
         val dragHandle: View = view.findViewById(R.id.dragHandle)
@@ -364,11 +397,24 @@ class FloatingWindowService : Service() {
                         
                         // 位置を保存
                         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+                        val xKey = if (isExpanded) "floatExpandedX" else "floatCollapsedX"
+                        val yKey = if (isExpanded) "floatExpandedY" else "floatCollapsedY"
                         prefs.edit().apply {
+                            putInt(xKey, params.x)
+                            putInt(yKey, params.y)
+                            // 互換性のための古いキーも更新しておく
                             putInt("floatX", params.x)
                             putInt("floatY", params.y)
                             apply()
                         }
+
+                        // MainActivityへ位置更新を通知
+                        val intent = Intent("com.example.floatingtask.POSITION_CHANGED")
+                        intent.setPackage(packageName)
+                        intent.putExtra("x", params.x)
+                        intent.putExtra("y", params.y)
+                        intent.putExtra("isExpanded", isExpanded)
+                        sendBroadcast(intent)
                     }
                     true
                 }
@@ -484,9 +530,23 @@ class FloatingWindowService : Service() {
 
         @JavascriptInterface
         fun updatePendingTaskCount(count: Int) {
-            if (count == 0) {
+            val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+            val showWhenEmpty = prefs.getBoolean("showWhenEmpty", false)
+            
+            if (count == 0 && !showWhenEmpty) {
                 val handler = Handler(Looper.getMainLooper())
                 handler.post { hideFloatingWindow() }
+            } else {
+                val handler = Handler(Looper.getMainLooper())
+                handler.post {
+                    val view = floatingView
+                    if (view != null && view.visibility != View.VISIBLE) {
+                        val isAppInForeground = prefs.getBoolean("isAppInForeground", false)
+                        if (!isAppInForeground || isSettingsMode) {
+                            view.visibility = View.VISIBLE
+                        }
+                    }
+                }
             }
         }
 
@@ -513,7 +573,12 @@ class FloatingWindowService : Service() {
             handler.post {
                 val view = floatingView ?: return@post
                 val params = view.layoutParams as WindowManager.LayoutParams
-                val scale = getSharedPreferences("prefs", MODE_PRIVATE).getFloat("floatScale", 1.0f)
+                val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+                val scale = if (isExpanded) {
+                    prefs.getFloat("floatExpandedScale", 1.0f)
+                } else {
+                    prefs.getFloat("floatCollapsedScale", 1.0f)
+                }
                 val density = resources.displayMetrics.density
 
                 params.height = (heightDp * density * scale).toInt()
