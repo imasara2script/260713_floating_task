@@ -536,7 +536,8 @@ class MainActivity : AppCompatActivity() {
         fun updateFloatingSettingsExtended(
             cX: Int, cY: Int, cScale: Float, showEmpty: Boolean, moveC: Boolean,
             eX: Int, eY: Int, eScale: Float, moveE: Boolean,
-            width: Int, height: Int, showClose: Boolean
+            width: Int, height: Int, showClose: Boolean,
+            displayTaskCount: Int, scrollTaskCount: Int
         ) {
             val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
             prefs.edit {
@@ -554,6 +555,8 @@ class MainActivity : AppCompatActivity() {
                 putInt("floatWidth", width)
                 putInt("floatHeight", height)
                 putBoolean("showCloseButtonExpanded", showClose)
+                putInt("displayTaskCount", displayTaskCount)
+                putInt("scrollTaskCount", scrollTaskCount)
 
                 // 互換性のための古いキーも更新しておく
                 putInt("floatX", eX)

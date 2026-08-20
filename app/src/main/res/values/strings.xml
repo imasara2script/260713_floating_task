@@ -13,9 +13,13 @@
     <string name="channel_timer_notifications">タイマー通知</string>
     <string name="channel_timer_silent">タイマー：消音</string>
     <string name="channel_reminders">リマインド通知</string>
+    <string name="timer_completion_time_format"> (完了日時: %s)</string>
     <string name="reminder_title">リマインド</string>
     <string name="reminder_body_with_msg">「%1$s」（%2$s）</string>
     <string name="reminder_body_no_msg">「%1$s」</string>
     <string name="floating_window_service_name">フローティングウィンドウ・サービス</string>
     <string name="notification_permission_required_message">このアプリは、タイマーが終了した際や未完了タスクがある場合に通知を表示するために、通知の送信権限が必要です。次の画面で表示されるダイアログで「許可」を選択してください。</string>
+    <string name="label_display_task_count">表示するタスク数</string>
+    <string name="label_scroll_task_count">「△」「▽」ボタン押下時の移動量</string>
+    <string name="btn_prev_task_title">前のタスク</string>
 </resources>

@@ -1,0 +1,5 @@
+- [x] リソースの更新 (`strings.xml`)
+- [x] WebView UI とロジックの更新 (`index.html`)
+- [x] `MainActivity.kt` の JavaScript ブリッジの更新
+- [x] `FloatingWindowService.kt` の設定反映処理の更新
+- [x] 動作確認

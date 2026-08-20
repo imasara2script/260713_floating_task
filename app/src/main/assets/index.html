@@ -703,6 +703,24 @@
                                 <span data-i18n="label_show_close_button_expanded">フローティングウィンドウを一時的に閉じるボタンを表示</span>
                             </label>
                         </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label for="displayTaskCount" style="display: block; margin-bottom: 4px;" data-i18n="label_display_task_count">表示するタスク数:</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button class="btn btn-secondary" onclick="adjustDisplayTaskCount(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
+                                <input type="number" id="displayTaskCount" min="1" max="10" onchange="saveFloatingSettings('expanded')" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center;">
+                                <button class="btn btn-secondary" onclick="adjustDisplayTaskCount(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label for="scrollTaskCount" style="display: block; margin-bottom: 4px;" data-i18n="label_scroll_task_count">「△」「▽」ボタン押下時の移動量:</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button class="btn btn-secondary" onclick="adjustScrollTaskCount(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
+                                <input type="number" id="scrollTaskCount" min="1" max="10" onchange="saveFloatingSettings('expanded')" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center;">
+                                <button class="btn btn-secondary" onclick="adjustScrollTaskCount(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
+                            </div>
+                        </div>
                     </div>
 
                     <div style="margin-bottom: 16px;">
@@ -1082,6 +1100,7 @@
                 placeholder_history_memo: "メモを入力してください...",
                 modal_edit_memo_title: "メモを編集",
                 label_show_comment_on_check: "チェックを入れた時にコメント記入欄を表示",
+                btn_no_comment: "今回はコメント無し",
                 btn_save_comment: "保存",
                 label_coin_management: "🪙 コイン",
                 btn_get_coin_reward: "リワード広告を視聴して１コインをゲット",
@@ -1095,7 +1114,10 @@
                 label_show_when_zero: "未完のタスクがゼロでも表示する",
                 label_always_move_collapsed: "縮小時は常に設定された位置に移動する",
                 label_always_move_expanded: "展開時は常に設定された位置に移動する",
-                label_show_close_button_expanded: "フローティングウィンドウを一時的に閉じるボタンを表示"
+                label_show_close_button_expanded: "フローティングウィンドウを一時的に閉じるボタンを表示",
+                label_display_task_count: "表示するタスク数",
+                label_scroll_task_count: "「△」「▽」ボタン押下時の移動量",
+                btn_prev_task_title: "前のタスク"
             },
             en: {
                 tab_tasks: "Tasks",
@@ -1271,6 +1293,7 @@
                 modal_edit_memo_title: "Edit Memo",
                 label_show_comment_on_check: "Show comment input when checked",
                 btn_save_comment: "Save",
+                btn_no_comment: "No comment",
                 label_coin_management: "🪙 Coins",
                 btn_get_coin_reward: "Watch ad to get 1 coin",
                 label_current_coins: "Current Coins: {0}",
@@ -1283,7 +1306,10 @@
                 label_show_when_zero: "Show even if no pending tasks",
                 label_always_move_collapsed: "Always move to set position (Collapsed)",
                 label_always_move_expanded: "Always move to set position (Expanded)",
-                label_show_close_button_expanded: "Show temporary close button"
+                label_show_close_button_expanded: "Show temporary close button",
+                label_display_task_count: "Number of tasks to display",
+                label_scroll_task_count: "Scroll amount for △/▽ buttons",
+                btn_prev_task_title: "Previous Task"
             }
         };
 
@@ -1362,6 +1388,8 @@
         }
 
         let showAllInFloating = localStorage.getItem('showAllInFloating') === 'true';
+        let displayTaskCount = parseInt(localStorage.getItem('displayTaskCount') || '1');
+        let scrollTaskCount = parseInt(localStorage.getItem('scrollTaskCount') || '1');
         let currentFloatingIndex = 0;
         let draggingElement = null;
         let isEditMode = false;
@@ -1464,12 +1492,21 @@
         }
 
         // ネイティブ側から設定変更を通知してもらうための関数
-        function applyFloatingSettings(scale, expanded) {
+        function applyFloatingSettings(scale, expanded, dCount, sCount) {
             if (mode === 'floating') {
                 updateScale(scale);
                 if (isFloatingExpanded !== expanded) {
                     toggleFloatingExpand(expanded, true);
                 }
+                if (dCount !== undefined) {
+                    displayTaskCount = parseInt(dCount);
+                    localStorage.setItem('displayTaskCount', dCount);
+                }
+                if (sCount !== undefined) {
+                    scrollTaskCount = parseInt(sCount);
+                    localStorage.setItem('scrollTaskCount', sCount);
+                }
+                refreshData();
             }
         }
 
@@ -1746,7 +1783,15 @@
         function nextTask() {
             const floatingTasks = getVisibleFloatingTasks();
             if (floatingTasks.length > 0) {
-                currentFloatingIndex = (currentFloatingIndex + 1) % floatingTasks.length;
+                currentFloatingIndex = (currentFloatingIndex + scrollTaskCount) % floatingTasks.length;
+                render();
+            }
+        }
+
+        function prevTask() {
+            const floatingTasks = getVisibleFloatingTasks();
+            if (floatingTasks.length > 0) {
+                currentFloatingIndex = (currentFloatingIndex - scrollTaskCount + floatingTasks.length) % floatingTasks.length;
                 render();
             }
         }
@@ -1841,6 +1886,8 @@
         function refreshData() {
             tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
             history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+            displayTaskCount = parseInt(localStorage.getItem('displayTaskCount') || '1');
+            scrollTaskCount = parseInt(localStorage.getItem('scrollTaskCount') || '1');
 
             checkAdFree();
 
@@ -2393,6 +2440,7 @@
         }
 
         function repeatTimer(id) {
+            let historyIdToEdit = null;
             tasks = tasks.map(t => {
                 if (t.id === id && t.durationMs) {
                     const melody = t.melody || 'default';
@@ -2400,8 +2448,9 @@
                         Android.setTimerAlarm(t.id, t.text, t.durationMs, melody);
                     }
                     // 履歴にリピートを記録
+                    const historyId = Date.now();
                     history.unshift({
-                        id: Date.now(),
+                        id: historyId,
                         taskId: t.id,
                         text: t.text + getTranslation('repeat_suffix'),
                         memo: "",
@@ -2409,13 +2458,17 @@
                     });
                     if (history.length > 500) history.pop();
 
+                    if (t.showCommentOnCheck) {
+                        historyIdToEdit = historyId;
+                    }
+
                     return { ...t, startTime: Date.now(), completed: false };
                 }
                 return t;
             });
             saveTasks();
             if (historyIdToEdit) {
-                editHistoryMemo(historyIdToEdit);
+                editHistoryMemo(historyIdToEdit, true);
             }
         }
 
@@ -2537,7 +2590,7 @@
             });
             saveTasks();
             if (historyIdToEdit) {
-                editHistoryMemo(historyIdToEdit);
+                editHistoryMemo(historyIdToEdit, true);
             }
         }
 
@@ -2813,7 +2866,7 @@
             `).join('');
         }
 
-        function editHistoryMemo(historyId) {
+        function editHistoryMemo(historyId, isInitial = false) {
             const h = history.find(item => item.id === historyId);
             if (!h) return;
 
@@ -2825,6 +2878,7 @@
                 showTextarea: true,
                 inputValue: h.memo || "",
                 placeholder: getTranslation('placeholder_history_memo'),
+                cancelText: isInitial ? getTranslation('btn_no_comment') : getTranslation('btn_cancel'),
                 onConfirm: (val) => {
                     saveHistoryMemo(historyId, val);
                 }
@@ -3041,7 +3095,7 @@
                             <div class="floating-comment-title">${t ? t.text : ''}</div>
                             <textarea id="floatingCommentText" class="floating-comment-textarea" placeholder="${getTranslation('placeholder_history_memo')}"></textarea>
                             <div class="floating-comment-actions">
-                                <button class="btn btn-tiny" onclick="cancelFloatingComment()">${getTranslation('btn_cancel')}</button>
+                                <button class="btn btn-tiny" onclick="cancelFloatingComment()">${getTranslation('btn_no_comment')}</button>
                                 <button class="btn btn-primary btn-tiny" onclick="saveFloatingComment()">${getTranslation('btn_save_comment')}</button>
                             </div>
                         </div>
@@ -3055,34 +3109,62 @@
                 }
 
                 if (floatingTasks.length === 0) {
-                    floatingContent.innerHTML = `<p style="color:#888; font-size:12px; margin:0;">${getTranslation('none')}</p>`;
+                    floatingContent.innerHTML = `
+                        <div style="display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: center; padding: 2px 4px; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: inherit; opacity: 0.8;">
+                                <span style="color:#888; font-size:12px;">${getTranslation('none')}</span>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <button onclick="toggleShowAllInFloating()" style="background: ${!showAllInFloating ? '#007bff' : '#eee'}; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: ${!showAllInFloating ? 'white' : '#333'}; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${!showAllInFloating ? getTranslation('btn_toggle_pending_title') : getTranslation('btn_toggle_all_title')}">👁️</button>
+                                    <button onclick="if(typeof Android !== 'undefined' && Android.openMainActivity) Android.openMainActivity(); else setViewMode('manager');" style="background: #007bff; border: none; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_full_screen_title')}">🏠</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
                 } else {
-                    const t = floatingTasks[currentFloatingIndex];
-                    if (!t) {
-                        floatingContent.innerHTML = `<p style="color:#888; font-size:12px; margin:0;">${getTranslation('none')}</p>`;
-                        return;
+                    const tasksToShow = floatingTasks.slice(currentFloatingIndex, currentFloatingIndex + displayTaskCount);
+                    if (tasksToShow.length < displayTaskCount && floatingTasks.length > tasksToShow.length) {
+                        tasksToShow.push(...floatingTasks.slice(0, displayTaskCount - tasksToShow.length));
                     }
-                    const isTimer = !!t.durationMs;
-                    const remainingText = isTimer ? getRemainingTimeTextDetailed(t) : '';
-                    const totalText = isTimer ? getTotalTimeText(t) : '';
-                    const isExpired = isTimer && (t.startTime + t.durationMs <= Date.now());
-                    const timerDisplay = isTimer ?
-                        (timerDisplayMode === 'countdown' ? `${remainingText} / ${totalText}` : getEndTimeText(t)) : '';
+
+                    let tasksHtml = '';
+                    tasksToShow.forEach((t, i) => {
+                        const isTimer = !!t.durationMs;
+                        const remainingText = isTimer ? getRemainingTimeTextDetailed(t) : '';
+                        const totalText = isTimer ? getTotalTimeText(t) : '';
+                        const isExpired = isTimer && (t.startTime + t.durationMs <= Date.now());
+                        const timerDisplay = isTimer ?
+                            (timerDisplayMode === 'countdown' ? `${remainingText} / ${totalText}` : getEndTimeText(t)) : '';
+
+                        tasksHtml += `
+                            <div style="display: flex; align-items: center; min-width: 0; margin-bottom: 2px;">
+                                <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})" style="width: 16px; height: 16px; margin-right: 6px; flex-shrink: 0;">
+                                ${isTimer && !t.completed ? `
+                                    <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-right: 6px; opacity: 0.9;">
+                                        <span class="${isExpired ? 'timer-expired' : ''}" onclick="toggleTimerDisplayMode()" style="font-variant-numeric: tabular-nums; cursor:pointer; background: #ffc107; padding: 1px 4px; border-radius: 3px; font-weight: bold; font-size: 10px; white-space: nowrap;">${timerDisplay}</span>
+                                        <button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size: 12px; padding: 0; background: none; border: none; cursor: pointer;">🔄</button>
+                                    </div>
+                                ` : ''}
+                                <span class="floating-task-text" style="font-size: 14px; font-weight: bold; margin: 0; flex-grow: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; ${t.completed ? 'text-decoration: line-through; color: #888;' : ''}">${t.text}</span>
+                            </div>
+                        `;
+                    });
+
+                    const counterText = displayTaskCount > 1
+                        ? `${currentFloatingIndex + 1}-${(currentFloatingIndex + tasksToShow.length - 1) % floatingTasks.length + 1}/${floatingTasks.length}`
+                        : `(${currentFloatingIndex + 1}/${floatingTasks.length})`;
 
                     floatingContent.innerHTML = `
                         <div style="display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: center; padding: 2px 4px; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; min-width: 0; margin-bottom: 2px;">
-                                <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})" style="width: 16px; height: 16px; margin-right: 6px; flex-shrink: 0;">
-                                <span class="floating-task-text" style="font-size: 14px; font-weight: bold; margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; ${t.completed ? 'text-decoration: line-through; color: #888;' : ''}">${t.text}</span>
+                            <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+                                ${tasksHtml}
                             </div>
-                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: inherit; opacity: 0.8;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    ${isTimer && !t.completed ? `<span class="${isExpired ? 'timer-expired' : ''}" onclick="toggleTimerDisplayMode()" style="font-variant-numeric: tabular-nums; cursor:pointer; background: #ffc107; padding: 1px 4px; border-radius: 3px; font-weight: bold;">${timerDisplay}</span>` : ''}
-                                    ${isTimer && !t.completed ? `<button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size: 14px; padding: 0; background: none; border: none; cursor: pointer;">🔄</button>` : ''}
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span class="floating-task-counter" style="font-size: 11px;">(${currentFloatingIndex + 1}/${floatingTasks.length})</span>
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: inherit; opacity: 0.8; margin-top: 2px;">
+                                <div style="display: flex; align-items: center; gap: 6px; margin-left: auto;">
+                                    <span class="floating-task-counter" style="font-size: 11px;">${counterText}</span>
                                     <button onclick="toggleShowAllInFloating()" style="background: ${!showAllInFloating ? '#007bff' : '#eee'}; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: ${!showAllInFloating ? 'white' : '#333'}; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${!showAllInFloating ? getTranslation('btn_toggle_pending_title') : getTranslation('btn_toggle_all_title')}">👁️</button>
+                                    ${displayTaskCount >= 2 ? `
+                                        <button onclick="prevTask()" style="background: #eee; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: #333; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_prev_task_title')}">△</button>
+                                    ` : ''}
                                     <button onclick="nextTask()" style="background: #eee; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: #333; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_next_task_title')}">▽</button>
                                     <button onclick="if(typeof Android !== 'undefined' && Android.openMainActivity) Android.openMainActivity(); else setViewMode('manager');" style="background: #007bff; border: none; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_full_screen_title')}">🏠</button>
                                 </div>
@@ -3210,6 +3292,8 @@
             const eX = localStorage.getItem('floatExpandedX') || '100';
             const eY = localStorage.getItem('floatExpandedY') || '100';
             const showClose = localStorage.getItem('showCloseButtonExpanded') === 'true';
+            const dCount = localStorage.getItem('displayTaskCount') || '1';
+            const sCount = localStorage.getItem('scrollTaskCount') || '1';
 
             document.getElementById('floatWidth').value = eWidth;
             document.getElementById('floatHeight').value = eHeight;
@@ -3219,6 +3303,8 @@
             document.getElementById('floatExpandedX').value = eX;
             document.getElementById('floatExpandedY').value = eY;
             document.getElementById('showCloseButtonExpanded').checked = showClose;
+            document.getElementById('displayTaskCount').value = dCount;
+            document.getElementById('scrollTaskCount').value = sCount;
             toggleFixedPositionInputs('expanded');
 
             setupDraggableLabel('labelFloatCollapsedX', 'floatCollapsedX', 'collapsed');
@@ -3267,6 +3353,31 @@
             };
         }
 
+        function adjustDisplayTaskCount(delta) {
+            const input = document.getElementById('displayTaskCount');
+            let val = parseInt(input.value) || 1;
+            val = Math.max(1, Math.min(10, val + delta));
+            input.value = val;
+
+            const scrollInput = document.getElementById('scrollTaskCount');
+            scrollInput.max = val;
+            if (parseInt(scrollInput.value) > val) {
+                scrollInput.value = val;
+            }
+
+            saveFloatingSettings('expanded');
+        }
+
+        function adjustScrollTaskCount(delta) {
+            const input = document.getElementById('scrollTaskCount');
+            const displayInput = document.getElementById('displayTaskCount');
+            let dVal = parseInt(displayInput.value) || 1;
+            let val = parseInt(input.value) || 1;
+            val = Math.max(1, Math.min(dVal, val + delta));
+            input.value = val;
+            saveFloatingSettings('expanded');
+        }
+
         function saveFloatingSettings(targetMode) {
             // 縮小モード
             const cScale = document.getElementById('floatCollapsedScale').value;
@@ -3290,6 +3401,15 @@
             const eY = document.getElementById('floatExpandedY').value;
             const showClose = document.getElementById('showCloseButtonExpanded').checked;
 
+            const dInput = document.getElementById('displayTaskCount');
+            const sInput = document.getElementById('scrollTaskCount');
+            let dCount = Math.max(1, Math.min(10, parseInt(dInput.value) || 1));
+            let sCount = Math.max(1, Math.min(dCount, parseInt(sInput.value) || 1));
+
+            dInput.value = dCount;
+            sInput.value = sCount;
+            sInput.max = dCount;
+
             localStorage.setItem('floatWidth', width);
             localStorage.setItem('floatHeight', height);
             localStorage.setItem('floatExpandedScale', eScale);
@@ -3297,13 +3417,18 @@
             localStorage.setItem('floatExpandedX', eX);
             localStorage.setItem('floatExpandedY', eY);
             localStorage.setItem('showCloseButtonExpanded', showClose);
+            localStorage.setItem('displayTaskCount', dCount);
+            displayTaskCount = dCount;
+            localStorage.setItem('scrollTaskCount', sCount);
+            scrollTaskCount = sCount;
 
             if (typeof Android !== 'undefined') {
                 if (Android.updateFloatingSettingsExtended) {
                     Android.updateFloatingSettingsExtended(
                         parseInt(cX), parseInt(cY), parseFloat(cScale), showEmpty, moveC,
                         parseInt(eX), parseInt(eY), parseFloat(eScale), moveE,
-                        parseInt(width), parseInt(height), showClose
+                        parseInt(width), parseInt(height), showClose,
+                        dCount, sCount
                     );
                 } else if (Android.updateFloatingSettings) {
                     // 互換性のため古いメソッドも呼ぶ（必要なら）
@@ -3364,6 +3489,8 @@
             document.getElementById('floatExpandedX').value = defaultX;
             document.getElementById('floatExpandedY').value = defaultY;
             document.getElementById('showCloseButtonExpanded').checked = false;
+            document.getElementById('displayTaskCount').value = 1;
+            document.getElementById('scrollTaskCount').value = 1;
 
             saveFloatingSettings();
         }
@@ -3590,6 +3717,8 @@
                 floatExpandedX: localStorage.getItem('floatExpandedX'),
                 floatExpandedY: localStorage.getItem('floatExpandedY'),
                 showCloseButtonExpanded: localStorage.getItem('showCloseButtonExpanded') === 'true',
+                displayTaskCount: localStorage.getItem('displayTaskCount'),
+                scrollTaskCount: localStorage.getItem('scrollTaskCount'),
                 recheckInterval: localStorage.getItem('recheckInterval'),
                 bgThresholds: bgThresholds
             };
@@ -3801,7 +3930,7 @@
                             'floatX', 'floatY', 'floatWidth', 'floatHeight', 'floatScale',
                             'floatCollapsedScale', 'floatExpandedScale',
                             'floatCollapsedX', 'floatCollapsedY', 'floatExpandedX', 'floatExpandedY',
-                            'recheckInterval'
+                            'displayTaskCount', 'scrollTaskCount', 'recheckInterval'
                         ];
                         const boolKeys = [
                             'showWhenEmpty', 'alwaysMoveCollapsed', 'alwaysMoveExpanded', 'showCloseButtonExpanded'

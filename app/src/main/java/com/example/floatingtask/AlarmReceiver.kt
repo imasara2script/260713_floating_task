@@ -11,6 +11,9 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -39,7 +42,13 @@ class AlarmReceiver : BroadcastReceiver() {
         } else if (intent.action == "ACTION_TIMER_EXPIRED") {
             val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: context.getString(R.string.timer_expired)
             val melody = intent.getStringExtra("EXTRA_MELODY") ?: "default"
-            showNotification(context, context.getString(R.string.timer_expired), taskText, melody)
+
+            // 完了日時を取得
+            val sdf = SimpleDateFormat("MM/dd (E) HH:mm", Locale.getDefault())
+            val timestamp = sdf.format(Date())
+            val messageWithTime = taskText + context.getString(R.string.timer_completion_time_format, timestamp)
+
+            showNotification(context, context.getString(R.string.timer_expired), messageWithTime, melody)
             
             if (Settings.canDrawOverlays(context)) {
                 val serviceIntent = Intent(context, FloatingWindowService::class.java).apply {

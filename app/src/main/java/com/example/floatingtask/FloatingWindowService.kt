@@ -147,10 +147,12 @@ class FloatingWindowService : Service() {
         } else {
             prefs.getFloat("floatCollapsedScale", 1.0f)
         }
+        val displayTaskCount = prefs.getInt("displayTaskCount", 1)
+        val scrollTaskCount = prefs.getInt("scrollTaskCount", 1)
         
         // WebView内にもリロードを促す（スケール変更などを反映させるため）
         val webView: WebView = view.findViewById(R.id.floatingWebView)
-        webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded);", null)
+        webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount);", null)
     }
 
     private fun refreshWebView() {
