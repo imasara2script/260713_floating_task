@@ -22,4 +22,9 @@
     <string name="label_display_task_count">表示するタスク数</string>
     <string name="label_scroll_task_count">「△」「▽」ボタン押下時の移動量</string>
     <string name="btn_prev_task_title">前のタスク</string>
+    <string name="unit_hour">時間</string>
+    <string name="unit_min">分</string>
+    <string name="unit_sec">秒</string>
+    <string name="timer_duration_title">経過時間を設定</string>
+    <string name="btn_done">完了</string>
 </resources>

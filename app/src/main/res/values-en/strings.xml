@@ -22,4 +22,9 @@
     <string name="label_display_task_count">Number of tasks to display</string>
     <string name="label_scroll_task_count">Scroll amount for △/▽ buttons</string>
     <string name="btn_prev_task_title">Previous Task</string>
+    <string name="unit_hour">hr</string>
+    <string name="unit_min">min</string>
+    <string name="unit_sec">sec</string>
+    <string name="timer_duration_title">Set Duration</string>
+    <string name="btn_done">Done</string>
 </resources>

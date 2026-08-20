@@ -19,6 +19,10 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.text.Editable
+import android.text.TextWatcher
+import android.widget.EditText
+import java.util.Locale
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.JavascriptInterface
@@ -478,6 +482,46 @@ class FloatingWindowService : Service() {
      * 明示的なクラスとして定義します。
      */
     private inner class FloatingWebAppInterface {
+        @JavascriptInterface
+        fun showDurationPicker(h: String, m: String, s: String) {
+            val handler = android.os.Handler(android.os.Looper.getMainLooper())
+            handler.post {
+                val inflater = LayoutInflater.from(this@FloatingWindowService)
+                val view = inflater.inflate(R.layout.dialog_duration_picker, null)
+                val editH = view.findViewById<EditText>(R.id.editHours)
+                val editM = view.findViewById<EditText>(R.id.editMinutes)
+                val editS = view.findViewById<EditText>(R.id.editSeconds)
+
+                editH.setText(h)
+                editM.setText(m)
+                editS.setText(s)
+
+                val dialog = androidx.appcompat.app.AlertDialog.Builder(this@FloatingWindowService)
+                    .setTitle(R.string.timer_duration_title)
+                    .setView(view)
+                    .setPositiveButton(R.string.btn_done) { dialog, which ->
+                        val resH = editH.text.toString()
+                        val resM = editM.text.toString()
+                        val resS = editS.text.toString()
+                        
+                        val fView = floatingView ?: return@setPositiveButton
+                        val webView: android.webkit.WebView = fView.findViewById(R.id.floatingWebView)
+                        webView.evaluateJavascript("onDurationSelected('$resH', '$resM', '$resS');", null)
+                    }
+                    .setNegativeButton(R.string.cancel, null)
+                    .setOnDismissListener {
+                        val fView = floatingView ?: return@setOnDismissListener
+                        val webView: android.webkit.WebView = fView.findViewById(R.id.floatingWebView)
+                        webView.evaluateJavascript("onDurationPickerDismissed();", null)
+                    }
+                    .create()
+                
+                // サービスから表示するためにオーバーレイタイプを指定
+                dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
+                dialog.show()
+            }
+        }
+
         @JavascriptInterface
         fun updateFloatingColors(bgColor: String, textColor: String) {
             val handler = Handler(Looper.getMainLooper())

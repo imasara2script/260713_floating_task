@@ -834,14 +834,13 @@
                 </div>
                 <div class="timer-group" style="margin-bottom: 12px;">
                     <label for="timerUnit" style="color: #666; font-size: 14px;" data-i18n="label_timer">タイマー：</label>
-                    <select id="timerUnit" onchange="toggleTimerInput()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                    <select id="timerUnit" onchange="toggleTimerInput(true)" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
                         <option value="none" data-i18n="timer_none">無し</option>
-                        <option value="sec" data-i18n="timer_sec">秒後</option>
-                        <option value="min" data-i18n="timer_min">分後</option>
-                        <option value="hour" data-i18n="timer_hour">時間後</option>
+                        <option value="duration" data-i18n="timer_duration">経過時間</option>
                         <option value="at" data-i18n="timer_at">時刻</option>
                     </select>
                     <input type="number" id="timerValue" class="timer-input" placeholder="数" min="1" style="display: none; padding: 6px; width: 60px; font-size: 14px;" aria-label="時間">
+                    <button id="durationBtn" class="btn btn-secondary" style="display: none; padding: 6px 12px; font-size: 14px;" onclick="requestDurationPicker()" data-i18n="btn_set_duration">時間を設定</button>
                     <input type="time" id="timeValue" style="display: none; padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;" aria-label="時刻">
                 </div>
                 <div id="melodyGroup" style="margin-bottom: 12px; display: none;">
@@ -992,9 +991,7 @@
                 placeholder_task_name: "タスク名を入力...",
                 label_timer: "タイマー：",
                 timer_none: "無し",
-                timer_sec: "秒後",
-                timer_min: "分後",
-                timer_hour: "時間後",
+                timer_duration: "経過時間",
                 timer_at: "時刻",
                 label_melody: "メロディ：",
                 melody_none: "なし",
@@ -1003,7 +1000,11 @@
                 melody_chime: "チャイム",
                 melody_custom: "端末内から選択...",
                 label_reminder_notifications: "リマインド通知：",
+                btn_set_duration: "時間を設定",
                 btn_add_reminder: "＋通知を追加",
+                unit_hour: "時間",
+                unit_min: "分",
+                unit_sec: "秒",
                 placeholder_reminder_msg: "追加メッセージ(任意)",
                 btn_test_notification: "テスト",
                 label_note: "補足文章：",
@@ -1186,7 +1187,7 @@
                 timer_none: "None",
                 timer_sec: "sec later",
                 timer_min: "min later",
-                timer_hour: "hour later",
+                timer_duration: "Duration",
                 timer_at: "at time",
                 label_melody: "Melody:",
                 melody_none: "None",
@@ -1195,7 +1196,11 @@
                 melody_chime: "Chime",
                 melody_custom: "Select from device...",
                 label_reminder_notifications: "Remind Notifications:",
+                btn_set_duration: "Set Duration",
                 btn_add_reminder: "+ Add Notification",
+                unit_hour: "h",
+                unit_min: "m",
+                unit_sec: "s",
                 placeholder_reminder_msg: "Extra message (optional)",
                 btn_test_notification: "Test",
                 label_note: "Notes:",
@@ -2114,15 +2119,18 @@
                         document.getElementById('timerUnit').value = 'at';
                         document.getElementById('timeValue').value = task.targetTime;
                         document.getElementById('timerValue').value = '';
-                    } else if (task.durationMs >= 3600000 && task.durationMs % 3600000 === 0) {
-                        document.getElementById('timerUnit').value = 'hour';
-                        document.getElementById('timerValue').value = task.durationMs / 3600000;
-                    } else if (task.durationMs >= 60000 && task.durationMs % 60000 === 0) {
-                        document.getElementById('timerUnit').value = 'min';
-                        document.getElementById('timerValue').value = task.durationMs / 60000;
+                    } else if (task.durationParts) {
+                        document.getElementById('timerUnit').value = 'duration';
+                        currentDuration = { ...task.durationParts };
+                        onDurationSelected(currentDuration.h, currentDuration.m, currentDuration.s);
                     } else {
-                        document.getElementById('timerUnit').value = 'sec';
-                        document.getElementById('timerValue').value = task.durationMs / 1000;
+                        // 経過時間の場合は常に duration モードとして読み込む (互換性用)
+                        document.getElementById('timerUnit').value = 'duration';
+                        const totalSec = Math.floor(task.durationMs / 1000);
+                        const h = Math.floor(totalSec / 3600);
+                        const m = Math.floor((totalSec % 3600) / 60);
+                        const s = totalSec % 60;
+                        onDurationSelected(h, m, s);
                     }
 
                     const melody = task.melody || 'default';
@@ -2161,6 +2169,8 @@
                 document.getElementById('timerValue').value = '';
                 document.getElementById('timerUnit').value = 'none';
                 document.getElementById('melodySelect').value = 'default';
+                currentDuration = { h: "0", m: "0", s: "0" };
+                document.getElementById('durationBtn').textContent = getTranslation('btn_set_duration');
                 currentTaskReminders = [];
                 renderReminderList();
                 if (historyBtn) historyBtn.style.display = 'none';
@@ -2274,24 +2284,67 @@
             });
         }
 
-        function toggleTimerInput() {
+        function toggleTimerInput(isManualChange = false) {
             const unit = document.getElementById('timerUnit').value;
             const input = document.getElementById('timerValue');
+            const durationBtn = document.getElementById('durationBtn');
             const timeInput = document.getElementById('timeValue');
             const melodyGroup = document.getElementById('melodyGroup');
             const reminderGroup = document.getElementById('reminderGroup');
             const isVisible = (unit !== 'none');
 
-            input.style.display = (isVisible && unit !== 'at') ? 'inline-block' : 'none';
+            input.style.display = 'none';
+            durationBtn.style.display = (unit === 'duration') ? 'inline-block' : 'none';
             timeInput.style.display = (unit === 'at') ? 'inline-block' : 'none';
             melodyGroup.style.display = isVisible ? 'block' : 'none';
             reminderGroup.style.display = !isVisible ? 'block' : 'none';
 
+            if (!isManualChange) return;
+
             if (unit === 'at') {
                 setTimeout(() => timeInput.focus(), 50);
-            } else if (isVisible) {
-                setTimeout(() => input.focus(), 50);
+            } else if (unit === 'duration') {
+                // 手動変更時のみ自動的にダイアログを開く
+                requestDurationPicker();
             }
+        }
+
+        let currentDuration = { h: "0", m: "0", s: "0" };
+        let isDurationPickerRequested = false;
+        function requestDurationPicker() {
+            if (isDurationPickerRequested) return;
+            isDurationPickerRequested = true;
+
+            if (typeof Android !== 'undefined') {
+                Android.showDurationPicker(currentDuration.h.toString(), currentDuration.m.toString(), currentDuration.s.toString());
+            } else {
+                // ブラウザデバッグ用
+                const h = prompt("時", currentDuration.h);
+                const m = prompt("分", currentDuration.m);
+                const s = prompt("秒", currentDuration.s);
+                if (h !== null && m !== null && s !== null) {
+                    onDurationSelected(h, m, s);
+                }
+                onDurationPickerDismissed();
+            }
+        }
+
+        function onDurationPickerDismissed() {
+            isDurationPickerRequested = false;
+        }
+
+        function onDurationSelected(h, m, s) {
+            currentDuration = { h: h.toString(), m: m.toString(), s: s.toString() };
+            const btn = document.getElementById('durationBtn');
+            let text = "";
+            const hNum = parseFloat(h) || 0;
+            const mNum = parseFloat(m) || 0;
+            const sNum = parseFloat(s) || 0;
+
+            if (hNum > 0) text += h + getTranslation('unit_hour');
+            if (mNum > 0 || hNum > 0) text += m + getTranslation('unit_min');
+            text += s + getTranslation('unit_sec');
+            btn.textContent = text;
         }
 
         function addTask() {
@@ -2352,23 +2405,19 @@
                     }
                     durationMs = target.getTime() - now.getTime();
                     startTime = now.getTime();
-                } else {
-                    const value = parseInt(valInput.value);
-                    if (!isNaN(value) && value > 0) {
-                        const multiplier = unitSelect.value === 'hour' ? 3600000 : (unitSelect.value === 'min' ? 60000 : 1000);
-                        durationMs = value * multiplier;
-                    } else {
-                        showModal(getTranslation('msg_input_timer_val'), {
-                            hideCancel: true,
-                            onConfirm: () => {
-                                valInput.focus();
-                            }
-                        });
-                        return;
-                    }
+                } else if (unitSelect.value === 'duration') {
+                    durationMs = (parseFloat(currentDuration.h) * 3600 + parseFloat(currentDuration.m) * 60 + parseFloat(currentDuration.s)) * 1000;
+                if (durationMs <= 0) {
+                    showModal(getTranslation('msg_input_timer_val'), {
+                        hideCancel: true,
+                        onConfirm: () => requestDurationPicker()
+                    });
+                    return;
                 }
+                targetTask.durationParts = { ...currentDuration };
+            }
 
-                let melody = melodySelect.value;
+            let melody = melodySelect.value;
                 let melodyName = null;
 
                 if (melody === 'custom' && selectedCustomUri) {

@@ -39,6 +39,11 @@ import org.json.JSONObject
 import android.util.Log
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.LayoutInflater
+import android.widget.EditText
+import java.util.Locale
 import androidx.core.app.NotificationCompat
 import java.security.MessageDigest
 
@@ -501,6 +506,39 @@ class MainActivity : AppCompatActivity() {
                 val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
                 intent.data = "package:${mContext.packageName}".toUri()
                 mContext.startActivity(intent)
+            }
+        }
+
+        @JavascriptInterface
+        fun showDurationPicker(h: String, m: String, s: String) {
+            runOnUiThread {
+                val inflater = LayoutInflater.from(this@MainActivity)
+                val view = inflater.inflate(R.layout.dialog_duration_picker, null)
+                val editH = view.findViewById<EditText>(R.id.editHours)
+                val editM = view.findViewById<EditText>(R.id.editMinutes)
+                val editS = view.findViewById<EditText>(R.id.editSeconds)
+
+                editH.setText(h)
+                editM.setText(m)
+                editS.setText(s)
+
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle(R.string.timer_duration_title)
+                    .setView(view)
+                    .setPositiveButton(R.string.btn_done) { dialog, which ->
+                        val resH = editH.text.toString()
+                        val resM = editM.text.toString()
+                        val resS = editS.text.toString()
+                        
+                        val webView: WebView = findViewById(R.id.webView)
+                        webView.evaluateJavascript("onDurationSelected('$resH', '$resM', '$resS');", null)
+                    }
+                    .setNegativeButton(R.string.cancel, null)
+                    .setOnDismissListener {
+                        val webView: WebView = findViewById(R.id.webView)
+                        webView.evaluateJavascript("onDurationPickerDismissed();", null)
+                    }
+                    .show()
             }
         }
 

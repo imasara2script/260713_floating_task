@@ -1,5 +1,12 @@
-- [x] リソースの更新 (`strings.xml`)
-- [x] WebView UI とロジックの更新 (`index.html`)
-- [x] `MainActivity.kt` の JavaScript ブリッジの更新
-- [x] `FloatingWindowService.kt` の設定反映処理の更新
-- [x] 動作確認
+- [x] `dialog_duration_picker.xml` の作成
+- [x] `index.html` に「経過時間」の選択肢と翻訳を追加
+- [x] `MainActivity.kt` に `showDurationPicker` と繰り下げロジックを実装
+- [x] `FloatingWindowService.kt` に `showDurationPicker` を実装
+- [x] `index.html` の `addTask` 等を修正し、時分秒の合算に対応
+- [x] 動作確認（小数点入力の挙動など）
+- [x] タスク選択時にダイアログが勝手に開くバグを修正
+- [x] 小数点入力の自動反映を廃止し、入力をそのまま保持するように変更
+- [x] タイマー設定ダイアログの多重表示防止を実装
+    - [x] `MainActivity.kt` で `setOnDismissListener` を追加
+    - [x] `FloatingWindowService.kt` で `setOnDismissListener` を追加
+    - [x] `index.html` に表示フラグ管理とリセット関数を追加
