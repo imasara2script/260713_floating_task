@@ -30,6 +30,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
+import android.widget.FrameLayout
 import androidx.core.app.NotificationCompat
 import kotlin.math.hypot
 
@@ -267,13 +268,23 @@ class FloatingWindowService : Service() {
         val closeButton: Button = view.findViewById(R.id.closeButton)
         closeButton.visibility = if (showClose) View.VISIBLE else View.GONE
 
-        // ドラッグハンドルの設定（展開時は左側の「Floating task」部分のみドラッグ可能にする）
+        // ドラッグハンドルの設定
         val dragHandle: View = view.findViewById(R.id.dragHandle)
-        val dragHandleParams = dragHandle.layoutParams
+        val dragHandleParams = dragHandle.layoutParams as FrameLayout.LayoutParams
         if (expanded) {
-            dragHandleParams.width = (50 * density * scale).toInt()
+            // 展開時は上部のヘッダーの左側（カウンタとボタン以外のエリア）をドラッグ可能にする
+            val floatWidth = prefs.getInt("floatWidth", (300 * density).toInt())
+            val buttonsReservedWidthDp = 210 + 8 + (if (showClose) 40 else 8)
+            // ピクセル単位の幅から、ボタンエリア（dp * density）を引いて、スケールをかける
+            val reservedPx = buttonsReservedWidthDp * density
+            dragHandleParams.width = ((floatWidth - reservedPx) * scale).toInt().coerceAtLeast(0)
+            dragHandleParams.height = (32 * density * scale).toInt()
+            dragHandleParams.gravity = Gravity.TOP or Gravity.START
         } else {
+            // 縮小時は全体をドラッグ可能にする
             dragHandleParams.width = ViewGroup.LayoutParams.MATCH_PARENT
+            dragHandleParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+            dragHandleParams.gravity = Gravity.NO_GRAVITY
         }
         dragHandle.layoutParams = dragHandleParams
         dragHandle.visibility = View.VISIBLE

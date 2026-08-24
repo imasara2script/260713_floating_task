@@ -1,12 +1,13 @@
-- [x] `dialog_duration_picker.xml` の作成
-- [x] `index.html` に「経過時間」の選択肢と翻訳を追加
-- [x] `MainActivity.kt` に `showDurationPicker` と繰り下げロジックを実装
-- [x] `FloatingWindowService.kt` に `showDurationPicker` を実装
-- [x] `index.html` の `addTask` 等を修正し、時分秒の合算に対応
-- [x] 動作確認（小数点入力の挙動など）
-- [x] タスク選択時にダイアログが勝手に開くバグを修正
-- [x] 小数点入力の自動反映を廃止し、入力をそのまま保持するように変更
-- [x] タイマー設定ダイアログの多重表示防止を実装
-    - [x] `MainActivity.kt` で `setOnDismissListener` を追加
-    - [x] `FloatingWindowService.kt` で `setOnDismissListener` を追加
-    - [x] `index.html` に表示フラグ管理とリセット関数を追加
+- [x] 展開表示モードのレイアウト変更 (HTML/CSS)
+    - [x] `#floating-expanded` の構造見直し
+    - [x] ヘッダー行 (ラベル + コントロール) の追加
+    - [x] タスク表示エリアの調整
+- [x] `render()` 関数の修正 (JavaScript)
+    - [x] 新しいレイアウト構造に合わせた HTML 生成ロジックへの変更
+    - [x] 空の状態の時の表示の調整
+- [x] `FloatingWindowService.kt` のドラッグハンドル設定の修正
+    - [x] ヘッダー部分をドラッグ可能にするための調整
+- [x] ドラッグハンドルの視覚的強化
+    - [x] `index.html` のラベルをアイコンと境界線に変更
+    - [x] `FloatingWindowService.kt` のドラッグ範囲をアイコン幅に調整
+- [x] コードの検証 (構文チェック)
