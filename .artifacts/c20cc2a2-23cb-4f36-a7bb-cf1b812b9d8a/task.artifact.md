@@ -1,13 +1,8 @@
-- [x] 展開表示モードのレイアウト変更 (HTML/CSS)
-    - [x] `#floating-expanded` の構造見直し
-    - [x] ヘッダー行 (ラベル + コントロール) の追加
-    - [x] タスク表示エリアの調整
-- [x] `render()` 関数の修正 (JavaScript)
-    - [x] 新しいレイアウト構造に合わせた HTML 生成ロジックへの変更
-    - [x] 空の状態の時の表示の調整
-- [x] `FloatingWindowService.kt` のドラッグハンドル設定の修正
-    - [x] ヘッダー部分をドラッグ可能にするための調整
-- [x] ドラッグハンドルの視覚的強化
-    - [x] `index.html` のラベルをアイコンと境界線に変更
-    - [x] `FloatingWindowService.kt` のドラッグ範囲をアイコン幅に調整
-- [x] コードの検証 (構文チェック)
+# タスク: 縮小表示モードへのドラッグ移動許可設定の追加
+
+- [x] `index.html` の設定画面（縮小モード）にチェックボックスを追加
+- [x] `index.html` の JavaScript ロジックを修正 (保存、読み込み、同期、バックアップ)
+- [x] `MainActivity.kt` の `updateFloatingSettingsExtended` を修正
+- [x] `FloatingWindowService.kt` の `updateWindowSize` と `applyFloatingSettings` を修正
+- [x] `FloatingWindowService.kt` のドラッグ制限ロジックを修正 (縮小モード対応)
+- [x] 動作確認用のビルド

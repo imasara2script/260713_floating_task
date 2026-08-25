@@ -154,10 +154,14 @@ class FloatingWindowService : Service() {
         }
         val displayTaskCount = prefs.getInt("displayTaskCount", 1)
         val scrollTaskCount = prefs.getInt("scrollTaskCount", 1)
+        val showCheckedToggle = prefs.getBoolean("showCheckedToggle", false)
+        val scrollButtonType = prefs.getString("scrollButtonType", "both") ?: "both"
+        val allowDrag = prefs.getBoolean("allowDrag", true)
+        val allowDragCollapsed = prefs.getBoolean("allowDragCollapsed", true)
         
         // WebView内にもリロードを促す（スケール変更などを反映させるため）
         val webView: WebView = view.findViewById(R.id.floatingWebView)
-        webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount);", null)
+        webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount, $showCheckedToggle, '$scrollButtonType', $allowDrag, $allowDragCollapsed);", null)
     }
 
     private fun refreshWebView() {
@@ -274,9 +278,32 @@ class FloatingWindowService : Service() {
         if (expanded) {
             // 展開時は上部のヘッダーの左側（カウンタとボタン以外のエリア）をドラッグ可能にする
             val floatWidth = prefs.getInt("floatWidth", (300 * density).toInt())
-            val buttonsReservedWidthDp = 210 + 8 + (if (showClose) 40 else 8)
+            val displayTaskCount = prefs.getInt("displayTaskCount", 1)
+            val showCheckedToggle = prefs.getBoolean("showCheckedToggle", false)
+            
+            // WebView側 (index.html) の計算と一致させる
+            // let buttonsWidth = 42 + 8; // Home + Padding
+            // if (showCheckedToggle) buttonsWidth += 42;
+            // if (scrollButtonType === 'both') buttonsWidth += 84;
+            // else if (scrollButtonType === 'down' || scrollButtonType === 'up') buttonsWidth += 42;
+            // const counterWidth = (displayTaskCount > 1) ? 50 : 35;
+            // buttonsWidth += counterWidth;
+            
+            val scrollButtonType = prefs.getString("scrollButtonType", "both") ?: "both"
+            var buttonsReservedWidthDp = 42 + 8 // Home + Padding
+            if (showCheckedToggle) buttonsReservedWidthDp += 42
+            when (scrollButtonType) {
+                "both" -> buttonsReservedWidthDp += 84
+                "down", "up" -> buttonsReservedWidthDp += 42
+            }
+            val counterWidth = if (displayTaskCount > 1) 50 else 35
+            buttonsReservedWidthDp += counterWidth
+            
+            // 閉じるボタンがある場合
+            val extraReserved = if (showClose) 40 else 8
+            
             // ピクセル単位の幅から、ボタンエリア（dp * density）を引いて、スケールをかける
-            val reservedPx = buttonsReservedWidthDp * density
+            val reservedPx = (buttonsReservedWidthDp + extraReserved) * density
             dragHandleParams.width = ((floatWidth - reservedPx) * scale).toInt().coerceAtLeast(0)
             dragHandleParams.height = (32 * density * scale).toInt()
             dragHandleParams.gravity = Gravity.TOP or Gravity.START
@@ -393,12 +420,19 @@ class FloatingWindowService : Service() {
                     val dx = event.rawX - initialTouchX
                     val dy = event.rawY - initialTouchY
                     
+                    val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+                    val allowDrag = if (isExpanded) prefs.getBoolean("allowDrag", true) else prefs.getBoolean("allowDragCollapsed", true)
+
                     if (!isActuallyDragging && (hypot(dx.toDouble(), dy.toDouble()) > touchSlop)) {
-                        isActuallyDragging = true
-                        webView.evaluateJavascript("setIsDragging(true);", null)
+                        if (allowDrag) {
+                            isActuallyDragging = true
+                            webView.evaluateJavascript("setIsDragging(true);", null)
+                        } else {
+                            // ドラッグ禁止時は、微小移動でもドラッグ中とみなさないことでタップ操作を維持する
+                        }
                     }
 
-                    if (isActuallyDragging) {
+                    if (isActuallyDragging && allowDrag) {
                         val newX = initialX + dx.toInt()
                         val newY = initialY + dy.toInt()
 

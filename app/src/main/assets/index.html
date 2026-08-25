@@ -645,6 +645,13 @@
                             </label>
                         </div>
 
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="allowDragCollapsed" onchange="saveFloatingSettings('collapsed')">
+                                <span data-i18n="label_allow_drag">ドラッグ移動を許可する</span>
+                            </label>
+                        </div>
+
                         <div id="collapsedPositionInputs" style="display: none; gap: 8px; margin-bottom: 12px;">
                             <div style="flex: 1;">
                                 <label for="floatCollapsedX" id="labelFloatCollapsedX" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_x">位置 (X) (ドラッグ):</label>
@@ -702,6 +709,30 @@
                             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                                 <input type="checkbox" id="showCloseButtonExpanded" onchange="saveFloatingSettings('expanded')">
                                 <span data-i18n="label_show_close_button_expanded">フローティングウィンドウを一時的に閉じるボタンを表示</span>
+                            </label>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="showCheckedToggle" onchange="saveFloatingSettings('expanded')">
+                                <span data-i18n="label_show_checked_toggle">チェック済みタスクの表示切替ボタンを表示</span>
+                            </label>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label for="scrollButtonType" style="display: block; margin-bottom: 4px;" data-i18n="label_scroll_button_type">スクロールボタンの種類:</label>
+                            <select id="scrollButtonType" onchange="saveFloatingSettings('expanded')" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white;">
+                                <option value="both" data-i18n="scroll_btn_both">△▽</option>
+                                <option value="down" data-i18n="scroll_btn_down">▽</option>
+                                <option value="up" data-i18n="scroll_btn_up">△</option>
+                                <option value="hidden" data-i18n="scroll_btn_hidden">非表示</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="allowDrag" onchange="saveFloatingSettings('expanded')">
+                                <span data-i18n="label_allow_drag">ドラッグ移動を許可する</span>
                             </label>
                         </div>
 
@@ -1115,6 +1146,14 @@
                 label_show_close_button_expanded: "フローティングウィンドウを一時的に閉じるボタンを表示",
                 label_display_task_count: "表示するタスク数",
                 label_scroll_task_count: "「△」「▽」ボタン押下時の移動量",
+                label_show_checked_toggle: "チェック済みタスクの表示切替ボタンを表示",
+                label_scroll_button_type: "スクロールボタンの種類",
+                scroll_btn_both: "△▽",
+                scroll_btn_down: "▽",
+                scroll_btn_up: "△",
+                scroll_btn_hidden: "非表示",
+                label_allow_drag: "ドラッグ移動を許可する",
+                label_collapse: "縮小",
                 btn_prev_task_title: "前のタスク"
             },
             en: {
@@ -1311,6 +1350,14 @@
                 label_show_close_button_expanded: "Show temporary close button",
                 label_display_task_count: "Number of tasks to display",
                 label_scroll_task_count: "Scroll amount for △/▽ buttons",
+                label_show_checked_toggle: "Show 'Toggle Checked Tasks' button",
+                label_scroll_button_type: "Scroll Button Type",
+                scroll_btn_both: "△▽",
+                scroll_btn_down: "▽",
+                scroll_btn_up: "△",
+                scroll_btn_hidden: "Hidden",
+                label_allow_drag: "Allow drag movement",
+                label_collapse: "Collapse",
                 btn_prev_task_title: "Previous Task"
             }
         };
@@ -1494,7 +1541,7 @@
         }
 
         // ネイティブ側から設定変更を通知してもらうための関数
-        function applyFloatingSettings(scale, expanded, dCount, sCount) {
+        function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragCollapsed) {
             if (mode === 'floating') {
                 updateScale(scale);
                 if (isFloatingExpanded !== expanded) {
@@ -1507,6 +1554,18 @@
                 if (sCount !== undefined) {
                     scrollTaskCount = parseInt(sCount);
                     localStorage.setItem('scrollTaskCount', sCount);
+                }
+                if (showCheckedToggle !== undefined) {
+                    localStorage.setItem('showCheckedToggle', showCheckedToggle);
+                }
+                if (scrollButtonType !== undefined) {
+                    localStorage.setItem('scrollButtonType', scrollButtonType);
+                }
+                if (allowDrag !== undefined) {
+                    localStorage.setItem('allowDrag', allowDrag);
+                }
+                if (allowDragCollapsed !== undefined) {
+                    localStorage.setItem('allowDragCollapsed', allowDragCollapsed);
                 }
                 refreshData();
             }
@@ -3155,16 +3214,23 @@
                 }
 
                 if (floatingTasks.length === 0) {
+                    const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
+                    const buttonsWidth = 36 + 6 + (showCheckedToggle ? 42 : 0) + 8; // Home + Gap + Toggle + Padding
+
                     floatingContent.innerHTML = `
                         <div style="display: flex; flex-direction: column; width: 100%; height: 100%; box-sizing: border-box;">
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: inherit; opacity: 0.8; padding: 4px 8px 4px 0; border-bottom: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); flex-shrink: 0;">
                                 <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 24px; border-right: 1px solid rgba(0,0,0,0.2); background: rgba(0,0,0,0.05); flex-shrink: 0; margin-right: 8px;">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="opacity: 0.7;">
-                                        <path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/>
-                                    </svg>
+                                    ${localStorage.getItem('allowDrag') !== 'false' ? `
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="opacity: 0.7;">
+                                            <path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/>
+                                        </svg>
+                                    ` : `<span style="font-size: 10px; font-weight: bold; opacity: 0.7;">${getTranslation('label_collapse')}</span>`}
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 6px; width: 210px; justify-content: flex-end; flex-shrink: 0;">
-                                    <button onclick="toggleShowAllInFloating()" style="background: ${!showAllInFloating ? '#007bff' : '#eee'}; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: ${!showAllInFloating ? 'white' : '#333'}; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${!showAllInFloating ? getTranslation('btn_toggle_pending_title') : getTranslation('btn_toggle_all_title')}">👁️</button>
+                                <div style="display: flex; align-items: center; gap: 6px; width: ${buttonsWidth}px; justify-content: flex-end; flex-shrink: 0;">
+                                    ${showCheckedToggle ? `
+                                        <button onclick="toggleShowAllInFloating()" style="background: ${!showAllInFloating ? '#007bff' : '#eee'}; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: ${!showAllInFloating ? 'white' : '#333'}; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${!showAllInFloating ? getTranslation('btn_toggle_pending_title') : getTranslation('btn_toggle_all_title')}">👁️</button>
+                                    ` : ''}
                                     <button onclick="if(typeof Android !== 'undefined' && Android.openMainActivity) Android.openMainActivity(); else setViewMode('manager');" style="background: #007bff; border: none; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_full_screen_title')}">🏠</button>
                                 </div>
                             </div>
@@ -3180,7 +3246,18 @@
                     }
 
                     const showClose = localStorage.getItem('showCloseButtonExpanded') === 'true';
+                    const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
+                    const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
                     const headerPaddingRight = showClose ? '40px' : '8px';
+
+                    let buttonsWidth = 42 + 8; // Home + Padding
+                    if (showCheckedToggle) buttonsWidth += 42;
+                    if (scrollButtonType === 'both') buttonsWidth += 84;
+                    else if (scrollButtonType === 'down' || scrollButtonType === 'up') buttonsWidth += 42;
+
+                    // カウンターの幅（おおよそ）
+                    const counterWidth = (displayTaskCount > 1) ? 50 : 35;
+                    buttonsWidth += counterWidth;
 
                     let tasksHtml = '';
                     tasksToShow.forEach((t, i) => {
@@ -3213,17 +3290,23 @@
                         <div style="display: flex; flex-direction: column; width: 100%; height: 100%; box-sizing: border-box;">
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: inherit; opacity: 0.8; padding: 4px ${headerPaddingRight} 4px 0; border-bottom: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); flex-shrink: 0;">
                                 <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 24px; border-right: 1px solid rgba(0,0,0,0.2); background: rgba(0,0,0,0.05); flex-shrink: 0; margin-right: 8px;">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="opacity: 0.7;">
-                                        <path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/>
-                                    </svg>
+                                    ${localStorage.getItem('allowDrag') !== 'false' ? `
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="opacity: 0.7;">
+                                            <path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/>
+                                        </svg>
+                                    ` : `<span style="font-size: 10px; font-weight: bold; opacity: 0.7;">${getTranslation('label_collapse')}</span>`}
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 6px; width: 210px; justify-content: flex-end; flex-shrink: 0;">
+                                <div style="display: flex; align-items: center; gap: 6px; width: ${buttonsWidth}px; justify-content: flex-end; flex-shrink: 0;">
                                     <span class="floating-task-counter" style="font-size: 11px; margin-right: 4px;">${counterText}</span>
-                                    <button onclick="toggleShowAllInFloating()" style="background: ${!showAllInFloating ? '#007bff' : '#eee'}; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: ${!showAllInFloating ? 'white' : '#333'}; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${!showAllInFloating ? getTranslation('btn_toggle_pending_title') : getTranslation('btn_toggle_all_title')}">👁️</button>
-                                    ${displayTaskCount >= 2 ? `
+                                    ${localStorage.getItem('showCheckedToggle') === 'true' ? `
+                                        <button onclick="toggleShowAllInFloating()" style="background: ${!showAllInFloating ? '#007bff' : '#eee'}; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: ${!showAllInFloating ? 'white' : '#333'}; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${!showAllInFloating ? getTranslation('btn_toggle_pending_title') : getTranslation('btn_toggle_all_title')}">👁️</button>
+                                    ` : ''}
+                                    ${(scrollButtonType === 'both' || scrollButtonType === 'up') ? `
                                         <button onclick="prevTask()" style="background: #eee; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: #333; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_prev_task_title')}">△</button>
                                     ` : ''}
-                                    <button onclick="nextTask()" style="background: #eee; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: #333; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_next_task_title')}">▽</button>
+                                    ${(scrollButtonType === 'both' || scrollButtonType === 'down') ? `
+                                        <button onclick="nextTask()" style="background: #eee; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: #333; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_next_task_title')}">▽</button>
+                                    ` : ''}
                                     <button onclick="if(typeof Android !== 'undefined' && Android.openMainActivity) Android.openMainActivity(); else setViewMode('manager');" style="background: #007bff; border: none; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_full_screen_title')}">🏠</button>
                                 </div>
                             </div>
@@ -3334,6 +3417,7 @@
             const cScale = localStorage.getItem('floatCollapsedScale') || '1.0';
             const showEmpty = localStorage.getItem('showWhenEmpty') === 'true';
             const moveC = localStorage.getItem('alwaysMoveCollapsed') === 'true';
+            const allowDragC = localStorage.getItem('allowDragCollapsed') !== 'false';
             const cX = localStorage.getItem('floatCollapsedX') || '100';
             const cY = localStorage.getItem('floatCollapsedY') || '100';
 
@@ -3341,6 +3425,7 @@
             document.getElementById('collapsedScaleVal').innerText = cScale;
             document.getElementById('showWhenEmpty').checked = showEmpty;
             document.getElementById('alwaysMoveCollapsed').checked = moveC;
+            document.getElementById('allowDragCollapsed').checked = allowDragC;
             document.getElementById('floatCollapsedX').value = cX;
             document.getElementById('floatCollapsedY').value = cY;
             toggleFixedPositionInputs('collapsed');
@@ -3353,6 +3438,9 @@
             const eX = localStorage.getItem('floatExpandedX') || '100';
             const eY = localStorage.getItem('floatExpandedY') || '100';
             const showClose = localStorage.getItem('showCloseButtonExpanded') === 'true';
+            const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
+            const allowDrag = localStorage.getItem('allowDrag') !== 'false';
+            const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
             const dCount = localStorage.getItem('displayTaskCount') || '1';
             const sCount = localStorage.getItem('scrollTaskCount') || '1';
 
@@ -3364,6 +3452,9 @@
             document.getElementById('floatExpandedX').value = eX;
             document.getElementById('floatExpandedY').value = eY;
             document.getElementById('showCloseButtonExpanded').checked = showClose;
+            document.getElementById('showCheckedToggle').checked = showCheckedToggle;
+            document.getElementById('allowDrag').checked = allowDrag;
+            document.getElementById('scrollButtonType').value = scrollButtonType;
             document.getElementById('displayTaskCount').value = dCount;
             document.getElementById('scrollTaskCount').value = sCount;
             toggleFixedPositionInputs('expanded');
@@ -3444,12 +3535,14 @@
             const cScale = document.getElementById('floatCollapsedScale').value;
             const showEmpty = document.getElementById('showWhenEmpty').checked;
             const moveC = document.getElementById('alwaysMoveCollapsed').checked;
+            const allowDragC = document.getElementById('allowDragCollapsed').checked;
             const cX = document.getElementById('floatCollapsedX').value;
             const cY = document.getElementById('floatCollapsedY').value;
 
             localStorage.setItem('floatCollapsedScale', cScale);
             localStorage.setItem('showWhenEmpty', showEmpty);
             localStorage.setItem('alwaysMoveCollapsed', moveC);
+            localStorage.setItem('allowDragCollapsed', allowDragC);
             localStorage.setItem('floatCollapsedX', cX);
             localStorage.setItem('floatCollapsedY', cY);
 
@@ -3461,6 +3554,9 @@
             const eX = document.getElementById('floatExpandedX').value;
             const eY = document.getElementById('floatExpandedY').value;
             const showClose = document.getElementById('showCloseButtonExpanded').checked;
+            const showCheckedToggle = document.getElementById('showCheckedToggle').checked;
+            const allowDrag = document.getElementById('allowDrag').checked;
+            const scrollButtonType = document.getElementById('scrollButtonType').value;
 
             const dInput = document.getElementById('displayTaskCount');
             const sInput = document.getElementById('scrollTaskCount');
@@ -3478,6 +3574,9 @@
             localStorage.setItem('floatExpandedX', eX);
             localStorage.setItem('floatExpandedY', eY);
             localStorage.setItem('showCloseButtonExpanded', showClose);
+            localStorage.setItem('showCheckedToggle', showCheckedToggle);
+            localStorage.setItem('allowDrag', allowDrag);
+            localStorage.setItem('scrollButtonType', scrollButtonType);
             localStorage.setItem('displayTaskCount', dCount);
             displayTaskCount = dCount;
             localStorage.setItem('scrollTaskCount', sCount);
@@ -3489,7 +3588,7 @@
                         parseInt(cX), parseInt(cY), parseFloat(cScale), showEmpty, moveC,
                         parseInt(eX), parseInt(eY), parseFloat(eScale), moveE,
                         parseInt(width), parseInt(height), showClose,
-                        dCount, sCount
+                        dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragC
                     );
                 } else if (Android.updateFloatingSettings) {
                     // 互換性のため古いメソッドも呼ぶ（必要なら）
@@ -3538,6 +3637,7 @@
             document.getElementById('collapsedScaleVal').innerText = "1.0";
             document.getElementById('showWhenEmpty').checked = false;
             document.getElementById('alwaysMoveCollapsed').checked = false;
+            document.getElementById('allowDragCollapsed').checked = true;
             document.getElementById('floatCollapsedX').value = defaultX;
             document.getElementById('floatCollapsedY').value = defaultY;
 
@@ -3550,6 +3650,9 @@
             document.getElementById('floatExpandedX').value = defaultX;
             document.getElementById('floatExpandedY').value = defaultY;
             document.getElementById('showCloseButtonExpanded').checked = false;
+            document.getElementById('showCheckedToggle').checked = false;
+            document.getElementById('allowDrag').checked = true;
+            document.getElementById('scrollButtonType').value = 'both';
             document.getElementById('displayTaskCount').value = 1;
             document.getElementById('scrollTaskCount').value = 1;
 
@@ -3773,11 +3876,15 @@
                 showWhenEmpty: localStorage.getItem('showWhenEmpty') === 'true',
                 alwaysMoveCollapsed: localStorage.getItem('alwaysMoveCollapsed') === 'true',
                 alwaysMoveExpanded: localStorage.getItem('alwaysMoveExpanded') === 'true',
+                allowDragCollapsed: localStorage.getItem('allowDragCollapsed') !== 'false',
                 floatCollapsedX: localStorage.getItem('floatCollapsedX'),
                 floatCollapsedY: localStorage.getItem('floatCollapsedY'),
                 floatExpandedX: localStorage.getItem('floatExpandedX'),
                 floatExpandedY: localStorage.getItem('floatExpandedY'),
                 showCloseButtonExpanded: localStorage.getItem('showCloseButtonExpanded') === 'true',
+                showCheckedToggle: localStorage.getItem('showCheckedToggle') === 'true',
+                allowDrag: localStorage.getItem('allowDrag') !== 'false',
+                scrollButtonType: localStorage.getItem('scrollButtonType') || 'both',
                 displayTaskCount: localStorage.getItem('displayTaskCount'),
                 scrollTaskCount: localStorage.getItem('scrollTaskCount'),
                 recheckInterval: localStorage.getItem('recheckInterval'),
@@ -3991,10 +4098,10 @@
                             'floatX', 'floatY', 'floatWidth', 'floatHeight', 'floatScale',
                             'floatCollapsedScale', 'floatExpandedScale',
                             'floatCollapsedX', 'floatCollapsedY', 'floatExpandedX', 'floatExpandedY',
-                            'displayTaskCount', 'scrollTaskCount', 'recheckInterval'
+                            'displayTaskCount', 'scrollTaskCount', 'recheckInterval', 'scrollButtonType'
                         ];
                         const boolKeys = [
-                            'showWhenEmpty', 'alwaysMoveCollapsed', 'alwaysMoveExpanded', 'showCloseButtonExpanded'
+                            'showWhenEmpty', 'alwaysMoveCollapsed', 'alwaysMoveExpanded', 'showCloseButtonExpanded', 'showCheckedToggle', 'allowDrag', 'allowDragCollapsed'
                         ];
                         if (data.showAllInFloating !== undefined) {
                             localStorage.setItem('showAllInFloating', data.showAllInFloating);

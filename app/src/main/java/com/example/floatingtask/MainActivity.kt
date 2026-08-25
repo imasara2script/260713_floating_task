@@ -575,7 +575,9 @@ class MainActivity : AppCompatActivity() {
             cX: Int, cY: Int, cScale: Float, showEmpty: Boolean, moveC: Boolean,
             eX: Int, eY: Int, eScale: Float, moveE: Boolean,
             width: Int, height: Int, showClose: Boolean,
-            displayTaskCount: Int, scrollTaskCount: Int
+            displayTaskCount: Int, scrollTaskCount: Int,
+            showCheckedToggle: Boolean, scrollButtonType: String,
+            allowDrag: Boolean, allowDragCollapsed: Boolean
         ) {
             val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
             prefs.edit {
@@ -584,6 +586,7 @@ class MainActivity : AppCompatActivity() {
                 putFloat("floatCollapsedScale", cScale)
                 putBoolean("showWhenEmpty", showEmpty)
                 putBoolean("alwaysMoveCollapsed", moveC)
+                putBoolean("allowDragCollapsed", allowDragCollapsed)
                 
                 putInt("floatExpandedX", eX)
                 putInt("floatExpandedY", eY)
@@ -593,6 +596,9 @@ class MainActivity : AppCompatActivity() {
                 putInt("floatWidth", width)
                 putInt("floatHeight", height)
                 putBoolean("showCloseButtonExpanded", showClose)
+                putBoolean("showCheckedToggle", showCheckedToggle)
+                putBoolean("allowDrag", allowDrag)
+                putString("scrollButtonType", scrollButtonType)
                 putInt("displayTaskCount", displayTaskCount)
                 putInt("scrollTaskCount", scrollTaskCount)
 
