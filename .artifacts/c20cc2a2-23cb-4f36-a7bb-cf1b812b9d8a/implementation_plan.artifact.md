@@ -1,44 +1,31 @@
-# 縮小表示モードへのドラッグ移動許可設定の追加計画
+# バックボタンによるナビゲーションの改善案（段階的実装）
 
-フローティングウィンドウの縮小モードにおいても、ウィンドウの移動（ドラッグ）を禁止できる設定項目を追加します。展開モードと同様に、ドラッグ禁止時は位置を固定しつつタップ操作（展開）を維持します。
+フローティングウィンドウの設定詳細画面でAndroidのバックボタン（◁）を押した際、アプリが終了するのではなく、設定のメイン画面に戻るように改善します。今回はスコープを絞り、この特定の遷移のみをまず実装します。
 
 ## ユーザーレビューが必要な事項
-- 特になし。
 
-## オープンな質問
-- 特になし。
+> [!NOTE]
+> 今回の実装対象：
+> 「フローティングウィンドウの設定（詳細）」が表示されている場合にバックボタンを押すと、設定のメイン画面に戻る。
+> それ以外の状態（タスク一覧、履歴、設定メインなど）では、従来通りアプリがバックグラウンドに移動します。
 
-## Proposed Changes
+## 変更内容
 
-### 1. アプリ設定のUIとロジック (WebView/JS)
-
-#### [MODIFY] [index.html](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/index.html)
-- 設定画面の「縮小表示モードの設定」セクションに、「ドラッグ移動を許可する」チェックボックスを追加します。デフォルトは ON とします。
-- `loadFloatingSettings` 関数で `allowDragCollapsed` を読み込みます。
-- `saveFloatingSettings` 関数で `allowDragCollapsed` を保存し、Android ネイティブ側へ通知します。
-- `resetFloatingSettings` 関数で `allowDragCollapsed` を初期化（ON）します。
-- `applyFloatingSettings` 関数を更新し、ネイティブ側からの `allowDragCollapsed` 同期に対応します。
-- バックアップおよび復元ロジック（`performBackup`, `performRestore`）に `allowDragCollapsed` を追加します。
-
-### 2. Android ネイティブ側のロジック (Kotlin)
+### [app](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app)
 
 #### [MODIFY] [MainActivity.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MainActivity.kt)
-- `updateFloatingSettingsExtended` メソッドに `allowDragCollapsed: Boolean` 引数を追加し、`SharedPreferences` に保存します。
+- `onBackPressedDispatcher` を使用してバックボタン入力をハンドリングします。
+- JavaScript の `handleBack()` 関数を呼び出し、戻り値が `true` の場合はアクティビティ側の処理を中断します。
+- 戻り値が `false` の場合は、デフォルトの動作（アプリを閉じる）を実行します。
 
-#### [MODIFY] [FloatingWindowService.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/FloatingWindowService.kt)
-- `applySettings` メソッドで `allowDragCollapsed` を WebView に渡すように修正します。
-- `showFloatingWindow` 内の `touchListener` において、`allowDrag` の判定ロジックを修正します。
-    - 展開時は `allowDrag` (展開用設定) を参照。
-    - 縮小時は `allowDragCollapsed` (今回追加する縮小用設定) を参照するように変更します。
+#### [MODIFY] [index.html](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/index.html)
+- `handleBack()` 関数を追加します。
+- `#settings-floating-detail` が表示されている場合のみ、それを閉じて `true` を返します。
 
-## 検証プラン
+## 検証計画
 
-### 自動テスト
-- 特になし。
-
-### 手動検証
-1. 設定画面の「縮小表示モードの設定」で「ドラッグ移動を許可する」を OFF にする。
-2. フローティングウィンドウを縮小状態にし、ドラッグしても移動しないことを確認する。
-3. 縮小状態のウィンドウをタップし、正しく展開されることを確認する。
-4. 設定を ON に戻し、縮小状態でもドラッグ移動ができるようになることを確認する。
-5. 展開モード側のドラッグ設定と独立して動作することを確認する。
+### 手動確認事項（ユーザーに依頼）
+1. 設定タブを選択する。
+2. 「フローティングウィンドウの設定」を開く。
+3. Androidのバックボタンを押して、設定のメイン画面に戻ることを確認する。
+4. 設定のメイン画面で再度バックボタンを押し、アプリが通常通り終了（バックグラウンドへ移動）することを確認する。

@@ -13,7 +13,7 @@
     <string name="channel_timer_notifications">タイマー通知</string>
     <string name="channel_timer_silent">タイマー：消音</string>
     <string name="channel_reminders">リマインド通知</string>
-    <string name="timer_completion_time_format"> (完了日時: %s)</string>
+    <string name="timer_completion_time_format"> (%s)</string>
     <string name="reminder_title">リマインド</string>
     <string name="reminder_body_with_msg">「%1$s」（%2$s）</string>
     <string name="reminder_body_no_msg">「%1$s」</string>

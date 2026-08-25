@@ -950,6 +950,69 @@
     </div>
 
     <script>
+        function handleBack() {
+            // モーダルの優先順位（z-index順、およびDOMの定義順）でチェック
+
+            // 1. カスタムモーダル (z-index: 1100) - 最前面
+            const customModal = document.getElementById('customModal');
+            if (customModal && customModal.style.display === 'flex') {
+                const cancelBtn = document.getElementById('modalCancelBtn');
+                // キャンセルボタンが表示されている場合はそれをクリックしてコールバック等を走らせる
+                if (cancelBtn && cancelBtn.style.display !== 'none') {
+                    cancelBtn.click();
+                } else {
+                    closeModal();
+                }
+                return true;
+            }
+
+            // 2. タスク詳細/追加モーダル (z-index: 1050)
+            const taskModal = document.getElementById('taskModal');
+            if (taskModal && taskModal.style.display === 'flex') {
+                closeTaskModal();
+                return true;
+            }
+
+            // 3. 開発者設定モーダル (z-index: 1000)
+            const developerModal = document.getElementById('developerModal');
+            if (developerModal && developerModal.style.display === 'flex') {
+                closeDeveloperModal();
+                return true;
+            }
+
+            // 4. 編集メニューモーダル (z-index: 1000)
+            const editMenuModal = document.getElementById('editMenuModal');
+            if (editMenuModal && editMenuModal.style.display === 'flex') {
+                closeEditMenu();
+                return true;
+            }
+
+            // 5. 言語選択モーダル (z-index: 1000)
+            const languageModal = document.getElementById('languageModal');
+            if (languageModal && languageModal.style.display === 'flex') {
+                languageModal.style.display = 'none';
+                return true;
+            }
+
+            // 6. エクスポートモード / 削除モード
+            if (isExportMode) {
+                cancelExportMode();
+                return true;
+            }
+            if (isDeleteMode) {
+                cancelDeleteMode();
+                return true;
+            }
+
+            // 7. フローティング設定詳細画面
+            const floatingDetail = document.getElementById('settings-floating-detail');
+            if (floatingDetail && floatingDetail.style.display === 'block') {
+                closeFloatingSettings();
+                return true;
+            }
+            return false;
+        }
+
         const urlParams = new URLSearchParams(window.location.search);
         const mode = urlParams.get('mode') || 'manager';
 

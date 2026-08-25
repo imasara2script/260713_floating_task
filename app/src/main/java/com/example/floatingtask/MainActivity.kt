@@ -46,6 +46,7 @@ import android.widget.EditText
 import java.util.Locale
 import androidx.core.app.NotificationCompat
 import java.security.MessageDigest
+import androidx.activity.OnBackPressedCallback
 
 class MainActivity : AppCompatActivity() {
 
@@ -255,6 +256,20 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val webView: WebView = findViewById(R.id.webView)
+                webView.evaluateJavascript("handleBack()") { result ->
+                    if (result == "false" || result == "null") {
+                        // JS側で処理されなかった場合、コールバックを一時的に無効にしてデフォルトの動作を実行
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                        isEnabled = true
+                    }
+                }
+            }
+        })
 
         // ブロードキャストレシーバーの登録
         val filter = IntentFilter().apply {
