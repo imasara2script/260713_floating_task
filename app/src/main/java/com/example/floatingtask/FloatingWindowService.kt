@@ -696,5 +696,16 @@ class FloatingWindowService : Service() {
                 windowManager.updateViewLayout(view, params)
             }
         }
+
+        @JavascriptInterface
+        fun showKeyboard() {
+            val handler = Handler(Looper.getMainLooper())
+            handler.post {
+                val view = floatingView ?: return@post
+                val webView: WebView = view.findViewById(R.id.floatingWebView)
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.showSoftInput(webView, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+            }
+        }
     }
 }

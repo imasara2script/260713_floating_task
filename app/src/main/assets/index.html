@@ -723,6 +723,7 @@
                             <label for="scrollButtonType" style="display: block; margin-bottom: 4px;" data-i18n="label_scroll_button_type">スクロールボタンの種類:</label>
                             <select id="scrollButtonType" onchange="saveFloatingSettings('expanded')" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white;">
                                 <option value="both" data-i18n="scroll_btn_both">△▽</option>
+                                <option value="scroll" data-i18n="scroll_btn_scroll">スクロール</option>
                                 <option value="down" data-i18n="scroll_btn_down">▽</option>
                                 <option value="up" data-i18n="scroll_btn_up">△</option>
                                 <option value="hidden" data-i18n="scroll_btn_hidden">非表示</option>
@@ -751,6 +752,15 @@
                                 <button class="btn btn-secondary" onclick="adjustScrollTaskCount(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
                                 <input type="number" id="scrollTaskCount" min="1" max="10" onchange="saveFloatingSettings('expanded')" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center;">
                                 <button class="btn btn-secondary" onclick="adjustScrollTaskCount(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label for="checkedHideDelay" style="display: block; margin-bottom: 4px;" data-i18n="label_checked_hide_delay">チェック後に非表示にするまでの秒数:</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
+                                <input type="number" id="checkedHideDelay" min="0" max="60" onchange="saveFloatingSettings('expanded')" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center;">
+                                <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
                             </div>
                         </div>
                     </div>
@@ -1010,6 +1020,22 @@
                 closeFloatingSettings();
                 return true;
             }
+
+            // 8. 履歴のカレンダー表示（特定のタスクの履歴）
+            if (currentCalendarTaskId !== null) {
+                renderHistory();
+                return true;
+            }
+
+            // 9. 履歴タブ / 設定タブからタスクタブへ戻る
+            const historyContent = document.getElementById('history-content');
+            const settingsContent = document.getElementById('settings-content');
+            if ((historyContent && historyContent.style.display === 'block') ||
+                (settingsContent && settingsContent.style.display === 'block')) {
+                switchTab('tasks');
+                return true;
+            }
+
             return false;
         }
 
@@ -1192,7 +1218,7 @@
                 placeholder_history_memo: "メモを入力してください...",
                 modal_edit_memo_title: "メモを編集",
                 label_show_comment_on_check: "チェックを入れた時にコメント記入欄を表示",
-                btn_no_comment: "今回はコメント無し",
+                btn_no_comment: "キャンセル",
                 btn_save_comment: "保存",
                 label_coin_management: "🪙 コイン",
                 btn_get_coin_reward: "リワード広告を視聴して１コインをゲット",
@@ -1212,11 +1238,13 @@
                 label_show_checked_toggle: "チェック済みタスクの表示切替ボタンを表示",
                 label_scroll_button_type: "スクロールボタンの種類",
                 scroll_btn_both: "△▽",
+                scroll_btn_scroll: "スクロール",
                 scroll_btn_down: "▽",
                 scroll_btn_up: "△",
                 scroll_btn_hidden: "非表示",
                 label_allow_drag: "ドラッグ移動を許可する",
                 label_collapse: "縮小",
+                label_checked_hide_delay: "チェック後に非表示にするまでの秒数",
                 btn_prev_task_title: "前のタスク"
             },
             en: {
@@ -1397,7 +1425,7 @@
                 modal_edit_memo_title: "Edit Memo",
                 label_show_comment_on_check: "Show comment input when checked",
                 btn_save_comment: "Save",
-                btn_no_comment: "No comment",
+                btn_no_comment: "Cancel",
                 label_coin_management: "🪙 Coins",
                 btn_get_coin_reward: "Watch ad to get 1 coin",
                 label_current_coins: "Current Coins: {0}",
@@ -1416,11 +1444,13 @@
                 label_show_checked_toggle: "Show 'Toggle Checked Tasks' button",
                 label_scroll_button_type: "Scroll Button Type",
                 scroll_btn_both: "△▽",
+                scroll_btn_scroll: "Scroll",
                 scroll_btn_down: "▽",
                 scroll_btn_up: "△",
                 scroll_btn_hidden: "Hidden",
                 label_allow_drag: "Allow drag movement",
                 label_collapse: "Collapse",
+                label_checked_hide_delay: "Hide delay after checking (sec)",
                 btn_prev_task_title: "Previous Task"
             }
         };
@@ -1502,6 +1532,7 @@
         let showAllInFloating = localStorage.getItem('showAllInFloating') === 'true';
         let displayTaskCount = parseInt(localStorage.getItem('displayTaskCount') || '1');
         let scrollTaskCount = parseInt(localStorage.getItem('scrollTaskCount') || '1');
+        let checkedHideDelay = parseInt(localStorage.getItem('checkedHideDelay') || '2');
         let currentFloatingIndex = 0;
         let draggingElement = null;
         let isEditMode = false;
@@ -1905,6 +1936,14 @@
         }
 
         function nextTask() {
+            const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
+            if (scrollButtonType === 'scroll') {
+                const container = document.getElementById('floating-task-container');
+                if (container) {
+                    container.scrollBy({ top: container.clientHeight * 0.8, behavior: 'smooth' });
+                }
+                return;
+            }
             const floatingTasks = getVisibleFloatingTasks();
             if (floatingTasks.length > 0) {
                 currentFloatingIndex = (currentFloatingIndex + scrollTaskCount) % floatingTasks.length;
@@ -1913,6 +1952,14 @@
         }
 
         function prevTask() {
+            const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
+            if (scrollButtonType === 'scroll') {
+                const container = document.getElementById('floating-task-container');
+                if (container) {
+                    container.scrollBy({ top: -container.clientHeight * 0.8, behavior: 'smooth' });
+                }
+                return;
+            }
             const floatingTasks = getVisibleFloatingTasks();
             if (floatingTasks.length > 0) {
                 currentFloatingIndex = (currentFloatingIndex - scrollTaskCount + floatingTasks.length) % floatingTasks.length;
@@ -1921,7 +1968,8 @@
         }
 
         function getVisibleFloatingTasks() {
-            const pendingSorted = tasks.filter(t => !t.completed).sort((a, b) => {
+            const now = Date.now();
+            const pendingSorted = tasks.filter(t => !t.completed || (t.justCompletedUntil && now < t.justCompletedUntil)).sort((a, b) => {
                 const aIsTimer = !!a.durationMs;
                 const bIsTimer = !!b.durationMs;
                 if (aIsTimer !== bIsTimer) return aIsTimer ? -1 : 1;
@@ -2142,6 +2190,17 @@
             };
 
             modal.style.display = 'flex';
+
+            // 入力エリアへのフォーカスとキーボード表示
+            if (options.showInput || options.showTextarea) {
+                setTimeout(() => {
+                    const el = options.showTextarea ? textareaEl : inputEl;
+                    el.focus();
+                    if (typeof Android !== 'undefined' && Android.showKeyboard) {
+                        Android.showKeyboard();
+                    }
+                }, 100);
+            }
         }
 
         function closeModal() {
@@ -2734,6 +2793,9 @@
                             }
                         }
 
+                        t.justCompletedUntil = Date.now() + (checkedHideDelay * 1000);
+                        setTimeout(() => render(), checkedHideDelay * 1000);
+
                         // 連続実行回数の更新 (タイマーなしタスクのみ)
                         if (!t.durationMs) {
                             const today = new Date().toDateString();
@@ -3041,16 +3103,43 @@
             const dateStr = new Date(h.completedAt).toLocaleString();
             const modalTitle = `${getTranslation('modal_edit_memo_title')}<div style="font-size: 14px; font-weight: normal; margin-top: 8px; color: #666; word-break: break-all;">${h.text}<br>${dateStr}</div>`;
 
+            let initialMemo = h.memo || "";
+            if (isInitial && !initialMemo) {
+                const task = tasks.find(t => t.id === h.taskId);
+                if (task && task.note) {
+                    initialMemo = task.note;
+                }
+            }
+
             showModal(modalTitle, {
                 useHTML: true,
                 showTextarea: true,
-                inputValue: h.memo || "",
+                inputValue: initialMemo,
                 placeholder: getTranslation('placeholder_history_memo'),
-                cancelText: isInitial ? getTranslation('btn_no_comment') : getTranslation('btn_cancel'),
+                cancelText: getTranslation('btn_no_comment'),
                 onConfirm: (val) => {
                     saveHistoryMemo(historyId, val);
+                },
+                onCancel: () => {
+                    if (isInitial) {
+                        undoTaskCompletion(h.taskId, historyId);
+                    }
                 }
             });
+        }
+
+        function undoTaskCompletion(taskId, historyId) {
+            tasks = tasks.map(t => {
+                if (t.id === taskId) {
+                    if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
+                        Android.updateTaskCompletionState(t.id, false);
+                    }
+                    return { ...t, completed: false };
+                }
+                return t;
+            });
+            history = history.filter(h => h.id !== historyId);
+            saveTasks();
         }
 
         function saveHistoryMemo(historyId, memo) {
@@ -3080,11 +3169,29 @@
                 latestHistory.memo = memo;
             }
 
-            finishFloatingComment();
+            inputtingCommentForTaskId = null;
+            if (typeof Android !== 'undefined') {
+                if (Android.toggleExpand) Android.toggleExpand(true);
+                if (Android.setFocusable) Android.setFocusable(false);
+            }
+            saveTasks();
         }
 
         function cancelFloatingComment() {
-            finishFloatingComment();
+            const taskId = inputtingCommentForTaskId;
+            if (taskId !== null) {
+                // 最新の履歴（そのタスクの最新）を特定して削除
+                const latestHistory = history.find(h => h.taskId === taskId);
+                if (latestHistory) {
+                    undoTaskCompletion(taskId, latestHistory.id);
+                }
+            }
+            inputtingCommentForTaskId = null;
+            if (typeof Android !== 'undefined') {
+                if (Android.toggleExpand) Android.toggleExpand(true);
+                if (Android.setFocusable) Android.setFocusable(false);
+            }
+            // undoTaskCompletion 内で saveTasks() されるためここでは不要
         }
 
         function finishFloatingComment() {
@@ -3098,6 +3205,9 @@
 
         function render() {
             if (draggingElement) return; // ドラッグ操作中はDOMを書き換えない
+
+            // タイマーの状態（数やID）を記録しておく
+            window.lastActiveIds = tasks.filter(t => t.durationMs && !t.completed).map(t => t.id).sort().join(',');
 
             checkAdFree();
 
@@ -3179,8 +3289,12 @@
                         ${isEditMode ? '<span class="drag-handle">☰</span>' : ''}
                         ${isExportMode ? `<input type="checkbox" ${selectedExportIds.has(t.id) ? 'checked' : ''} onchange="toggleExportSelection(${t.id}); render();">` : ''}
                         ${isDeleteMode ? `<input type="checkbox" ${selectedDeleteIds.has(t.id) ? 'checked' : ''} onchange="toggleDeleteSelection(${t.id}); render();">` : ''}
-                        ${!isEditMode && !isExportMode && !isDeleteMode ? `<input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">` : ''}
-                        ${isTimer && !t.completed ? `<span class="timer-badge ${isExpired ? 'timer-expired' : ''}" onclick="toggleTimerDisplayMode()" style="cursor:pointer;">${timerDisplay}</span>` : ''}
+                        ${!isEditMode && !isExportMode && !isDeleteMode ? (
+                            t.showCommentOnCheck && !t.completed ?
+                            `<span onclick="toggleTask(${t.id})" style="cursor:pointer; margin-right:8px; font-size:18px; display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px;">✏️</span>` :
+                            `<input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">`
+                        ) : ''}
+                        ${isTimer && !t.completed ? `<span class="timer-badge manager-timer-badge ${isExpired ? 'timer-expired' : ''}" data-task-id="${t.id}" onclick="toggleTimerDisplayMode()" style="cursor:pointer;">${timerDisplay}</span>` : ''}
                         <span class="task-text ${t.completed ? 'completed' : ''} editable" onclick="${isExportMode ? `toggleExportSelection(${t.id}); render();` : (isDeleteMode ? `toggleDeleteSelection(${t.id}); render();` : `editTask(${t.id})`)}">${t.text}</span>
                         ${isTimer && !isEditMode && !isExportMode && !isDeleteMode ? `<button class="btn-icon" onclick="repeatTimer(${t.id})" title="リピート">🔄</button>` : ''}
                     </li>
@@ -3242,7 +3356,7 @@
                     const timeText = getRemainingTimeText(activeTimers[0]);
                     collapsedEl.innerHTML = `
                         <div class="ft-tiny">FT</div>
-                        <div class="timer-collapsed-large">${timeText}</div>
+                        <div class="timer-collapsed-large" id="timer-collapsed-text">${timeText}</div>
                     `;
                 } else {
                     collapsedEl.innerHTML = `
@@ -3258,10 +3372,12 @@
                     if (document.getElementById('floatingCommentText')) return;
 
                     const t = tasks.find(x => x.id === inputtingCommentForTaskId);
+                    const initialNote = (t && t.note) ? t.note : '';
+
                     floatingContent.innerHTML = `
                         <div class="floating-comment-container">
                             <div class="floating-comment-title">${t ? t.text : ''}</div>
-                            <textarea id="floatingCommentText" class="floating-comment-textarea" placeholder="${getTranslation('placeholder_history_memo')}"></textarea>
+                            <textarea id="floatingCommentText" class="floating-comment-textarea" placeholder="${getTranslation('placeholder_history_memo')}">${initialNote}</textarea>
                             <div class="floating-comment-actions">
                                 <button class="btn btn-tiny" onclick="cancelFloatingComment()">${getTranslation('btn_no_comment')}</button>
                                 <button class="btn btn-primary btn-tiny" onclick="saveFloatingComment()">${getTranslation('btn_save_comment')}</button>
@@ -3271,7 +3387,14 @@
                     // フォーカスを当てる
                     setTimeout(() => {
                         const ta = document.getElementById('floatingCommentText');
-                        if (ta) ta.focus();
+                        if (ta) {
+                            ta.focus();
+                            // 末尾にカーソルを移動
+                            ta.setSelectionRange(ta.value.length, ta.value.length);
+                        }
+                        if (typeof Android !== 'undefined' && Android.showKeyboard) {
+                            Android.showKeyboard();
+                        }
                     }, 100);
                     return;
                 }
@@ -3303,14 +3426,18 @@
                         </div>
                     `;
                 } else {
-                    const tasksToShow = floatingTasks.slice(currentFloatingIndex, currentFloatingIndex + displayTaskCount);
-                    if (tasksToShow.length < displayTaskCount && floatingTasks.length > tasksToShow.length) {
+                    const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
+                    const isScrollMode = scrollButtonType === 'scroll';
+                    const tasksToShow = isScrollMode
+                        ? floatingTasks
+                        : floatingTasks.slice(currentFloatingIndex, currentFloatingIndex + displayTaskCount);
+
+                    if (!isScrollMode && tasksToShow.length < displayTaskCount && floatingTasks.length > tasksToShow.length) {
                         tasksToShow.push(...floatingTasks.slice(0, displayTaskCount - tasksToShow.length));
                     }
 
                     const showClose = localStorage.getItem('showCloseButtonExpanded') === 'true';
                     const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
-                    const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
                     const headerPaddingRight = showClose ? '40px' : '8px';
 
                     let buttonsWidth = 42 + 8; // Home + Padding
@@ -3319,7 +3446,7 @@
                     else if (scrollButtonType === 'down' || scrollButtonType === 'up') buttonsWidth += 42;
 
                     // カウンターの幅（おおよそ）
-                    const counterWidth = (displayTaskCount > 1) ? 50 : 35;
+                    const counterWidth = (isScrollMode || displayTaskCount > 1) ? 50 : 35;
                     buttonsWidth += counterWidth;
 
                     let tasksHtml = '';
@@ -3333,10 +3460,13 @@
 
                         tasksHtml += `
                             <div style="display: flex; align-items: center; min-width: 0; margin-bottom: 2px;">
-                                <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})" style="width: 16px; height: 16px; margin-right: 6px; flex-shrink: 0;">
+                                ${t.showCommentOnCheck && !t.completed ?
+                                    `<span onclick="toggleTask(${t.id})" style="cursor:pointer; margin-right:6px; font-size:14px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px;">✏️</span>` :
+                                    `<input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})" style="width: 16px; height: 16px; margin-right: 6px; flex-shrink: 0;">`
+                                }
                                 ${isTimer && !t.completed ? `
                                     <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-right: 6px; opacity: 0.9;">
-                                        <span class="${isExpired ? 'timer-expired' : ''}" onclick="toggleTimerDisplayMode()" style="font-variant-numeric: tabular-nums; cursor:pointer; background: #ffc107; padding: 1px 4px; border-radius: 3px; font-weight: bold; font-size: 10px; white-space: nowrap;">${timerDisplay}</span>
+                                        <span class="floating-timer-badge ${isExpired ? 'timer-expired' : ''}" data-task-id="${t.id}" onclick="toggleTimerDisplayMode()" style="font-variant-numeric: tabular-nums; cursor:pointer; background: #ffc107; padding: 1px 4px; border-radius: 3px; font-weight: bold; font-size: 10px; white-space: nowrap;">${timerDisplay}</span>
                                         <button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size: 12px; padding: 0; background: none; border: none; cursor: pointer;">🔄</button>
                                     </div>
                                 ` : ''}
@@ -3345,14 +3475,19 @@
                         `;
                     });
 
-                    const counterText = displayTaskCount > 1
-                        ? `${currentFloatingIndex + 1}-${(currentFloatingIndex + tasksToShow.length - 1) % floatingTasks.length + 1}/${floatingTasks.length}`
-                        : `(${currentFloatingIndex + 1}/${floatingTasks.length})`;
+                    const counterText = isScrollMode
+                        ? `(${floatingTasks.length})`
+                        : (displayTaskCount > 1
+                            ? `${currentFloatingIndex + 1}-${(currentFloatingIndex + tasksToShow.length - 1) % floatingTasks.length + 1}/${floatingTasks.length}`
+                            : `(${currentFloatingIndex + 1}/${floatingTasks.length})`);
+
+                    const container = document.getElementById('floating-task-container');
+                    const savedScrollTop = container ? container.scrollTop : 0;
 
                     floatingContent.innerHTML = `
                         <div style="display: flex; flex-direction: column; width: 100%; height: 100%; box-sizing: border-box;">
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: inherit; opacity: 0.8; padding: 4px ${headerPaddingRight} 4px 0; border-bottom: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); flex-shrink: 0;">
-                                <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 24px; border-right: 1px solid rgba(0,0,0,0.2); background: rgba(0,0,0,0.05); flex-shrink: 0; margin-right: 8px;">
+                                <div id="expanded-drag-handle" style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 24px; border-right: 1px solid rgba(0,0,0,0.2); background: rgba(0,0,0,0.05); flex-shrink: 0; margin-right: 8px;">
                                     ${localStorage.getItem('allowDrag') !== 'false' ? `
                                         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="opacity: 0.7;">
                                             <path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/>
@@ -3373,15 +3508,95 @@
                                     <button onclick="if(typeof Android !== 'undefined' && Android.openMainActivity) Android.openMainActivity(); else setViewMode('manager');" style="background: #007bff; border: none; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_full_screen_title')}">🏠</button>
                                 </div>
                             </div>
-                            <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; padding: 4px;">
+                            <div id="floating-task-container" style="flex-grow: 1; display: flex; flex-direction: column; overflow-y: ${isScrollMode ? 'auto' : 'hidden'}; padding: 4px;">
                                 ${tasksHtml}
                             </div>
                         </div>
                     `;
+
+                    if (isScrollMode) {
+                        const newContainer = document.getElementById('floating-task-container');
+                        if (newContainer) newContainer.scrollTop = savedScrollTop;
+                    }
                 }
             }
             if (document.getElementById('history-content').style.display === 'block' && currentCalendarTaskId === null) {
                 renderHistory();
+            }
+        }
+
+        function updateTimersOnly() {
+            if (draggingElement) return;
+
+            const activeTimers = tasks.filter(t => t.durationMs && !t.completed)
+                .map(t => ({...t, remaining: Math.max(0, (t.startTime + t.durationMs) - Date.now())}))
+                .filter(t => t.remaining >= 0)
+                .sort((a, b) => a.remaining - b.remaining);
+
+            // タイマーの状態（数やID）が変わった場合はレイアウト変更の可能性があるのでフルレンダリング
+            const currentActiveIds = tasks.filter(t => t.durationMs && !t.completed).map(t => t.id).sort().join(',');
+            if (typeof window.lastActiveIds === 'undefined') window.lastActiveIds = '';
+            if (currentActiveIds !== window.lastActiveIds) {
+                window.lastActiveIds = currentActiveIds;
+                render();
+                return;
+            }
+
+            // 配色ルールの再計算と適用
+            let appliedBgColor = '#ffffff';
+            let appliedTextColor = '#333333';
+            if (activeTimers.length > 0) {
+                const shortestRemaining = activeTimers[0].remaining / 1000;
+                const sortedRules = [...bgThresholds].sort((a, b) => a.threshold - b.threshold);
+                const rule = sortedRules.find(r => shortestRemaining <= r.threshold);
+                if (rule) {
+                    appliedBgColor = rule.bgColor;
+                    appliedTextColor = rule.textColor;
+                }
+            }
+
+            const collapsedEl = document.getElementById('floating-collapsed');
+            const expandedEl = document.getElementById('floating-expanded');
+            if (mode === 'floating') {
+                if (collapsedEl) {
+                    collapsedEl.style.backgroundColor = appliedBgColor;
+                    collapsedEl.style.color = appliedTextColor;
+                }
+                if (expandedEl) {
+                    expandedEl.style.backgroundColor = appliedBgColor;
+                    expandedEl.style.color = appliedTextColor;
+                    const dragHandle = document.getElementById('expanded-drag-handle');
+                    if (dragHandle) dragHandle.style.color = appliedTextColor;
+                }
+                if (typeof Android !== 'undefined' && Android.updateFloatingColors) {
+                    Android.updateFloatingColors(appliedBgColor, appliedTextColor);
+                }
+            }
+
+            // 各タスクのタイマー表示を更新
+            tasks.forEach(t => {
+                if (t.durationMs && !t.completed) {
+                    const isExpired = (t.startTime + t.durationMs <= Date.now());
+                    const remainingText = getRemainingTimeTextDetailed(t);
+                    const totalText = getTotalTimeText(t);
+                    const timerDisplay = (timerDisplayMode === 'countdown' ? `${remainingText} / ${totalText}` : getEndTimeText(t));
+
+                    document.querySelectorAll(`.floating-timer-badge[data-task-id="${t.id}"]`).forEach(el => {
+                        if (el.textContent !== timerDisplay) el.textContent = timerDisplay;
+                        el.classList.toggle('timer-expired', isExpired);
+                    });
+                    document.querySelectorAll(`.manager-timer-badge[data-task-id="${t.id}"]`).forEach(el => {
+                        if (el.textContent !== timerDisplay) el.textContent = timerDisplay;
+                        el.classList.toggle('timer-expired', isExpired);
+                    });
+                }
+            });
+
+            // 縮小表示のタイマー更新
+            const collapsedTimerText = document.getElementById('timer-collapsed-text');
+            if (collapsedTimerText && activeTimers.length > 0) {
+                const timeText = getRemainingTimeText(activeTimers[0]);
+                if (collapsedTimerText.textContent !== timeText) collapsedTimerText.textContent = timeText;
             }
         }
 
@@ -3390,7 +3605,7 @@
             if (draggingElement) return;
             const hasActiveTimers = tasks.some(t => t.durationMs && !t.completed);
             if (hasActiveTimers) {
-                render();
+                updateTimersOnly();
             }
         }, 1000);
 
@@ -3506,6 +3721,7 @@
             const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
             const dCount = localStorage.getItem('displayTaskCount') || '1';
             const sCount = localStorage.getItem('scrollTaskCount') || '1';
+            const hDelay = localStorage.getItem('checkedHideDelay') || '2';
 
             document.getElementById('floatWidth').value = eWidth;
             document.getElementById('floatHeight').value = eHeight;
@@ -3520,6 +3736,7 @@
             document.getElementById('scrollButtonType').value = scrollButtonType;
             document.getElementById('displayTaskCount').value = dCount;
             document.getElementById('scrollTaskCount').value = sCount;
+            document.getElementById('checkedHideDelay').value = hDelay;
             toggleFixedPositionInputs('expanded');
 
             setupDraggableLabel('labelFloatCollapsedX', 'floatCollapsedX', 'collapsed');
@@ -3593,6 +3810,14 @@
             saveFloatingSettings('expanded');
         }
 
+        function adjustCheckedHideDelay(delta) {
+            const input = document.getElementById('checkedHideDelay');
+            let val = parseInt(input.value) || 0;
+            val = Math.max(0, Math.min(60, val + delta));
+            input.value = val;
+            saveFloatingSettings('expanded');
+        }
+
         function saveFloatingSettings(targetMode) {
             // 縮小モード
             const cScale = document.getElementById('floatCollapsedScale').value;
@@ -3623,12 +3848,15 @@
 
             const dInput = document.getElementById('displayTaskCount');
             const sInput = document.getElementById('scrollTaskCount');
+            const hInput = document.getElementById('checkedHideDelay');
             let dCount = Math.max(1, Math.min(10, parseInt(dInput.value) || 1));
             let sCount = Math.max(1, Math.min(dCount, parseInt(sInput.value) || 1));
+            let hDelay = Math.max(0, Math.min(60, parseInt(hInput.value) || 0));
 
             dInput.value = dCount;
             sInput.value = sCount;
             sInput.max = dCount;
+            hInput.value = hDelay;
 
             localStorage.setItem('floatWidth', width);
             localStorage.setItem('floatHeight', height);
@@ -3644,6 +3872,8 @@
             displayTaskCount = dCount;
             localStorage.setItem('scrollTaskCount', sCount);
             scrollTaskCount = sCount;
+            localStorage.setItem('checkedHideDelay', hDelay);
+            checkedHideDelay = hDelay;
 
             if (typeof Android !== 'undefined') {
                 if (Android.updateFloatingSettingsExtended) {
@@ -3718,6 +3948,7 @@
             document.getElementById('scrollButtonType').value = 'both';
             document.getElementById('displayTaskCount').value = 1;
             document.getElementById('scrollTaskCount').value = 1;
+            document.getElementById('checkedHideDelay').value = 2;
 
             saveFloatingSettings();
         }

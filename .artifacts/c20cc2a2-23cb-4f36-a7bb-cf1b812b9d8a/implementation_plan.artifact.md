@@ -1,31 +1,33 @@
-# バックボタンによるナビゲーションの改善案（段階的実装）
+# チェック時のコメント欄への補足文章反映とフォーカス制御の実装計画
 
-フローティングウィンドウの設定詳細画面でAndroidのバックボタン（◁）を押した際、アプリが終了するのではなく、設定のメイン画面に戻るように改善します。今回はスコープを絞り、この特定の遷移のみをまず実装します。
+「チェックを入れた時にコメント記入欄を表示」が有効なタスクがチェックされた際、タスクの「補足文章」をコメント記入欄の初期値として表示し、自動的にフォーカスとキーボード表示を行うように修正します。
 
 ## ユーザーレビューが必要な事項
 
-> [!NOTE]
-> 今回の実装対象：
-> 「フローティングウィンドウの設定（詳細）」が表示されている場合にバックボタンを押すと、設定のメイン画面に戻る。
-> それ以外の状態（タスク一覧、履歴、設定メインなど）では、従来通りアプリがバックグラウンドに移動します。
+特になし。動作確認はユーザーが行うとのこと。
 
-## 変更内容
+## 提案される変更
 
-### [app](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app)
-
-#### [MODIFY] [MainActivity.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MainActivity.kt)
-- `onBackPressedDispatcher` を使用してバックボタン入力をハンドリングします。
-- JavaScript の `handleBack()` 関数を呼び出し、戻り値が `true` の場合はアクティビティ側の処理を中断します。
-- 戻り値が `false` の場合は、デフォルトの動作（アプリを閉じる）を実行します。
+### [Component] WebView (index.html)
 
 #### [MODIFY] [index.html](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/index.html)
-- `handleBack()` 関数を追加します。
-- `#settings-floating-detail` が表示されている場合のみ、それを閉じて `true` を返します。
+- `showModal` 関数を修正し、入力フィールド（input/textarea）が表示された場合に自動的にフォーカスを当てるようにします。
+- `editHistoryMemo` 関数を修正し、タスクチェック直後の初回表示（`isInitial = true`）かつ既存のメモが空の場合に、タスクの補足文章（`note`）を初期値としてセットするようにします。
+- フローティングモードのコメント欄表示処理（`render` 関数内）を修正し、タスクの補足文章を `textarea` の初期値としてセットするようにします。
+- キーボードを確実に表示させるため、必要に応じて `Android.showKeyboard()` を呼び出すようにします（後述のネイティブ側修正と合わせる）。
+
+### [Component] Native Interface
+
+#### [MODIFY] [MainActivity.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MainActivity.kt)
+- `WebAppInterface` に `showKeyboard()` メソッドを追加し、WebView のフォーカスに合わせてソフトキーボードを強制的に表示できるようにします。
+
+#### [MODIFY] [FloatingWindowService.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/FloatingWindowService.kt)
+- `FloatingWebAppInterface` に `showKeyboard()` メソッドを追加します。
 
 ## 検証計画
 
-### 手動確認事項（ユーザーに依頼）
-1. 設定タブを選択する。
-2. 「フローティングウィンドウの設定」を開く。
-3. Androidのバックボタンを押して、設定のメイン画面に戻ることを確認する。
-4. 設定のメイン画面で再度バックボタンを押し、アプリが通常通り終了（バックグラウンドへ移動）することを確認する。
+### 手動検証
+1. タスクの編集画面で「補足文章」を入力し、「チェックを入れた時にコメント記入欄を表示」を有効にする。
+2. 管理画面（全画面）でそのタスクにチェックを入れる。
+3. 表示されたコメント入力モーダルの初期値に補足文章が入っていること、フォーカスが当たってキーボードが表示されることを確認する。
+4. フローティングウィンドウでも同様の操作を行い、コメント入力欄に補足文章が入っていること、キーボードが表示されることを確認する。

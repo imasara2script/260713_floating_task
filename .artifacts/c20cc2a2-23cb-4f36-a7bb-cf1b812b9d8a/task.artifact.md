@@ -1,3 +1,7 @@
-- [x] `index.html` に `handleBack` 関数を実装する
-- [x] `MainActivity.kt` にバックボタンのハンドリングロジックを追加する
-- [x] 動作確認用の準備（ユーザーへの依頼準備）
+# タスクリスト：チェック時のコメント欄強化
+
+- `[x]` Native: `MainActivity.kt` に `showKeyboard` インターフェースを追加
+- `[x]` Native: `FloatingWindowService.kt` に `showKeyboard` インターフェースを追加
+- `[x]` Web: `index.html` の `showModal` でオートフォーカスを実装
+- `[x]` Web: `index.html` の `editHistoryMemo` で補足文章を初期値にセットするロジックを追加
+- `[x]` Web: `index.html` のフローティング用コメント欄で補足文章を初期値にセットし、フォーカス・キーボード表示を制御

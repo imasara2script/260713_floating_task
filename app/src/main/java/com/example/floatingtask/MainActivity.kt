@@ -47,6 +47,7 @@ import java.util.Locale
 import androidx.core.app.NotificationCompat
 import java.security.MessageDigest
 import androidx.activity.OnBackPressedCallback
+import android.widget.Toast
 
 class MainActivity : AppCompatActivity() {
 
@@ -57,6 +58,7 @@ class MainActivity : AppCompatActivity() {
     private var isLimitUnlockedByReward = false
     private var lastRewardType: String? = null
     private var overlayPermissionDialog: AlertDialog? = null
+    private var backPressedTime: Long = 0
 
     private fun loadRewardedAd() {
         if (isAdFree) return
@@ -262,10 +264,20 @@ class MainActivity : AppCompatActivity() {
                 val webView: WebView = findViewById(R.id.webView)
                 webView.evaluateJavascript("handleBack()") { result ->
                     if (result == "false" || result == "null") {
-                        // JS側で処理されなかった場合、コールバックを一時的に無効にしてデフォルトの動作を実行
-                        isEnabled = false
-                        onBackPressedDispatcher.onBackPressed()
-                        isEnabled = true
+                        if (backPressedTime + 3000 > System.currentTimeMillis()) {
+                            // 3秒以内に再度押された場合は終了
+                            isEnabled = false
+                            onBackPressedDispatcher.onBackPressed()
+                            isEnabled = true
+                        } else {
+                            // 1回目はメッセージを表示
+                            Toast.makeText(
+                                this@MainActivity,
+                                "もう一度バックボタンを押すとアプリを終了します",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            backPressedTime = System.currentTimeMillis()
+                        }
                     }
                 }
             }
@@ -342,6 +354,15 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun logComment(comment: String) {
             AppLogger.log(mContext, "[USER COMMENT] $comment")
+        }
+
+        @JavascriptInterface
+        fun showKeyboard() {
+            runOnUiThread {
+                val imm = mContext.getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                val webView: WebView = findViewById(R.id.webView)
+                imm.showSoftInput(webView, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+            }
         }
 
         @JavascriptInterface
