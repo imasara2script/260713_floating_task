@@ -1,9 +1,18 @@
-- [x] `FloatingWindowService.kt` に `requestHeight` メソッドを追加
-- [x] `index.html` の `translations` に関連文言を追加
-- [x] `index.html` のタスク編集モーダルにチェックボックスを追加
-- [x] `index.html` のタスク追加/保存ロジックを修正し `showCommentOnCheck` を保存するようにする
-- [x] `index.html` の `toggleTask` を修正し、コメント入力が必要な場合の分岐を追加
-- [x] `index.html` のフローティングウィンドウ用スタイルにコメント入力エリアを追加
-- [x] `index.html` の `render` 関数を修正し、フローティング時のコメント入力 UI を実装
-- [x] `index.html` にフローティング用コメント保存/キャンセルロジックを実装
-- [ ] 動作確認（管理画面でのチェック、フローティングでのチェックとリサイズ）
+# タスクリスト：新規タスク作成時の設定追加
+
+- `[x]` 翻訳テキストの追加 (日本語・英語)
+- `[x]` 設定画面 (index.html) に「新規タスク作成時の設定」ボタンを追加
+- `[x]` 設定画面 (index.html) に詳細設定ビューを追加
+- `[x]` JavaScript ロジックの実装
+    - `[x]` 詳細画面の開閉処理 (`openNewTaskSettings`, `closeNewTaskSettings`)
+    - `[x]` 設定の読み込み・保存処理 (`loadNewTaskSettings`, `updateNewTaskSettings`)
+- `[x]` タスク作成/編集モーダル (`openTaskModal`) の表示制御ロジックの修正
+- `[x]` 動作確認とデバッグ
+
+# タスクリスト：非表示項目の一時表示機能追加
+
+- `[x]` 翻訳テキストの追加 (日本語・英語)
+- `[x]` タスク編集画面に「一時的に表示」ボタンを追加
+- `[x]` 一時表示項目を選択するモーダルを追加
+- `[x]` 表示制御ロジックの共通化と拡張
+- `[x]` 動作確認

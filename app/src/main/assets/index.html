@@ -577,7 +577,8 @@
 
                     <!-- 3. フローティングウィンドウの設定 -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <button class="btn btn-primary" style="width: 100%;" onclick="openFloatingSettings()" data-i18n="btn_floating_settings">フローティングウィンドウの設定</button>
+                        <button class="btn btn-primary" style="width: 100%; margin-bottom: 8px;" onclick="openFloatingSettings()" data-i18n="btn_floating_settings">フローティングウィンドウの設定</button>
+                        <button class="btn btn-primary" style="width: 100%;" onclick="openNewTaskSettings()" data-i18n="btn_new_task_settings">新規タスク作成時の設定</button>
                     </div>
 
                     <!-- 4. データ管理 -->
@@ -608,15 +609,51 @@
                     </div>
                 </div>
 
+                <!-- 新規タスク作成時の設定詳細画面 -->
+                <div id="settings-new-task-detail" style="display: none; font-size: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="font-size: 15px; margin: 0;" data-i18n="new_task_settings_title">新規タスク作成時の設定</h3>
+                        <button class="btn btn-secondary" style="padding: 4px 12px; font-size: 12px;" onclick="closeNewTaskSettings()" data-i18n="btn_done">完了</button>
+                    </div>
+
+                    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #fff;">
+                        <div style="font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 4px;" data-i18n="label_new_task_items">新規タスク追加時に表示する項目</div>
+
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="showTimerOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
+                                <span data-i18n="label_timer_setting">タイマー</span>
+                            </label>
+                        </div>
+
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="showRemindOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
+                                <span data-i18n="label_remind_setting">リマインド通知</span>
+                            </label>
+                        </div>
+
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="showCommentOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
+                                <span data-i18n="label_show_comment_on_check">チェックを入れた時にコメント記入欄を表示</span>
+                            </label>
+                        </div>
+
+                        <div>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="showNoteOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
+                                <span data-i18n="label_note">補足文章</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- フローティングウィンドウ詳細設定画面 -->
                 <div id="settings-floating-detail" style="display: none; font-size: 14px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                         <h3 style="font-size: 15px; margin: 0;" data-i18n="floating_adj_title">フローティングウィンドウ調整</h3>
                         <button class="btn btn-secondary" style="padding: 4px 12px; font-size: 12px;" onclick="closeFloatingSettings()" data-i18n="btn_done">完了</button>
-                    </div>
-
-                    <div style="margin-bottom: 12px; background: #f0f7ff; padding: 8px; border-radius: 6px; font-size: 12px; color: #0056b3; line-height: 1.4;" data-i18n="floating_adj_hint">
-                        ラベル部分を上下にドラッグすると数値を素早く調整できます。
                     </div>
 
                     <!-- 縮小表示モードセクション -->
@@ -668,14 +705,18 @@
                     <div style="border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 16px; background: #fff;">
                         <div style="font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 4px;" data-i18n="section_expanded">展開表示モードの設定</div>
 
-                        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                        <div style="margin-bottom: 12px; background: #f0f7ff; padding: 8px; border-radius: 6px; font-size: 12px; color: #0056b3; line-height: 1.4;" data-i18n="floating_adj_hint">
+                            ラベル部分を上下にドラッグすると数値を素早く調整できます。
+                        </div>
+
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px; background: #f0f7ff; padding: 8px; border-radius: 6px;">
                             <div style="flex: 1;">
                                 <label for="floatWidth" id="labelFloatWidth" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_width">横幅 (px) (ドラッグ):</label>
-                                <input type="number" id="floatWidth" onchange="saveFloatingSettings('expanded')" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                                <input type="number" id="floatWidth" onchange="saveFloatingSettings('expanded')" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: #fff; box-sizing: border-box;">
                             </div>
                             <div style="flex: 1;">
                                 <label for="floatHeight" id="labelFloatHeight" style="display: block; margin-bottom: 4px; cursor: ns-resize; user-select: none;" data-i18n="label_float_height">縦幅 (px) (ドラッグ):</label>
-                                <input type="number" id="floatHeight" onchange="saveFloatingSettings('expanded')" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+                                <input type="number" id="floatHeight" onchange="saveFloatingSettings('expanded')" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: #fff; box-sizing: border-box;">
                             </div>
                         </div>
 
@@ -870,7 +911,7 @@
                     <label for="taskInput" style="display:none;" data-i18n="label_task_name">タスク名:</label>
                     <input type="text" id="taskInput" placeholder="タスク名を入力..." onkeydown="if(event.key==='Enter') addTask()" aria-label="新しいタスク名" data-i18n-placeholder="placeholder_task_name">
                 </div>
-                <div class="timer-group" style="margin-bottom: 12px;">
+                <div class="timer-group" id="timerGroup" style="margin-bottom: 12px;">
                     <label for="timerUnit" style="color: #666; font-size: 14px;" data-i18n="label_timer">タイマー：</label>
                     <select id="timerUnit" onchange="toggleTimerInput(true)" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
                         <option value="none" data-i18n="timer_none">無し</option>
@@ -897,15 +938,18 @@
                     <div id="reminderList"></div>
                     <button class="btn btn-secondary" onclick="addReminderItem()" style="width: 100%; font-size: 13px; margin-top: 4px;" data-i18n="btn_add_reminder">＋通知を追加</button>
                 </div>
-                <div style="margin-bottom: 12px; border-top: 1px solid #eee; padding-top: 12px;">
+                <div id="commentConfigGroup" style="margin-bottom: 12px; border-top: 1px solid #eee; padding-top: 12px;">
                     <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
                         <input type="checkbox" id="showCommentOnCheck">
                         <span data-i18n="label_show_comment_on_check">チェックを入れた時にコメント記入欄を表示</span>
                     </label>
                 </div>
-                <div style="margin-bottom: 20px;">
+                <div id="noteGroup" style="margin-bottom: 20px;">
                     <label for="taskNote" style="color: #666; font-size: 14px; display: block; margin-bottom: 4px;" data-i18n="label_note">補足文章：</label>
                     <textarea id="taskNote" placeholder="補足情報を入力..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; height: 120px; resize: none; box-sizing: border-box;" data-i18n-placeholder="placeholder_note"></textarea>
+                </div>
+                <div style="margin-bottom: 12px; text-align: center;">
+                    <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 12px; background: none; border: 1px solid #ccc; color: #888;" onclick="openTemporaryVisibilityModal()" data-i18n="btn_show_hidden_items">非表示設定の項目を一時的に表示</button>
                 </div>
             </div>
             <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
@@ -914,6 +958,36 @@
                 <button id="modalDeleteBtn" class="btn" style="background: none; border: none; font-size: 24px; padding: 0; display: none;" onclick="deleteTaskFromModal()" title="タスクを削除">🗑️</button>
                 <button class="btn btn-secondary" onclick="closeTaskModal()" data-i18n="btn_cancel">キャンセル</button>
                 <button id="taskModalConfirmBtn" class="btn btn-primary" onclick="addTask()" data-i18n="btn_add">追加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Temporary Visibility Modal -->
+    <div id="tempVisibilityModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 300px;">
+            <div class="modal-title" data-i18n="temp_visibility_title">表示する項目を選択</div>
+            <div style="font-size: 12px; color: #666; margin-bottom: 12px;" data-i18n="label_select_items_to_show">一時的に表示したい項目にチェックを入れてください</div>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+                <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
+                    <input type="checkbox" id="tempShowTimer" style="margin-right: 8px;">
+                    <span data-i18n="label_timer_setting">タイマー</span>
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
+                    <input type="checkbox" id="tempShowRemind" style="margin-right: 8px;">
+                    <span data-i18n="label_remind_setting">リマインド通知</span>
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
+                    <input type="checkbox" id="tempShowComment" style="margin-right: 8px;">
+                    <span data-i18n="label_show_comment_on_check">チェックを入れた時にコメント記入欄を表示</span>
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
+                    <input type="checkbox" id="tempShowNote" style="margin-right: 8px;">
+                    <span data-i18n="label_note">補足文章</span>
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeTemporaryVisibilityModal()" data-i18n="btn_cancel">キャンセル</button>
+                <button class="btn btn-primary" onclick="applyTemporaryVisibility()" data-i18n="btn_ok">OK</button>
             </div>
         </div>
     </div>
@@ -1062,6 +1136,11 @@
                 btn_clear_history: "履歴を削除",
                 settings_title: "設定",
                 btn_floating_settings: "フローティングウィンドウの設定",
+                btn_new_task_settings: "新規タスク作成時の設定",
+                new_task_settings_title: "新規タスク作成時の設定",
+                label_new_task_items: "新規タスク追加時に表示する項目",
+                label_timer_setting: "タイマー",
+                label_remind_setting: "リマインド通知",
                 battery_status_checking: "🔋 バッテリー最適化の状態を確認中...",
                 btn_request_battery: "バッテリー最適化を解除する",
                 alarm_status_checking: "⏰ アラーム権限の状態を確認中...",
@@ -1245,7 +1324,10 @@
                 label_allow_drag: "ドラッグ移動を許可する",
                 label_collapse: "縮小",
                 label_checked_hide_delay: "チェック後に非表示にするまでの秒数",
-                btn_prev_task_title: "前のタスク"
+                btn_prev_task_title: "前のタスク",
+                btn_show_hidden_items: "非表示設定の項目を一時的に表示",
+                temp_visibility_title: "表示する項目を選択",
+                label_select_items_to_show: "一時的に表示したい項目にチェックを入れてください"
             },
             en: {
                 tab_tasks: "Tasks",
@@ -1266,6 +1348,11 @@
                 btn_clear_history: "Clear History",
                 settings_title: "Settings",
                 btn_floating_settings: "Floating Window Settings",
+                btn_new_task_settings: "New Task Creation Settings",
+                new_task_settings_title: "New Task Creation Settings",
+                label_new_task_items: "Items to show when adding a new task",
+                label_timer_setting: "Timer",
+                label_remind_setting: "Remind Notification",
                 battery_status_checking: "🔋 Checking battery optimization...",
                 btn_request_battery: "Exempt from battery optimization",
                 alarm_status_checking: "⏰ Checking alarm permission...",
@@ -1451,7 +1538,10 @@
                 label_allow_drag: "Allow drag movement",
                 label_collapse: "Collapse",
                 label_checked_hide_delay: "Hide delay after checking (sec)",
-                btn_prev_task_title: "Previous Task"
+                btn_prev_task_title: "Previous Task",
+                btn_show_hidden_items: "Temporarily show hidden items",
+                temp_visibility_title: "Select items to show",
+                label_select_items_to_show: "Check the items you want to show temporarily"
             }
         };
 
@@ -1543,7 +1633,15 @@
         let currentCalendarDate = new Date();
         let currentCalendarTaskId = null;
         let editingTaskId = null;
+        let currentDuration = { h: "0", m: "0", s: "0" };
         let currentTaskReminders = [];
+        let tempVisibilityFlags = {
+            timer: false,
+            remind: false,
+            comment: false,
+            note: false
+        };
+        let isDurationPickerRequested = false;
         let selectedCustomUri = null;
         let selectedCustomName = null;
         let isFloatingExpanded = (urlParams.get('expanded') === 'true');
@@ -2266,6 +2364,9 @@
             const deleteBtn = document.getElementById('modalDeleteBtn');
             const editBtn = document.getElementById('modalEditBtn');
 
+            // Reset temp visibility flags
+            tempVisibilityFlags = { timer: false, remind: false, comment: false, note: false };
+
             if (taskId) {
                 const task = tasks.find(t => t.id === taskId);
                 if (historyBtn) historyBtn.style.display = task.durationMs ? 'none' : 'block';
@@ -2279,6 +2380,9 @@
 
                 currentTaskReminders = (task.reminders || []).map(r => ({ ...r, id: Math.random() }));
                 renderReminderList();
+
+                // Visibility control for existing task
+                updateTaskModalVisibility(task);
 
                 // Populate View Mode
                 document.getElementById('viewTaskText').textContent = task.text;
@@ -2354,6 +2458,10 @@
                 if (historyBtn) historyBtn.style.display = 'none';
                 if (deleteBtn) deleteBtn.style.display = 'none';
                 if (editBtn) editBtn.style.display = 'none';
+
+                // Visibility control for new task
+                updateTaskModalVisibility();
+
                 switchToEditMode();
             }
 
@@ -2475,7 +2583,8 @@
             durationBtn.style.display = (unit === 'duration') ? 'inline-block' : 'none';
             timeInput.style.display = (unit === 'at') ? 'inline-block' : 'none';
             melodyGroup.style.display = isVisible ? 'block' : 'none';
-            reminderGroup.style.display = !isVisible ? 'block' : 'none';
+            // reminderGroup visibility is now handled in openTaskModal based on settings
+            // reminderGroup.style.display = !isVisible ? 'block' : 'none';
 
             if (!isManualChange) return;
 
@@ -2487,8 +2596,6 @@
             }
         }
 
-        let currentDuration = { h: "0", m: "0", s: "0" };
-        let isDurationPickerRequested = false;
         function requestDurationPicker() {
             if (isDurationPickerRequested) return;
             isDurationPickerRequested = true;
@@ -2585,6 +2692,8 @@
                     startTime = now.getTime();
                 } else if (unitSelect.value === 'duration') {
                     durationMs = (parseFloat(currentDuration.h) * 3600 + parseFloat(currentDuration.m) * 60 + parseFloat(currentDuration.s)) * 1000;
+                }
+
                 if (durationMs <= 0) {
                     showModal(getTranslation('msg_input_timer_val'), {
                         hideCancel: true,
@@ -2593,9 +2702,8 @@
                     return;
                 }
                 targetTask.durationParts = { ...currentDuration };
-            }
 
-            let melody = melodySelect.value;
+                let melody = melodySelect.value;
                 let melodyName = null;
 
                 if (melody === 'custom' && selectedCustomUri) {
@@ -2766,11 +2874,26 @@
         }
 
         function toggleTask(id) {
-            let historyIdToEdit = null;
+            let taskIdToCompleteWithMemo = null;
             tasks = tasks.map(t => {
                 if (t.id === id) {
                     const newState = !t.completed;
                     if (newState) {
+                        // コメント入力が必要な場合は、ここでは完了処理を行わずに入力へ進む
+                        if (t.showCommentOnCheck) {
+                            if (mode === 'manager') {
+                                taskIdToCompleteWithMemo = id;
+                            } else if (mode === 'floating') {
+                                inputtingCommentForTaskId = id;
+                                if (typeof Android !== 'undefined') {
+                                    if (Android.requestHeight) Android.requestHeight(150);
+                                    if (Android.setFocusable) Android.setFocusable(true);
+                                }
+                            }
+                            return t; // 状態は変えない
+                        }
+
+                        // 通常の完了処理
                         const historyId = Date.now();
                         history.unshift({
                             id: historyId,
@@ -2780,18 +2903,6 @@
                             completedAt: new Date().toISOString()
                         });
                         if (history.length > 500) history.pop();
-
-                        if (t.showCommentOnCheck) {
-                            if (mode === 'manager') {
-                                historyIdToEdit = historyId;
-                            } else if (mode === 'floating') {
-                                inputtingCommentForTaskId = id;
-                                if (typeof Android !== 'undefined') {
-                                    if (Android.requestHeight) Android.requestHeight(150);
-                                    if (Android.setFocusable) Android.setFocusable(true);
-                                }
-                            }
-                        }
 
                         t.justCompletedUntil = Date.now() + (checkedHideDelay * 1000);
                         setTimeout(() => render(), checkedHideDelay * 1000);
@@ -2819,8 +2930,8 @@
                 return t;
             });
             saveTasks();
-            if (historyIdToEdit) {
-                editHistoryMemo(historyIdToEdit, true);
+            if (taskIdToCompleteWithMemo) {
+                editHistoryMemo(null, true, taskIdToCompleteWithMemo);
             }
         }
 
@@ -3096,20 +3207,24 @@
             `).join('');
         }
 
-        function editHistoryMemo(historyId, isInitial = false) {
-            const h = history.find(item => item.id === historyId);
-            if (!h) return;
-
-            const dateStr = new Date(h.completedAt).toLocaleString();
-            const modalTitle = `${getTranslation('modal_edit_memo_title')}<div style="font-size: 14px; font-weight: normal; margin-top: 8px; color: #666; word-break: break-all;">${h.text}<br>${dateStr}</div>`;
-
-            let initialMemo = h.memo || "";
-            if (isInitial && !initialMemo) {
-                const task = tasks.find(t => t.id === h.taskId);
-                if (task && task.note) {
-                    initialMemo = task.note;
-                }
+        function editHistoryMemo(historyId, isInitial = false, taskId = null) {
+            let h, task;
+            if (historyId) {
+                h = history.find(item => item.id === historyId);
+                if (!h) return;
+                task = tasks.find(t => t.id === h.taskId);
+            } else if (taskId) {
+                task = tasks.find(t => t.id === taskId);
+                if (!task) return;
+            } else {
+                return;
             }
+
+            const dateStr = h ? new Date(h.completedAt).toLocaleString() : new Date().toLocaleString();
+            const taskText = h ? h.text : task.text;
+            const modalTitle = `${getTranslation('modal_edit_memo_title')}<div style="font-size: 14px; font-weight: normal; margin-top: 8px; color: #666; word-break: break-all;">${taskText}<br>${dateStr}</div>`;
+
+            let initialMemo = (h && h.memo) ? h.memo : (task ? (task.note || "") : "");
 
             showModal(modalTitle, {
                 useHTML: true,
@@ -3118,27 +3233,51 @@
                 placeholder: getTranslation('placeholder_history_memo'),
                 cancelText: getTranslation('btn_no_comment'),
                 onConfirm: (val) => {
-                    saveHistoryMemo(historyId, val);
-                },
-                onCancel: () => {
-                    if (isInitial) {
-                        undoTaskCompletion(h.taskId, historyId);
+                    if (isInitial && taskId) {
+                        completeTaskWithMemo(taskId, val);
+                    } else if (historyId) {
+                        saveHistoryMemo(historyId, val);
                     }
                 }
             });
         }
 
-        function undoTaskCompletion(taskId, historyId) {
+        function completeTaskWithMemo(taskId, memo) {
             tasks = tasks.map(t => {
                 if (t.id === taskId) {
-                    if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
-                        Android.updateTaskCompletionState(t.id, false);
+                    // 履歴の作成
+                    const historyId = Date.now();
+                    history.unshift({
+                        id: historyId,
+                        taskId: t.id,
+                        text: t.text,
+                        memo: memo,
+                        completedAt: new Date().toISOString()
+                    });
+                    if (history.length > 500) history.pop();
+
+                    t.justCompletedUntil = Date.now() + (checkedHideDelay * 1000);
+                    setTimeout(() => render(), checkedHideDelay * 1000);
+
+                    // 連続実行回数の更新
+                    if (!t.durationMs) {
+                        const today = new Date().toDateString();
+                        const yesterday = new Date(Date.now() - 86400000).toDateString();
+                        if (t.lastCompletedDate === yesterday) {
+                            t.streak = (t.streak || 0) + 1;
+                        } else if (t.lastCompletedDate !== today) {
+                            t.streak = 1;
+                        }
+                        t.lastCompletedDate = today;
                     }
-                    return { ...t, completed: false };
+
+                    if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
+                        Android.updateTaskCompletionState(t.id, true);
+                    }
+                    return { ...t, completed: true };
                 }
                 return t;
             });
-            history = history.filter(h => h.id !== historyId);
             saveTasks();
         }
 
@@ -3163,35 +3302,23 @@
             const taskId = inputtingCommentForTaskId;
             if (taskId === null) return;
 
-            // 最新の履歴（そのタスクの最新）にメモを保存
-            const latestHistory = history.find(h => h.taskId === taskId);
-            if (latestHistory) {
-                latestHistory.memo = memo;
-            }
+            completeTaskWithMemo(taskId, memo);
 
             inputtingCommentForTaskId = null;
             if (typeof Android !== 'undefined') {
                 if (Android.toggleExpand) Android.toggleExpand(true);
                 if (Android.setFocusable) Android.setFocusable(false);
             }
-            saveTasks();
+            // completeTaskWithMemo 内で saveTasks() されるためここでは不要
         }
 
         function cancelFloatingComment() {
-            const taskId = inputtingCommentForTaskId;
-            if (taskId !== null) {
-                // 最新の履歴（そのタスクの最新）を特定して削除
-                const latestHistory = history.find(h => h.taskId === taskId);
-                if (latestHistory) {
-                    undoTaskCompletion(taskId, latestHistory.id);
-                }
-            }
             inputtingCommentForTaskId = null;
             if (typeof Android !== 'undefined') {
                 if (Android.toggleExpand) Android.toggleExpand(true);
                 if (Android.setFocusable) Android.setFocusable(false);
             }
-            // undoTaskCompletion 内で saveTasks() されるためここでは不要
+            render();
         }
 
         function finishFloatingComment() {
@@ -3637,13 +3764,6 @@
 
                 // フローティング設定を反映
                 loadFloatingSettings();
-
-                // フローティング設定画面が開いたままならフローティングを表示
-                if (document.getElementById('settings-floating-detail').style.display === 'block') {
-                    if (typeof Android !== 'undefined' && Android.startFloatingWindow) {
-                        Android.startFloatingWindow();
-                    }
-                }
             } else {
                 document.documentElement.style.height = '100%';
                 document.body.style.height = '100%';
@@ -3676,10 +3796,6 @@
             document.getElementById('settings-main-view').style.display = 'none';
             document.getElementById('settings-floating-detail').style.display = 'block';
             renderColorRules();
-            if (typeof Android !== 'undefined' && Android.startFloatingWindow) {
-                Android.startFloatingWindow();
-                toggleFloatingExpand(true);
-            }
         }
 
         function closeFloatingSettings() {
@@ -3688,6 +3804,78 @@
             if (typeof Android !== 'undefined' && Android.stopFloatingWindow) {
                 Android.stopFloatingWindow();
             }
+        }
+
+        function openNewTaskSettings() {
+            document.getElementById('settings-main-view').style.display = 'none';
+            document.getElementById('settings-new-task-detail').style.display = 'block';
+            loadNewTaskSettings();
+        }
+
+        function closeNewTaskSettings() {
+            document.getElementById('settings-main-view').style.display = 'block';
+            document.getElementById('settings-new-task-detail').style.display = 'none';
+        }
+
+        function loadNewTaskSettings() {
+            const showTimer = localStorage.getItem('showTimerOnCreate') === 'true';
+            const showRemind = localStorage.getItem('showRemindOnCreate') === 'true';
+            const showComment = localStorage.getItem('showCommentOnCreate') === 'true';
+            const showNote = localStorage.getItem('showNoteOnCreate') === 'true';
+            document.getElementById('showTimerOnCreate').checked = showTimer;
+            document.getElementById('showRemindOnCreate').checked = showRemind;
+            document.getElementById('showCommentOnCreate').checked = showComment;
+            document.getElementById('showNoteOnCreate').checked = showNote;
+        }
+
+        function updateNewTaskSettings() {
+            const showTimer = document.getElementById('showTimerOnCreate').checked;
+            const showRemind = document.getElementById('showRemindOnCreate').checked;
+            const showComment = document.getElementById('showCommentOnCreate').checked;
+            const showNote = document.getElementById('showNoteOnCreate').checked;
+            localStorage.setItem('showTimerOnCreate', showTimer);
+            localStorage.setItem('showRemindOnCreate', showRemind);
+            localStorage.setItem('showCommentOnCreate', showComment);
+            localStorage.setItem('showNoteOnCreate', showNote);
+        }
+
+        function openTemporaryVisibilityModal() {
+            document.getElementById('tempShowTimer').checked = document.getElementById('timerGroup').style.display === 'block';
+            document.getElementById('tempShowRemind').checked = document.getElementById('reminderGroup').style.display === 'block';
+            document.getElementById('tempShowComment').checked = document.getElementById('commentConfigGroup').style.display === 'block';
+            document.getElementById('tempShowNote').checked = document.getElementById('noteGroup').style.display === 'block';
+            document.getElementById('tempVisibilityModal').style.display = 'flex';
+        }
+
+        function closeTemporaryVisibilityModal() {
+            document.getElementById('tempVisibilityModal').style.display = 'none';
+        }
+
+        function applyTemporaryVisibility() {
+            tempVisibilityFlags.timer = document.getElementById('tempShowTimer').checked;
+            tempVisibilityFlags.remind = document.getElementById('tempShowRemind').checked;
+            tempVisibilityFlags.comment = document.getElementById('tempShowComment').checked;
+            tempVisibilityFlags.note = document.getElementById('tempShowNote').checked;
+
+            updateTaskModalVisibility();
+            closeTemporaryVisibilityModal();
+        }
+
+        function updateTaskModalVisibility(task = null) {
+            const showTimerSetting = localStorage.getItem('showTimerOnCreate') === 'true';
+            const showRemindSetting = localStorage.getItem('showRemindOnCreate') === 'true';
+            const showCommentSetting = localStorage.getItem('showCommentOnCreate') === 'true';
+            const showNoteSetting = localStorage.getItem('showNoteOnCreate') === 'true';
+
+            const hasTimer = task ? !!task.durationMs : false;
+            const hasReminders = task ? (task.reminders && task.reminders.length > 0) : false;
+            const hasCommentConfig = task ? !!task.showCommentOnCheck : false;
+            const hasNote = task ? !!task.note : false;
+
+            document.getElementById('timerGroup').style.display = (showTimerSetting || hasTimer || tempVisibilityFlags.timer) ? 'block' : 'none';
+            document.getElementById('reminderGroup').style.display = (showRemindSetting || hasReminders || tempVisibilityFlags.remind) ? 'block' : 'none';
+            document.getElementById('commentConfigGroup').style.display = (showCommentSetting || hasCommentConfig || tempVisibilityFlags.comment) ? 'block' : 'none';
+            document.getElementById('noteGroup').style.display = (showNoteSetting || hasNote || tempVisibilityFlags.note) ? 'block' : 'none';
         }
 
         function loadFloatingSettings() {
