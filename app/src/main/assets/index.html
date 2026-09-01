@@ -353,6 +353,7 @@
         }
         #taskModal { z-index: 1050; }
         #customModal { z-index: 1100; }
+        #tempVisibilityModal { z-index: 1150; }
         .modal-content {
             background: white;
             padding: 20px;
@@ -901,8 +902,10 @@
                 <div id="viewTaskText" style="font-size: 18px; font-weight: bold; margin-bottom: 12px; word-break: break-all;"></div>
                 <div id="viewTaskTimer" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none;"></div>
                 <div id="viewTaskReminders" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none; background: #f0f7ff; padding: 8px; border-radius: 6px;"></div>
-                <div style="color: #666; font-size: 12px; margin-bottom: 4px;" data-i18n="label_note">補足文章：</div>
-                <div id="viewTaskNote" style="font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 6px; min-height: 40px; white-space: pre-wrap; margin-bottom: 20px; border: 1px solid #eee; word-break: break-all;"></div>
+                <div id="viewNoteGroup">
+                    <div style="color: #666; font-size: 12px; margin-bottom: 4px;" data-i18n="label_note">補足文章：</div>
+                    <div id="viewTaskNote" style="font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 6px; min-height: 40px; white-space: pre-wrap; margin-bottom: 20px; border: 1px solid #eee; word-break: break-all;"></div>
+                </div>
             </div>
 
             <!-- Edit Mode Container -->
@@ -924,13 +927,16 @@
                 </div>
                 <div id="melodyGroup" style="margin-bottom: 12px; display: none;">
                     <label for="melodySelect" style="color: #666; font-size: 14px;" data-i18n="label_melody">メロディ：</label>
-                    <select id="melodySelect" onchange="handleMelodyChange()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
-                        <option value="none" data-i18n="melody_none">なし</option>
-                        <option value="default" data-i18n="melody_default">デフォルト</option>
-                        <option value="alarm" data-i18n="melody_alarm">アラーム音</option>
-                        <option value="chime" data-i18n="melody_chime">チャイム</option>
-                        <option value="custom" data-i18n="melody_custom">端末内から選択...</option>
-                    </select>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <select id="melodySelect" onchange="handleMelodyChange()" style="flex-grow: 1; padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                            <option value="none" data-i18n="melody_none">なし</option>
+                            <option value="default" data-i18n="melody_default">デフォルト</option>
+                            <option value="alarm" data-i18n="melody_alarm">アラーム音</option>
+                            <option value="chime" data-i18n="melody_chime">チャイム</option>
+                            <option value="custom" data-i18n="melody_custom">端末内から選択...</option>
+                        </select>
+                        <button id="btn-test-melody" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;" onclick="toggleMelodyTest()" data-i18n="btn_test_melody">テスト</button>
+                    </div>
                     <div id="customMelodyName" style="font-size: 11px; color: #666; margin-top: 4px; display: none;"></div>
                 </div>
                 <div id="reminderGroup" style="margin-bottom: 12px; display: none; border-top: 1px solid #eee; padding-top: 12px;">
@@ -1135,10 +1141,10 @@
                 btn_back: "戻る",
                 btn_clear_history: "履歴を削除",
                 settings_title: "設定",
-                btn_floating_settings: "フローティングウィンドウの設定",
-                btn_new_task_settings: "新規タスク作成時の設定",
-                new_task_settings_title: "新規タスク作成時の設定",
-                label_new_task_items: "新規タスク追加時に表示する項目",
+                btn_floating_settings: "フローティングウィンドウ",
+                btn_new_task_settings: "新規タスク作成時",
+                new_task_settings_title: "新規タスク作成時",
+                label_new_task_items: "タスク追加・編集時に表示する項目",
                 label_timer_setting: "タイマー",
                 label_remind_setting: "リマインド通知",
                 battery_status_checking: "🔋 バッテリー最適化の状態を確認中...",
@@ -1306,8 +1312,8 @@
                 msg_ad_limit_reached: "本日の広告視聴回数が上限に達しました。",
                 btn_use_coin: "コインを消費して実行 (-1)",
                 btn_watch_ad: "広告を視聴して実行",
-                section_collapsed: "縮小表示モードの設定",
-                section_expanded: "展開表示モードの設定",
+                section_collapsed: "縮小表示モード",
+                section_expanded: "展開表示モード",
                 label_show_when_zero: "未完のタスクがゼロでも表示する",
                 label_always_move_collapsed: "縮小時は常に設定された位置に移動する",
                 label_always_move_expanded: "展開時は常に設定された位置に移動する",
@@ -1327,7 +1333,10 @@
                 btn_prev_task_title: "前のタスク",
                 btn_show_hidden_items: "非表示設定の項目を一時的に表示",
                 temp_visibility_title: "表示する項目を選択",
-                label_select_items_to_show: "一時的に表示したい項目にチェックを入れてください"
+                label_select_items_to_show: "一時的に表示したい項目にチェックを入れてください",
+                btn_ok: "OK",
+                btn_test_melody: "テスト再生",
+                btn_stop_melody: "停止"
             },
             en: {
                 tab_tasks: "Tasks",
@@ -1347,10 +1356,10 @@
                 btn_back: "Back",
                 btn_clear_history: "Clear History",
                 settings_title: "Settings",
-                btn_floating_settings: "Floating Window Settings",
-                btn_new_task_settings: "New Task Creation Settings",
-                new_task_settings_title: "New Task Creation Settings",
-                label_new_task_items: "Items to show when adding a new task",
+                btn_floating_settings: "Floating Window",
+                btn_new_task_settings: "New Task Creation",
+                new_task_settings_title: "New Task Creation",
+                label_new_task_items: "Items to show when adding or editing a task",
                 label_timer_setting: "Timer",
                 label_remind_setting: "Remind Notification",
                 battery_status_checking: "🔋 Checking battery optimization...",
@@ -1520,8 +1529,8 @@
                 msg_ad_limit_reached: "Daily ad limit reached.",
                 btn_use_coin: "Use coin to skip (-1)",
                 btn_watch_ad: "Watch Ad",
-                section_collapsed: "Collapsed Mode Settings",
-                section_expanded: "Expanded Mode Settings",
+                section_collapsed: "Collapsed Mode",
+                section_expanded: "Expanded Mode",
                 label_show_when_zero: "Show even if no pending tasks",
                 label_always_move_collapsed: "Always move to set position (Collapsed)",
                 label_always_move_expanded: "Always move to set position (Expanded)",
@@ -1541,7 +1550,10 @@
                 btn_prev_task_title: "Previous Task",
                 btn_show_hidden_items: "Temporarily show hidden items",
                 temp_visibility_title: "Select items to show",
-                label_select_items_to_show: "Check the items you want to show temporarily"
+                label_select_items_to_show: "Check the items you want to show temporarily",
+                btn_ok: "OK",
+                btn_test_melody: "Test",
+                btn_stop_melody: "Stop"
             }
         };
 
@@ -1635,6 +1647,7 @@
         let editingTaskId = null;
         let currentDuration = { h: "0", m: "0", s: "0" };
         let currentTaskReminders = [];
+        let isMelodyTesting = false;
         let tempVisibilityFlags = {
             timer: false,
             remind: false,
@@ -1799,6 +1812,9 @@
         }
 
         function handleMelodyChange() {
+            if (isMelodyTesting) {
+                stopMelodyTest();
+            }
             const select = document.getElementById('melodySelect');
             if (select.value === 'custom') {
                 if (typeof Android !== 'undefined' && Android.pickRingtone) {
@@ -1812,6 +1828,9 @@
         }
 
         function onRingtoneSelected(uri, title) {
+            if (isMelodyTesting) {
+                stopMelodyTest();
+            }
             selectedCustomUri = uri;
             selectedCustomName = title;
             const nameEl = document.getElementById('customMelodyName');
@@ -2474,6 +2493,9 @@
         }
 
         function closeTaskModal() {
+            if (isMelodyTesting) {
+                stopMelodyTest();
+            }
             document.getElementById('taskModal').style.display = 'none';
             if (document.getElementById('modalHistoryBtn')) {
                 document.getElementById('modalHistoryBtn').style.display = 'none';
@@ -2485,6 +2507,47 @@
                 document.getElementById('modalEditBtn').style.display = 'none';
             }
             editingTaskId = null;
+        }
+
+        function toggleMelodyTest() {
+            if (isMelodyTesting) {
+                stopMelodyTest();
+            } else {
+                playMelodyTest();
+            }
+        }
+
+        function playMelodyTest() {
+            const melodySelect = document.getElementById('melodySelect');
+            let melody = melodySelect.value;
+            if (melody === 'none') return;
+
+            if (melody === 'custom' && selectedCustomUri) {
+                melody = selectedCustomUri;
+            }
+
+            if (typeof Android !== 'undefined' && Android.playMelody) {
+                Android.playMelody(melody);
+            }
+
+            isMelodyTesting = true;
+            const btn = document.getElementById('btn-test-melody');
+            if (btn) {
+                btn.textContent = getTranslation('btn_stop_melody');
+                btn.classList.replace('btn-secondary', 'btn-danger');
+            }
+        }
+
+        function stopMelodyTest() {
+            if (typeof Android !== 'undefined' && Android.stopMelody) {
+                Android.stopMelody();
+            }
+            isMelodyTesting = false;
+            const btn = document.getElementById('btn-test-melody');
+            if (btn) {
+                btn.textContent = getTranslation('btn_test_melody');
+                btn.classList.replace('btn-danger', 'btn-secondary');
+            }
         }
 
         function viewHistoryFromModal() {
@@ -3876,6 +3939,11 @@
             document.getElementById('reminderGroup').style.display = (showRemindSetting || hasReminders || tempVisibilityFlags.remind) ? 'block' : 'none';
             document.getElementById('commentConfigGroup').style.display = (showCommentSetting || hasCommentConfig || tempVisibilityFlags.comment) ? 'block' : 'none';
             document.getElementById('noteGroup').style.display = (showNoteSetting || hasNote || tempVisibilityFlags.note) ? 'block' : 'none';
+
+            const viewNoteGroup = document.getElementById('viewNoteGroup');
+            if (viewNoteGroup) {
+                viewNoteGroup.style.display = (showNoteSetting || hasNote || tempVisibilityFlags.note) ? 'block' : 'none';
+            }
         }
 
         function loadFloatingSettings() {

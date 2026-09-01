@@ -707,5 +707,15 @@ class FloatingWindowService : Service() {
                 imm.showSoftInput(webView, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
             }
         }
+
+        @JavascriptInterface
+        fun playMelody(melody: String) {
+            MelodyPlayer.play(this@FloatingWindowService, melody)
+        }
+
+        @JavascriptInterface
+        fun stopMelody() {
+            MelodyPlayer.stop()
+        }
     }
 }

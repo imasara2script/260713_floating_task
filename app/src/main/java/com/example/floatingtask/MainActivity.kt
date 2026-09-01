@@ -859,6 +859,16 @@ class MainActivity : AppCompatActivity() {
             return java.util.Locale.getDefault().language
         }
 
+        @JavascriptInterface
+        fun playMelody(melody: String) {
+            MelodyPlayer.play(mContext, melody)
+        }
+
+        @JavascriptInterface
+        fun stopMelody() {
+            MelodyPlayer.stop()
+        }
+
         private fun sha256(input: String): String {
             val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
             return bytes.joinToString("") { "%02x".format(it) }
