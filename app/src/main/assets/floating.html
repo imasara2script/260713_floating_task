@@ -336,12 +336,40 @@
                     buttonsWidth += counterWidth;
 
                     let tasksHtml = '';
+                    let lastKey = null;
+
+                    const getGroupKey = (t) => {
+                        if (!t.selectedDays || t.selectedDays.length === 0) return 'daily';
+                        return t.selectedDays.sort((a, b) => a - b).join(',');
+                    };
+
                     tasksToShow.forEach((t, i) => {
+                        const key = getGroupKey(t);
+                        // 前のアイテムとグループが異なる場合（またはページの先頭でデイリー以外の場合）にヘッダーを表示
+                        if (key !== lastKey) {
+                            if (key !== 'daily') {
+                                const headerText = getTaskDaysText(t);
+                                tasksHtml += `
+                                    <div style="font-size: 10px; font-weight: bold; margin-top: 6px; margin-bottom: 2px; border-bottom: 1px solid rgba(0,0,0,0.1); opacity: 0.7; padding-bottom: 1px;">
+                                        ${headerText}
+                                    </div>
+                                `;
+                            } else if (i > 0 && lastKey !== null) {
+                                // 途中でデイリーに戻る場合
+                                tasksHtml += `
+                                    <div style="font-size: 10px; font-weight: bold; margin-top: 6px; margin-bottom: 2px; border-bottom: 1px solid rgba(0,0,0,0.1); opacity: 0.7; padding-bottom: 1px;">
+                                        ${getTranslation('header_title').replace('管理', '')}
+                                    </div>
+                                `;
+                            }
+                            lastKey = key;
+                        }
+
                         const isTimer = !!t.durationMs;
                         const timerDisplay = isTimer ? (timerDisplayMode === 'countdown' ? `${getRemainingTimeTextDetailed(t)} / ${getTotalTimeText(t)}` : getEndTimeText(t)) : '';
                         const isExpired = isTimer && (t.startTime + t.durationMs <= Date.now());
                         tasksHtml += `
-                            <div style="display: flex; align-items: center; min-width: 0; margin-bottom: 2px;">
+                            <div style="display: flex; align-items: center; min-width: 0; margin-bottom: 2px; padding-left: 2px;">
                                 ${t.showCommentOnCheck && !t.completed ? `<span onclick="toggleTask(${t.id})" style="cursor:pointer; margin-right:6px; font-size:14px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px;">✏️</span>` : `<input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})" style="width: 16px; height: 16px; margin-right: 6px; flex-shrink: 0;">`}
                                 ${isTimer && !t.completed ? `<div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-right: 6px; opacity: 0.9;"><span class="floating-timer-badge ${isExpired ? 'timer-expired' : ''}" data-task-id="${t.id}" onclick="toggleTimerDisplayMode()" style="font-variant-numeric: tabular-nums; cursor:pointer; background: #ffc107; padding: 1px 4px; border-radius: 3px; font-weight: bold; font-size: 10px; white-space: nowrap;">${timerDisplay}</span><button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size: 12px; padding: 0; background: none; border: none; cursor: pointer;">🔄</button></div>` : ''}
                                 <span class="floating-task-text" style="font-size: 14px; font-weight: bold; margin: 0; flex-grow: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; ${t.completed ? 'text-decoration: line-through; color: #888;' : ''}">${t.text}</span>

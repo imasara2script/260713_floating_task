@@ -140,6 +140,20 @@ function refreshData() {
 }
 window.refreshData = refreshData;
 
+function getTaskDaysText(task) {
+    if (!task.selectedDays || task.selectedDays.length === 0) return '';
+    const daysMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    return task.selectedDays.map(d => getTranslation('calendar_' + daysMap[d])).join(', ');
+}
+window.getTaskDaysText = getTaskDaysText;
+
+function getTaskTimerInfo(t) {
+    if (t.targetTime) return '⏰ ' + t.targetTime;
+    if (t.durationMs) return '⏳ ' + getTotalTimeText(t);
+    return '';
+}
+window.getTaskTimerInfo = getTaskTimerInfo;
+
 function getTotalTimeText(t) {
     if (!t.durationMs) return '';
     const hoursFloat = t.durationMs / 3600000;
@@ -207,14 +221,31 @@ window.getEndTimeText = getEndTimeText;
 
 function getVisibleFloatingTasks() {
     const now = Date.now();
+    const getGroupKey = (t) => {
+        if (!t.selectedDays || t.selectedDays.length === 0) return '0_daily';
+        return '1_' + t.selectedDays.sort((a, b) => a - b).join(',');
+    };
+
     const pendingSorted = tasks.filter(t => !t.completed || (t.justCompletedUntil && now < t.justCompletedUntil)).sort((a, b) => {
+        // 1. タイマー優先
         const aIsTimer = !!a.durationMs;
         const bIsTimer = !!b.durationMs;
         if (aIsTimer !== bIsTimer) return aIsTimer ? -1 : 1;
+
+        // 2. 曜日設定でグループ化
+        const aKey = getGroupKey(a);
+        const bKey = getGroupKey(b);
+        if (aKey !== bKey) return aKey.localeCompare(bKey);
+
         return 0;
     });
     if (showAllInFloating) {
-        return [...pendingSorted, ...tasks.filter(t => t.completed)];
+        const completedSorted = tasks.filter(t => t.completed).sort((a, b) => {
+            const aKey = getGroupKey(a);
+            const bKey = getGroupKey(b);
+            return aKey.localeCompare(bKey);
+        });
+        return [...pendingSorted, ...completedSorted];
     }
     return pendingSorted;
 }
