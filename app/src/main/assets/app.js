@@ -1,6 +1,9 @@
 const urlParams = new URLSearchParams(window.location.search);
 const mode = urlParams.get('mode') || 'manager';
+window.urlParams = urlParams;
+window.mode = mode;
 let currentLang = 'ja';
+window.currentLang = currentLang;
 
 function getTranslation(key, ...args) {
     let text = (translations[currentLang] && translations[currentLang][key]) || translations['en'][key] || key;
@@ -9,6 +12,7 @@ function getTranslation(key, ...args) {
     });
     return text;
 }
+window.getTranslation = getTranslation;
 
 function updateLanguagePreference() {
     const select = document.getElementById('languageSelect');
@@ -19,6 +23,7 @@ function updateLanguagePreference() {
         Android.setAppLanguage(lang);
     }
 }
+window.updateLanguagePreference = updateLanguagePreference;
 
 function setLanguageInitial(lang) {
     localStorage.setItem('appLanguage', lang);
@@ -28,6 +33,7 @@ function setLanguageInitial(lang) {
     }
     document.getElementById('languageModal').style.display = 'none';
 }
+window.setLanguageInitial = setLanguageInitial;
 
 function applyLanguage() {
     const savedLang = localStorage.getItem('appLanguage') || 'system';
@@ -37,6 +43,7 @@ function applyLanguage() {
     } else {
         currentLang = savedLang;
     }
+    window.currentLang = currentLang;
 
     const select = document.getElementById('languageSelect');
     if (select) select.value = savedLang;
@@ -57,21 +64,31 @@ function applyLanguage() {
         render();
     }
 }
+window.applyLanguage = applyLanguage;
 
 let isAdFree = false;
 let isPremium = false;
+window.isAdFree = isAdFree;
+window.isPremium = isPremium;
 
 function checkAdFree() {
     if (typeof Android !== 'undefined') {
         if (Android.isAdFree) isAdFree = Android.isAdFree();
         if (Android.isPremium) isPremium = Android.isPremium();
     }
+    window.isAdFree = isAdFree;
+    window.isPremium = isPremium;
 }
+window.checkAdFree = checkAdFree;
 
 let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
 let history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
 let calendarMark = localStorage.getItem('calendarMark') || '⭕';
 let bgThresholds = JSON.parse(localStorage.getItem('bgThresholds') || '[]');
+window.tasks = tasks;
+window.history = history;
+window.calendarMark = calendarMark;
+window.bgThresholds = bgThresholds;
 
 if (bgThresholds.length === 0 && localStorage.getItem('bgThresholds') === null) {
     bgThresholds = [
@@ -79,6 +96,7 @@ if (bgThresholds.length === 0 && localStorage.getItem('bgThresholds') === null) 
         { threshold: 600, bgColor: '#ffc0cb', textColor: '#d9534f' }   // 10分以下 -> ピンク
     ];
     localStorage.setItem('bgThresholds', JSON.stringify(bgThresholds));
+    window.bgThresholds = bgThresholds;
 }
 
 let showAllInFloating = localStorage.getItem('showAllInFloating') === 'true';
@@ -86,6 +104,11 @@ let displayTaskCount = parseInt(localStorage.getItem('displayTaskCount') || '1')
 let scrollTaskCount = parseInt(localStorage.getItem('scrollTaskCount') || '1');
 let checkedHideDelay = parseInt(localStorage.getItem('checkedHideDelay') || '2');
 let timerDisplayMode = 'countdown'; // 'countdown' or 'endtime'
+window.showAllInFloating = showAllInFloating;
+window.displayTaskCount = displayTaskCount;
+window.scrollTaskCount = scrollTaskCount;
+window.checkedHideDelay = checkedHideDelay;
+window.timerDisplayMode = timerDisplayMode;
 
 function saveTasks() {
     localStorage.setItem('tasks', JSON.stringify(tasks));
@@ -95,12 +118,17 @@ function saveTasks() {
         Android.onDataChanged();
     }
 }
+window.saveTasks = saveTasks;
 
 function refreshData() {
     tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
     history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
     displayTaskCount = parseInt(localStorage.getItem('displayTaskCount') || '1');
     scrollTaskCount = parseInt(localStorage.getItem('scrollTaskCount') || '1');
+    window.tasks = tasks;
+    window.history = history;
+    window.displayTaskCount = displayTaskCount;
+    window.scrollTaskCount = scrollTaskCount;
 
     checkAdFree();
 
@@ -110,6 +138,7 @@ function refreshData() {
     if (typeof updateOverlayStatus === 'function') updateOverlayStatus();
     if (typeof render === 'function') render();
 }
+window.refreshData = refreshData;
 
 function getTotalTimeText(t) {
     if (!t.durationMs) return '';
@@ -125,6 +154,7 @@ function getTotalTimeText(t) {
     if (secs > 0 || res === '') res += secs + getTranslation('unit_sec');
     return res;
 }
+window.getTotalTimeText = getTotalTimeText;
 
 function getRemainingTimeText(t) {
     if (!t.durationMs) return '';
@@ -143,6 +173,7 @@ function getRemainingTimeText(t) {
     const secs = Math.floor((remaining % 60000) / 1000);
     return `${secs}${getTranslation('unit_sec')}`;
 }
+window.getRemainingTimeText = getRemainingTimeText;
 
 function getRemainingTimeTextDetailed(t) {
     if (!t.durationMs) return '';
@@ -162,6 +193,7 @@ function getRemainingTimeTextDetailed(t) {
     }
     return `${secs}${getTranslation('unit_sec')}`;
 }
+window.getRemainingTimeTextDetailed = getRemainingTimeTextDetailed;
 
 function getEndTimeText(t) {
     if (!t.startTime || !t.durationMs) return '';
@@ -171,6 +203,7 @@ function getEndTimeText(t) {
     const ss = String(endTime.getSeconds()).padStart(2, '0');
     return `${hh}:${mm}:${ss} ${currentLang === 'ja' ? '終了' : 'End'}`;
 }
+window.getEndTimeText = getEndTimeText;
 
 function getVisibleFloatingTasks() {
     const now = Date.now();
@@ -185,12 +218,15 @@ function getVisibleFloatingTasks() {
     }
     return pendingSorted;
 }
+window.getVisibleFloatingTasks = getVisibleFloatingTasks;
 
 function toggleShowAllInFloating() {
     showAllInFloating = !showAllInFloating;
+    window.showAllInFloating = showAllInFloating;
     localStorage.setItem('showAllInFloating', showAllInFloating);
     if (typeof render === 'function') render();
 }
+window.toggleShowAllInFloating = toggleShowAllInFloating;
 
 function checkDailyReset() {
     const lastReset = localStorage.getItem('lastResetDate');
@@ -219,6 +255,7 @@ function checkDailyReset() {
 
             return updatedTask;
         });
+        window.tasks = tasks;
         localStorage.setItem('lastResetDate', today);
         saveTasks();
     }
@@ -244,6 +281,7 @@ function checkDailyReset() {
                 completedAt: new Date().toISOString()
             });
             if (history.length > 500) history.pop();
+            window.history = history;
             saveTasks();
             if (typeof updateCoinDisplay === 'function') updateCoinDisplay();
 
@@ -254,3 +292,48 @@ function checkDailyReset() {
     }
     refreshData();
 }
+window.checkDailyReset = checkDailyReset;
+
+function completeTaskWithMemo(taskId, memo) {
+    tasks = tasks.map(t => {
+        if (t.id === taskId) {
+            // 履歴の作成
+            const historyId = Date.now();
+            history.unshift({
+                id: historyId,
+                taskId: t.id,
+                text: t.text,
+                memo: memo,
+                completedAt: new Date().toISOString()
+            });
+            if (history.length > 500) history.pop();
+
+            t.justCompletedUntil = Date.now() + (checkedHideDelay * 1000);
+            setTimeout(() => {
+                if (typeof render === 'function') render();
+            }, checkedHideDelay * 1000);
+
+            // 連続実行回数の更新 (タイマーなしタスクのみ)
+            if (!t.durationMs) {
+                const today = new Date().toDateString();
+                const yesterday = new Date(Date.now() - 86400000).toDateString();
+                if (t.lastCompletedDate === yesterday) {
+                    t.streak = (t.streak || 0) + 1;
+                } else if (t.lastCompletedDate !== today) {
+                    t.streak = 1;
+                }
+                t.lastCompletedDate = today;
+            }
+
+            if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
+                Android.updateTaskCompletionState(t.id, true);
+            }
+            return { ...t, completed: true };
+        }
+        return t;
+    });
+    window.tasks = tasks;
+    window.history = history;
+    saveTasks();
+}
+window.completeTaskWithMemo = completeTaskWithMemo;

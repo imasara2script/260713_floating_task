@@ -220,6 +220,15 @@ class MainActivity : AppCompatActivity() {
         webView.settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         webView.addJavascriptInterface(WebAppInterface(this), "Android")
 
+        webView.webChromeClient = object : android.webkit.WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
+                consoleMessage?.let {
+                    android.util.Log.d("WebViewConsole", "${it.message()} -- From line ${it.lineNumber()} of ${it.sourceId()}")
+                }
+                return true
+            }
+        }
+
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
@@ -227,7 +236,6 @@ class MainActivity : AppCompatActivity() {
                 webView.evaluateJavascript("checkDailyReset();", null)
             }
         }
-        webView.webChromeClient = android.webkit.WebChromeClient()
 
         webView.loadUrl("file:///android_asset/index.html")
 
@@ -311,23 +319,6 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun setLoggingEnabled(enabled: Boolean) {
             AppLogger.setEnabled(mContext, enabled)
-        }
-
-        @JavascriptInterface
-        fun setExperimentalWindowEnabled(enabled: Boolean) {
-            val intent = Intent(mContext, FloatingWindowService::class.java)
-            intent.action = if (enabled) "ACTION_SHOW_V2" else "ACTION_HIDE_V2"
-            mContext.startService(intent)
-            
-            // 設定を保存
-            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
-            prefs.edit().putBoolean("experimentalWindowEnabled", enabled).apply()
-        }
-
-        @JavascriptInterface
-        fun isExperimentalWindowEnabled(): Boolean {
-            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
-            return prefs.getBoolean("experimentalWindowEnabled", false)
         }
 
         @JavascriptInterface

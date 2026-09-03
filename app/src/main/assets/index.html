@@ -384,15 +384,7 @@
     </div>
 
 
-    <!-- フローティング画面 -->
-    <div id="floating-view" style="display: none; width: 100%; height: 100%;">
-        <div id="floating-collapsed" class="floating-label-collapsed" onclick="if(!isDragging) toggleFloatingExpand(true)">
-            <!-- JavaScript で動的に生成 -->
-        </div>
-        <div id="floating-expanded" class="compact-container" style="display: none; width: 100%; height: 100%; flex-direction: column; padding: 0;">
-            <div id="floatingTaskContent" style="width: 100%; height: 100%; overflow: hidden; display: flex; flex-direction: column;"></div>
-        </div>
-    </div>
+    <!-- フローティング画面 (削除済み: floating.html へ移行) -->
 
     <!-- Language Selection Modal (Initial) -->
     <div id="languageModal" class="modal-overlay">
@@ -556,13 +548,6 @@
                 <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
                     <input type="checkbox" id="loggingToggle" onchange="toggleLogging()">
                     <span data-i18n="label_logging">ログ出力を有効にする</span>
-                </label>
-            </div>
-
-            <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #eee;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
-                    <input type="checkbox" id="experimentalWindowToggle" onchange="toggleExperimentalWindow()">
-                    <span data-i18n="label_experimental_window_enabled">新しいフローティングウィンドウ（試用版）を有効にする</span>
                 </label>
             </div>
 
@@ -1013,29 +998,21 @@
         }
 
         function handleTouchStart(e) {
-            // 編集モードでない場合はドラッグ不可
             if (!isEditMode) return;
-            // ドラッグハンドル以外からのタッチは無視
             if (!e.target.classList.contains('drag-handle')) return;
-
             draggingElement = e.target.closest('.task-item');
             if (draggingElement) {
                 draggingElement.classList.add('dragging');
-                // スクロールを防止
                 if (e.cancelable) e.preventDefault();
             }
         }
 
         function handleTouchMove(e) {
             if (!draggingElement) return;
-
-            // タッチ位置の取得
             const touch = e.touches[0];
             const list = document.getElementById('managerTaskList');
             const items = Array.from(list.querySelectorAll('.task-item:not(.dragging)'));
             const touchY = touch.clientY;
-
-            // 挿入先を特定
             const nextElement = items.reduce((closest, child) => {
                 const box = child.getBoundingClientRect();
                 const offset = touchY - box.top - box.height / 2;
@@ -1045,13 +1022,11 @@
                     return closest;
                 }
             }, { offset: Number.NEGATIVE_INFINITY }).element;
-
             if (nextElement == null) {
                 list.appendChild(draggingElement);
             } else {
                 list.insertBefore(draggingElement, nextElement);
             }
-
             if (e.cancelable) e.preventDefault();
         }
 
@@ -1059,12 +1034,9 @@
             if (draggingElement) {
                 draggingElement.classList.remove('dragging');
                 const managerList = document.getElementById('managerTaskList');
-                const newOrderIds = Array.from(managerList.children)
-                    .map(li => parseInt(li.getAttribute('data-id')));
-
+                const newOrderIds = Array.from(managerList.children).map(li => parseInt(li.getAttribute('data-id')));
                 const newTasks = [];
                 const taskMap = new Map(tasks.map(t => [t.id, t]));
-
                 newOrderIds.forEach(id => {
                     const task = taskMap.get(id);
                     if (task) {
@@ -1072,50 +1044,12 @@
                         taskMap.delete(id);
                     }
                 });
-                // 万が一DOMになかったタスクがあれば末尾に残す
                 taskMap.forEach(task => newTasks.push(task));
-
                 tasks = newTasks;
-                draggingElement = null; // saveTasksの前のrenderでスキップされないように先にnullにする
-
-                // 完了済みが混ざっている状態で保存されるため、isEditModeを抜けた時に
-                // 並べ替えがリセットされないように考慮が必要ですが、
-                // tasks配列自体が真の順序となる。
+                draggingElement = null;
                 saveTasks();
             }
             draggingElement = null;
-        }
-
-        function nextTask() {
-            const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
-            if (scrollButtonType === 'scroll') {
-                const container = document.getElementById('floating-task-container');
-                if (container) {
-                    container.scrollBy({ top: container.clientHeight * 0.8, behavior: 'smooth' });
-                }
-                return;
-            }
-            const floatingTasks = getVisibleFloatingTasks();
-            if (floatingTasks.length > 0) {
-                currentFloatingIndex = (currentFloatingIndex + scrollTaskCount) % floatingTasks.length;
-                render();
-            }
-        }
-
-        function prevTask() {
-            const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
-            if (scrollButtonType === 'scroll') {
-                const container = document.getElementById('floating-task-container');
-                if (container) {
-                    container.scrollBy({ top: -container.clientHeight * 0.8, behavior: 'smooth' });
-                }
-                return;
-            }
-            const floatingTasks = getVisibleFloatingTasks();
-            if (floatingTasks.length > 0) {
-                currentFloatingIndex = (currentFloatingIndex - scrollTaskCount + floatingTasks.length) % floatingTasks.length;
-                render();
-            }
         }
 
         function switchTab(tab, options = {}) {
@@ -1803,21 +1737,10 @@
                 if (t.id === id) {
                     const newState = !t.completed;
                     if (newState) {
-                        // コメント入力が必要な場合は、ここでは完了処理を行わずに入力へ進む
                         if (t.showCommentOnCheck) {
-                            if (mode === 'manager') {
-                                taskIdToCompleteWithMemo = id;
-                            } else if (mode === 'floating') {
-                                inputtingCommentForTaskId = id;
-                                if (typeof Android !== 'undefined') {
-                                    if (Android.requestHeight) Android.requestHeight(150);
-                                    if (Android.setFocusable) Android.setFocusable(true);
-                                }
-                            }
-                            return t; // 状態は変えない
+                            taskIdToCompleteWithMemo = id;
+                            return t;
                         }
-
-                        // 通常の完了処理
                         const historyId = Date.now();
                         history.unshift({
                             id: historyId,
@@ -1828,10 +1751,6 @@
                         });
                         if (history.length > 500) history.pop();
 
-                        t.justCompletedUntil = Date.now() + (checkedHideDelay * 1000);
-                        setTimeout(() => render(), checkedHideDelay * 1000);
-
-                        // 連続実行回数の更新 (タイマーなしタスクのみ)
                         if (!t.durationMs) {
                             const today = new Date().toDateString();
                             const yesterday = new Date(Date.now() - 86400000).toDateString();
@@ -1844,11 +1763,9 @@
                         }
                     }
 
-                    // Android 側に完了状態を通知
                     if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
                         Android.updateTaskCompletionState(t.id, newState);
                     }
-
                     return { ...t, completed: newState };
                 }
                 return t;
@@ -2220,57 +2137,12 @@
             }
         }
 
-        function saveFloatingComment() {
-            const ta = document.getElementById('floatingCommentText');
-            const memo = ta ? ta.value : "";
-            const taskId = inputtingCommentForTaskId;
-            if (taskId === null) return;
-
-            completeTaskWithMemo(taskId, memo);
-
-            inputtingCommentForTaskId = null;
-            if (typeof Android !== 'undefined') {
-                if (Android.toggleExpand) Android.toggleExpand(true);
-                if (Android.setFocusable) Android.setFocusable(false);
-            }
-            // completeTaskWithMemo 内で saveTasks() されるためここでは不要
-        }
-
-        function cancelFloatingComment() {
-            inputtingCommentForTaskId = null;
-            if (typeof Android !== 'undefined') {
-                if (Android.toggleExpand) Android.toggleExpand(true);
-                if (Android.setFocusable) Android.setFocusable(false);
-            }
-            render();
-        }
-
-        function finishFloatingComment() {
-            inputtingCommentForTaskId = null;
-            if (typeof Android !== 'undefined') {
-                if (Android.toggleExpand) Android.toggleExpand(true);
-                if (Android.setFocusable) Android.setFocusable(false);
-            }
-            saveTasks();
-        }
-
         function render() {
             if (draggingElement) return; // ドラッグ操作中はDOMを書き換えない
-
-            // タイマーの状態（数やID）を記録しておく
-            window.lastActiveIds = tasks.filter(t => t.durationMs && !t.completed).map(t => t.id).sort().join(',');
-
             checkAdFree();
-
-            // カレンダー表示中の場合は、リストの書き換えによってカレンダーが消えるのを防ぐ
-            if (currentCalendarTaskId !== null && document.getElementById('calendar-view')?.style.display === 'block') {
-                return;
-            }
 
             const btnToggleEdit = document.getElementById('btn-toggle-edit');
             if (btnToggleEdit) {
-                btnToggleEdit.style.display = (mode === 'manager') ? 'inline-block' : 'none';
-                // モードの状態をボタンに反映
                 if (isEditMode) {
                     btnToggleEdit.textContent = getTranslation('btn_edit_sort');
                 } else if (isExportMode || isDeleteMode) {
@@ -2295,33 +2167,15 @@
                 }
             }
 
-            const coinBtn = document.querySelector('button[onclick="earnCoinReward()"]');
-            if (coinBtn) {
-                coinBtn.textContent = getTranslation('btn_get_coin_reward');
-            }
-
             const managerTasks = isEditMode ? tasks : [
                 ...tasks.filter(t => !t.completed),
                 ...tasks.filter(t => t.completed)
             ];
 
-            const pendingTasks = tasks.filter(t => !t.completed).sort((a, b) => {
-                const aIsTimer = !!a.durationMs;
-                const bIsTimer = !!b.durationMs;
-                if (aIsTimer !== bIsTimer) return aIsTimer ? -1 : 1;
-                return 0;
-            });
-
-            const floatingTasks = getVisibleFloatingTasks();
-
-            if (currentFloatingIndex >= floatingTasks.length) {
-                currentFloatingIndex = Math.max(0, floatingTasks.length - 1);
-            }
-
+            const pendingTasks = tasks.filter(t => !t.completed);
             if (typeof Android !== 'undefined' && Android.updatePendingTaskCount) {
                 try {
-                    // フローティング表示設定に合わせてカウントを通知
-                    Android.updatePendingTaskCount(mode === 'floating' ? floatingTasks.length : pendingTasks.length);
+                    Android.updatePendingTaskCount(pendingTasks.length);
                 } catch(e) {}
             }
 
@@ -2329,11 +2183,9 @@
             if (managerList) {
                 managerList.innerHTML = managerTasks.map((t, index) => {
                     const isTimer = !!t.durationMs;
-                    const remainingText = isTimer ? getRemainingTimeTextDetailed(t) : '';
-                    const totalText = isTimer ? getTotalTimeText(t) : '';
                     const isExpired = isTimer && (t.startTime + t.durationMs <= Date.now());
                     const timerDisplay = (isTimer && !t.completed) ?
-                        (timerDisplayMode === 'countdown' ? `${remainingText} / ${totalText}` : getEndTimeText(t)) : '';
+                        (timerDisplayMode === 'countdown' ? `${getRemainingTimeTextDetailed(t)} / ${getTotalTimeText(t)}` : getEndTimeText(t)) : '';
 
                     return `
                     <li class="task-item ${isTimer && !t.completed ? 'timer-active' : ''}" data-id="${t.id}">
@@ -2352,225 +2204,6 @@
                 `}).join('');
             }
 
-            const floatingContent = document.getElementById('floatingTaskContent');
-            const collapsedEl = document.getElementById('floating-collapsed');
-            const expandedEl = document.getElementById('floating-expanded');
-
-            // 縮小表示用の最短タイマー取得
-            const activeTimers = tasks.filter(t => t.durationMs && !t.completed)
-                .map(t => ({...t, remaining: Math.max(0, (t.startTime + t.durationMs) - Date.now())}))
-                .filter(t => t.remaining > 0)
-                .sort((a, b) => a.remaining - b.remaining);
-
-            // 配色ルールの適用
-            let appliedBgColor = '#ffffff';
-            let appliedTextColor = '#333333';
-
-            if (activeTimers.length > 0) {
-                const shortestRemaining = activeTimers[0].remaining / 1000; // 秒単位
-                // 判定前にしきい値の小さい順にソートする (コピーを作成してソート)
-                const sortedRules = [...bgThresholds].sort((a, b) => a.threshold - b.threshold);
-                const rule = sortedRules.find(r => shortestRemaining <= r.threshold);
-                if (rule) {
-                    appliedBgColor = rule.bgColor;
-                    appliedTextColor = rule.textColor;
-                }
-            }
-
-            if (mode === 'floating') {
-                if (collapsedEl) {
-                    collapsedEl.style.backgroundColor = appliedBgColor;
-                    collapsedEl.style.color = appliedTextColor;
-                    // FTの文字やタイマーの色も適用される（collapsedElの子要素）
-                }
-                if (expandedEl) {
-                    expandedEl.style.backgroundColor = appliedBgColor;
-                    expandedEl.style.color = appliedTextColor;
-                    // ドラッグハンドル部分の色も同期させる
-                    const dragHandle = document.getElementById('expanded-drag-handle');
-                    if (dragHandle) {
-                        dragHandle.style.backgroundColor = 'transparent'; // 親の背景を活かす
-                        dragHandle.style.color = 'inherit';
-                        dragHandle.style.borderRightColor = appliedTextColor; // 境界線を見えるように
-                        dragHandle.style.opacity = '0.8';
-                    }
-                }
-
-                // ネイティブ側に通知して角丸背景を更新
-                if (typeof Android !== 'undefined' && Android.updateFloatingColors) {
-                    Android.updateFloatingColors(appliedBgColor, appliedTextColor);
-                }
-            }
-
-            if (collapsedEl) {
-                if (activeTimers.length > 0) {
-                    const timeText = getRemainingTimeText(activeTimers[0]);
-                    collapsedEl.innerHTML = `
-                        <div class="ft-tiny">FT</div>
-                        <div class="timer-collapsed-large" id="timer-collapsed-text">${timeText}</div>
-                    `;
-                } else {
-                    collapsedEl.innerHTML = `
-                        <div>Floating</div>
-                        <div>task</div>
-                    `;
-                }
-            }
-
-            if (floatingContent) {
-                if (inputtingCommentForTaskId !== null) {
-                    // すでに表示されている場合は何もしない（フォーカスとキーボードを維持するため）
-                    if (document.getElementById('floatingCommentText')) return;
-
-                    const t = tasks.find(x => x.id === inputtingCommentForTaskId);
-                    const initialNote = (t && t.note) ? t.note : '';
-
-                    floatingContent.innerHTML = `
-                        <div class="floating-comment-container">
-                            <div class="floating-comment-title">${t ? t.text : ''}</div>
-                            <textarea id="floatingCommentText" class="floating-comment-textarea" placeholder="${getTranslation('placeholder_history_memo')}">${initialNote}</textarea>
-                            <div class="floating-comment-actions">
-                                <button class="btn btn-tiny" onclick="cancelFloatingComment()">${getTranslation('btn_no_comment')}</button>
-                                <button class="btn btn-primary btn-tiny" onclick="saveFloatingComment()">${getTranslation('btn_save_comment')}</button>
-                            </div>
-                        </div>
-                    `;
-                    // フォーカスを当てる
-                    setTimeout(() => {
-                        const ta = document.getElementById('floatingCommentText');
-                        if (ta) {
-                            ta.focus();
-                            // 末尾にカーソルを移動
-                            ta.setSelectionRange(ta.value.length, ta.value.length);
-                        }
-                        if (typeof Android !== 'undefined' && Android.showKeyboard) {
-                            Android.showKeyboard();
-                        }
-                    }, 100);
-                    return;
-                }
-
-                if (floatingTasks.length === 0) {
-                    const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
-                    const buttonsWidth = 36 + 6 + (showCheckedToggle ? 42 : 0) + 8; // Home + Gap + Toggle + Padding
-
-                    floatingContent.innerHTML = `
-                        <div style="display: flex; flex-direction: column; width: 100%; height: 100%; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: inherit; opacity: 0.8; padding: 4px 8px 4px 0; border-bottom: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); flex-shrink: 0;">
-                                <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 24px; border-right: 1px solid rgba(0,0,0,0.2); background: rgba(0,0,0,0.05); flex-shrink: 0; margin-right: 8px;">
-                                    ${localStorage.getItem('allowDrag') !== 'false' ? `
-                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="opacity: 0.7;">
-                                            <path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/>
-                                        </svg>
-                                    ` : `<span style="font-size: 10px; font-weight: bold; opacity: 0.7;">${getTranslation('label_collapse')}</span>`}
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 6px; width: ${buttonsWidth}px; justify-content: flex-end; flex-shrink: 0;">
-                                    ${showCheckedToggle ? `
-                                        <button onclick="toggleShowAllInFloating()" style="background: ${!showAllInFloating ? '#007bff' : '#eee'}; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: ${!showAllInFloating ? 'white' : '#333'}; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${!showAllInFloating ? getTranslation('btn_toggle_pending_title') : getTranslation('btn_toggle_all_title')}">👁️</button>
-                                    ` : ''}
-                                    <button onclick="if(typeof Android !== 'undefined' && Android.openMainActivity) Android.openMainActivity(); else setViewMode('manager');" style="background: #007bff; border: none; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_full_screen_title')}">🏠</button>
-                                </div>
-                            </div>
-                            <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; padding: 2px 4px;">
-                                <span style="color:#888; font-size:12px;">${getTranslation('none')}</span>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
-                    const isScrollMode = scrollButtonType === 'scroll';
-                    const tasksToShow = isScrollMode
-                        ? floatingTasks
-                        : floatingTasks.slice(currentFloatingIndex, currentFloatingIndex + displayTaskCount);
-
-                    if (!isScrollMode && tasksToShow.length < displayTaskCount && floatingTasks.length > tasksToShow.length) {
-                        tasksToShow.push(...floatingTasks.slice(0, displayTaskCount - tasksToShow.length));
-                    }
-
-                    const showClose = localStorage.getItem('showCloseButtonExpanded') === 'true';
-                    const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
-                    const headerPaddingRight = showClose ? '40px' : '8px';
-
-                    let buttonsWidth = 42 + 8; // Home + Padding
-                    if (showCheckedToggle) buttonsWidth += 42;
-                    if (scrollButtonType === 'both') buttonsWidth += 84;
-                    else if (scrollButtonType === 'down' || scrollButtonType === 'up') buttonsWidth += 42;
-
-                    // カウンターの幅（おおよそ）
-                    const counterWidth = (isScrollMode || displayTaskCount > 1) ? 50 : 35;
-                    buttonsWidth += counterWidth;
-
-                    let tasksHtml = '';
-                    tasksToShow.forEach((t, i) => {
-                        const isTimer = !!t.durationMs;
-                        const remainingText = isTimer ? getRemainingTimeTextDetailed(t) : '';
-                        const totalText = isTimer ? getTotalTimeText(t) : '';
-                        const isExpired = isTimer && (t.startTime + t.durationMs <= Date.now());
-                        const timerDisplay = isTimer ?
-                            (timerDisplayMode === 'countdown' ? `${remainingText} / ${totalText}` : getEndTimeText(t)) : '';
-
-                        tasksHtml += `
-                            <div style="display: flex; align-items: center; min-width: 0; margin-bottom: 2px;">
-                                ${t.showCommentOnCheck && !t.completed ?
-                                    `<span onclick="toggleTask(${t.id})" style="cursor:pointer; margin-right:6px; font-size:14px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px;">✏️</span>` :
-                                    `<input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})" style="width: 16px; height: 16px; margin-right: 6px; flex-shrink: 0;">`
-                                }
-                                ${isTimer && !t.completed ? `
-                                    <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-right: 6px; opacity: 0.9;">
-                                        <span class="floating-timer-badge ${isExpired ? 'timer-expired' : ''}" data-task-id="${t.id}" onclick="toggleTimerDisplayMode()" style="font-variant-numeric: tabular-nums; cursor:pointer; background: #ffc107; padding: 1px 4px; border-radius: 3px; font-weight: bold; font-size: 10px; white-space: nowrap;">${timerDisplay}</span>
-                                        <button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size: 12px; padding: 0; background: none; border: none; cursor: pointer;">🔄</button>
-                                    </div>
-                                ` : ''}
-                                <span class="floating-task-text" style="font-size: 14px; font-weight: bold; margin: 0; flex-grow: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; ${t.completed ? 'text-decoration: line-through; color: #888;' : ''}">${t.text}</span>
-                            </div>
-                        `;
-                    });
-
-                    const counterText = isScrollMode
-                        ? `(${floatingTasks.length})`
-                        : (displayTaskCount > 1
-                            ? `${currentFloatingIndex + 1}-${(currentFloatingIndex + tasksToShow.length - 1) % floatingTasks.length + 1}/${floatingTasks.length}`
-                            : `(${currentFloatingIndex + 1}/${floatingTasks.length})`);
-
-                    const container = document.getElementById('floating-task-container');
-                    const savedScrollTop = container ? container.scrollTop : 0;
-
-                    floatingContent.innerHTML = `
-                        <div style="display: flex; flex-direction: column; width: 100%; height: 100%; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: inherit; opacity: 0.8; padding: 4px ${headerPaddingRight} 4px 0; border-bottom: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); flex-shrink: 0;">
-                                <div id="expanded-drag-handle" style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 24px; border-right: 1px solid rgba(0,0,0,0.2); background: rgba(0,0,0,0.05); flex-shrink: 0; margin-right: 8px;">
-                                    ${localStorage.getItem('allowDrag') !== 'false' ? `
-                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="opacity: 0.7;">
-                                            <path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/>
-                                        </svg>
-                                    ` : `<span style="font-size: 10px; font-weight: bold; opacity: 0.7;">${getTranslation('label_collapse')}</span>`}
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 6px; width: ${buttonsWidth}px; justify-content: flex-end; flex-shrink: 0;">
-                                    <span class="floating-task-counter" style="font-size: 11px; margin-right: 4px;">${counterText}</span>
-                                    ${localStorage.getItem('showCheckedToggle') === 'true' ? `
-                                        <button onclick="toggleShowAllInFloating()" style="background: ${!showAllInFloating ? '#007bff' : '#eee'}; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: ${!showAllInFloating ? 'white' : '#333'}; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${!showAllInFloating ? getTranslation('btn_toggle_pending_title') : getTranslation('btn_toggle_all_title')}">👁️</button>
-                                    ` : ''}
-                                    ${(scrollButtonType === 'both' || scrollButtonType === 'up') ? `
-                                        <button onclick="prevTask()" style="background: #eee; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: #333; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_prev_task_title')}">△</button>
-                                    ` : ''}
-                                    ${(scrollButtonType === 'both' || scrollButtonType === 'down') ? `
-                                        <button onclick="nextTask()" style="background: #eee; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: #333; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_next_task_title')}">▽</button>
-                                    ` : ''}
-                                    <button onclick="if(typeof Android !== 'undefined' && Android.openMainActivity) Android.openMainActivity(); else setViewMode('manager');" style="background: #007bff; border: none; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="${getTranslation('btn_full_screen_title')}">🏠</button>
-                                </div>
-                            </div>
-                            <div id="floating-task-container" style="flex-grow: 1; display: flex; flex-direction: column; overflow-y: ${isScrollMode ? 'auto' : 'hidden'}; padding: 4px;">
-                                ${tasksHtml}
-                            </div>
-                        </div>
-                    `;
-
-                    if (isScrollMode) {
-                        const newContainer = document.getElementById('floating-task-container');
-                        if (newContainer) newContainer.scrollTop = savedScrollTop;
-                    }
-                }
-            }
             if (document.getElementById('history-content').style.display === 'block' && currentCalendarTaskId === null) {
                 renderHistory();
             }
@@ -2578,77 +2211,16 @@
 
         function updateTimersOnly() {
             if (draggingElement) return;
-
-            const activeTimers = tasks.filter(t => t.durationMs && !t.completed)
-                .map(t => ({...t, remaining: Math.max(0, (t.startTime + t.durationMs) - Date.now())}))
-                .filter(t => t.remaining >= 0)
-                .sort((a, b) => a.remaining - b.remaining);
-
-            // タイマーの状態（数やID）が変わった場合はレイアウト変更の可能性があるのでフルレンダリング
-            const currentActiveIds = tasks.filter(t => t.durationMs && !t.completed).map(t => t.id).sort().join(',');
-            if (typeof window.lastActiveIds === 'undefined') window.lastActiveIds = '';
-            if (currentActiveIds !== window.lastActiveIds) {
-                window.lastActiveIds = currentActiveIds;
-                render();
-                return;
-            }
-
-            // 配色ルールの再計算と適用
-            let appliedBgColor = '#ffffff';
-            let appliedTextColor = '#333333';
-            if (activeTimers.length > 0) {
-                const shortestRemaining = activeTimers[0].remaining / 1000;
-                const sortedRules = [...bgThresholds].sort((a, b) => a.threshold - b.threshold);
-                const rule = sortedRules.find(r => shortestRemaining <= r.threshold);
-                if (rule) {
-                    appliedBgColor = rule.bgColor;
-                    appliedTextColor = rule.textColor;
-                }
-            }
-
-            const collapsedEl = document.getElementById('floating-collapsed');
-            const expandedEl = document.getElementById('floating-expanded');
-            if (mode === 'floating') {
-                if (collapsedEl) {
-                    collapsedEl.style.backgroundColor = appliedBgColor;
-                    collapsedEl.style.color = appliedTextColor;
-                }
-                if (expandedEl) {
-                    expandedEl.style.backgroundColor = appliedBgColor;
-                    expandedEl.style.color = appliedTextColor;
-                    const dragHandle = document.getElementById('expanded-drag-handle');
-                    if (dragHandle) dragHandle.style.color = appliedTextColor;
-                }
-                if (typeof Android !== 'undefined' && Android.updateFloatingColors) {
-                    Android.updateFloatingColors(appliedBgColor, appliedTextColor);
-                }
-            }
-
-            // 各タスクのタイマー表示を更新
             tasks.forEach(t => {
                 if (t.durationMs && !t.completed) {
                     const isExpired = (t.startTime + t.durationMs <= Date.now());
-                    const remainingText = getRemainingTimeTextDetailed(t);
-                    const totalText = getTotalTimeText(t);
-                    const timerDisplay = (timerDisplayMode === 'countdown' ? `${remainingText} / ${totalText}` : getEndTimeText(t));
-
-                    document.querySelectorAll(`.floating-timer-badge[data-task-id="${t.id}"]`).forEach(el => {
-                        if (el.textContent !== timerDisplay) el.textContent = timerDisplay;
-                        el.classList.toggle('timer-expired', isExpired);
-                    });
+                    const timerDisplay = (timerDisplayMode === 'countdown' ? `${getRemainingTimeTextDetailed(t)} / ${getTotalTimeText(t)}` : getEndTimeText(t));
                     document.querySelectorAll(`.manager-timer-badge[data-task-id="${t.id}"]`).forEach(el => {
                         if (el.textContent !== timerDisplay) el.textContent = timerDisplay;
                         el.classList.toggle('timer-expired', isExpired);
                     });
                 }
             });
-
-            // 縮小表示のタイマー更新
-            const collapsedTimerText = document.getElementById('timer-collapsed-text');
-            if (collapsedTimerText && activeTimers.length > 0) {
-                const timeText = getRemainingTimeText(activeTimers[0]);
-                if (collapsedTimerText.textContent !== timeText) collapsedTimerText.textContent = timeText;
-            }
         }
 
         // 定期的にUIを更新（タイマー表示のため）
@@ -2662,49 +2234,26 @@
 
         function setViewMode(m) {
             const managerView = document.getElementById('manager-view');
-            const floatingView = document.getElementById('floating-view');
-
-            managerView.style.display = (m === 'manager') ? 'block' : 'none';
-            floatingView.style.display = (m === 'floating') ? 'flex' : 'none';
-
-            if (m === 'manager') {
-                document.documentElement.style.height = 'auto';
-                document.documentElement.style.overflow = 'auto';
-                document.body.style.height = 'auto';
-                document.body.style.backgroundColor = '#f8f9fa';
-                document.body.style.padding = '16px';
-                document.body.style.overflow = 'auto';
-                document.body.style.transform = 'none';
-                document.body.style.width = 'auto';
-                updateBatteryStatus(); // バッテリー状態の更新
-                // 保存されている間隔を反映
-                const savedInterval = localStorage.getItem('recheckInterval') || '0';
-                const intervalSelect = document.getElementById('intervalSelect');
-                if (intervalSelect) intervalSelect.value = savedInterval;
-
-                // カレンダーのマークを反映
-                const markInput = document.getElementById('calendarMarkInput');
-                if (markInput) markInput.value = calendarMark;
-
-                // フローティング設定を反映
-                loadFloatingSettings();
-            } else {
-                document.documentElement.style.height = '100%';
-                document.body.style.height = '100%';
-                document.body.style.backgroundColor = 'transparent';
-                document.body.style.padding = '0';
-                document.body.style.margin = '0';
-                document.body.style.overflow = 'hidden';
-
-                // 倍率適用
-                const scale = isFloatingExpanded ?
-                    (localStorage.getItem('floatExpandedScale') || '1.0') :
-                    (localStorage.getItem('floatCollapsedScale') || '1.0');
-                updateScale(scale);
-
-                // フローティングモードなら初期の展開状態を反映
-                toggleFloatingExpand(isFloatingExpanded, true);
+            if (managerView) {
+                managerView.style.display = 'block';
             }
+
+            document.documentElement.style.height = 'auto';
+            document.documentElement.style.overflow = 'auto';
+            document.body.style.height = 'auto';
+            document.body.style.backgroundColor = '#f8f9fa';
+            document.body.style.padding = '16px';
+            document.body.style.overflow = 'auto';
+            document.body.style.transform = 'none';
+            document.body.style.width = 'auto';
+
+            updateBatteryStatus();
+            const savedInterval = localStorage.getItem('recheckInterval') || '0';
+            const intervalSelect = document.getElementById('intervalSelect');
+            if (intervalSelect) intervalSelect.value = savedInterval;
+            const markInput = document.getElementById('calendarMarkInput');
+            if (markInput) markInput.value = calendarMark;
+            loadFloatingSettings();
             render();
         }
 
@@ -3607,10 +3156,6 @@
                 if (isEnabled) updateLogSize();
             }
 
-            if (typeof Android !== 'undefined' && Android.isExperimentalWindowEnabled) {
-                document.getElementById('experimentalWindowToggle').checked = Android.isExperimentalWindowEnabled();
-            }
-
             modal.onclick = (e) => {
                 if (e.target === modal) closeDeveloperModal();
             };
@@ -3643,13 +3188,6 @@
                     Android.setLoggingEnabled(false);
                 }
                 document.getElementById('logInfoSection').style.display = 'none';
-            }
-        }
-
-        function toggleExperimentalWindow() {
-            const checkbox = document.getElementById('experimentalWindowToggle');
-            if (typeof Android !== 'undefined' && Android.setExperimentalWindowEnabled) {
-                Android.setExperimentalWindowEnabled(checkbox.checked);
             }
         }
 
@@ -3721,10 +3259,6 @@
         // 起動時の初期化処理
         function initializeApp() {
             try {
-                // データの読み込み
-                tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-                history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
-
                 // 初回起動時（設定未保存時）にデフォルト値を設定
                 if (localStorage.getItem('floatX') === null) {
                     resetFloatingSettings();
@@ -3738,16 +3272,29 @@
 
                 // 初回起動時の言語選択
                 if (localStorage.getItem('appLanguage') === null) {
-                    document.getElementById('languageModal').style.display = 'flex';
+                    const langModal = document.getElementById('languageModal');
+                    if (langModal) langModal.style.display = 'flex';
                 }
 
-                // 日付変更チェックと権限状態の更新
-                checkDailyReset();
+                // 日付変更チェックと権限状態の更新 (app.js の関数を呼び出し)
+                if (typeof checkDailyReset === 'function') {
+                    checkDailyReset();
+                }
+
+                // 権限状態の更新
                 updateAlarmStatus();
                 updateBatteryStatus();
                 updateNotificationStatus();
                 updateOverlayStatus();
                 updateCoinDisplay();
+
+                // 並べ替えのためのイベントリスナー登録 (DOMが確実にある状態で実行)
+                const managerList = document.getElementById('managerTaskList');
+                if (managerList) {
+                    managerList.addEventListener('touchstart', handleTouchStart, { passive: false });
+                    managerList.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    managerList.addEventListener('touchend', handleTouchEnd, { passive: false });
+                }
 
                 console.log("App initialized and daily reset checked.");
             } catch (e) {
