@@ -318,6 +318,13 @@
                         </div>
 
                         <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="showHistoryButton" onchange="saveFloatingSettings('expanded')">
+                                <span data-i18n="label_show_history_button">履歴表示ボタンを表示</span>
+                            </label>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
                             <label for="scrollButtonType" style="display: block; margin-bottom: 4px;" data-i18n="label_scroll_button_type">スクロールボタンの種類:</label>
                             <select id="scrollButtonType" onchange="saveFloatingSettings('expanded')" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white;">
                                 <option value="both" data-i18n="scroll_btn_both">△▽</option>
@@ -335,7 +342,7 @@
                             </label>
                         </div>
 
-                        <div style="margin-bottom: 12px;">
+                        <div id="displayTaskCountContainer" style="margin-bottom: 12px;">
                             <label for="displayTaskCount" style="display: block; margin-bottom: 4px;" data-i18n="label_display_task_count">表示するタスク数:</label>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <button class="btn btn-secondary" onclick="adjustDisplayTaskCount(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
@@ -344,7 +351,7 @@
                             </div>
                         </div>
 
-                        <div style="margin-bottom: 12px;">
+                        <div id="scrollTaskCountContainer" style="margin-bottom: 12px;">
                             <label for="scrollTaskCount" style="display: block; margin-bottom: 4px;" data-i18n="label_scroll_task_count">「△」「▽」ボタン押下時の移動量:</label>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <button class="btn btn-secondary" onclick="adjustScrollTaskCount(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
@@ -2529,6 +2536,7 @@
             const eY = localStorage.getItem('floatExpandedY') || '100';
             const showClose = localStorage.getItem('showCloseButtonExpanded') === 'true';
             const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
+            const showHistoryButton = localStorage.getItem('showHistoryButton') === 'true';
             const allowDrag = localStorage.getItem('allowDrag') !== 'false';
             const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
             const dCount = localStorage.getItem('displayTaskCount') || '1';
@@ -2544,6 +2552,7 @@
             document.getElementById('floatExpandedY').value = eY;
             document.getElementById('showCloseButtonExpanded').checked = showClose;
             document.getElementById('showCheckedToggle').checked = showCheckedToggle;
+            document.getElementById('showHistoryButton').checked = showHistoryButton;
             document.getElementById('allowDrag').checked = allowDrag;
             document.getElementById('scrollButtonType').value = scrollButtonType;
             document.getElementById('displayTaskCount').value = dCount;
@@ -2557,6 +2566,22 @@
             setupDraggableLabel('labelFloatHeight', 'floatHeight', 'expanded');
             setupDraggableLabel('labelFloatExpandedX', 'floatExpandedX', 'expanded');
             setupDraggableLabel('labelFloatExpandedY', 'floatExpandedY', 'expanded');
+
+            updateFloatingSettingsVisibility();
+        }
+
+        function updateFloatingSettingsVisibility() {
+            const scrollButtonType = document.getElementById('scrollButtonType').value;
+            const displayTaskCountContainer = document.getElementById('displayTaskCountContainer');
+            const scrollTaskCountContainer = document.getElementById('scrollTaskCountContainer');
+
+            if (scrollButtonType === 'scroll') {
+                displayTaskCountContainer.style.display = 'none';
+                scrollTaskCountContainer.style.display = 'none';
+            } else {
+                displayTaskCountContainer.style.display = 'block';
+                scrollTaskCountContainer.style.display = 'block';
+            }
         }
 
         function setupDraggableLabel(labelId, inputId, mode) {
@@ -2655,6 +2680,7 @@
             const eY = document.getElementById('floatExpandedY').value;
             const showClose = document.getElementById('showCloseButtonExpanded').checked;
             const showCheckedToggle = document.getElementById('showCheckedToggle').checked;
+            const showHistoryButton = document.getElementById('showHistoryButton').checked;
             const allowDrag = document.getElementById('allowDrag').checked;
             const scrollButtonType = document.getElementById('scrollButtonType').value;
 
@@ -2678,6 +2704,7 @@
             localStorage.setItem('floatExpandedY', eY);
             localStorage.setItem('showCloseButtonExpanded', showClose);
             localStorage.setItem('showCheckedToggle', showCheckedToggle);
+            localStorage.setItem('showHistoryButton', showHistoryButton);
             localStorage.setItem('allowDrag', allowDrag);
             localStorage.setItem('scrollButtonType', scrollButtonType);
             localStorage.setItem('displayTaskCount', dCount);
@@ -2687,13 +2714,16 @@
             localStorage.setItem('checkedHideDelay', hDelay);
             checkedHideDelay = hDelay;
 
+            updateFloatingSettingsVisibility();
+
             if (typeof Android !== 'undefined') {
                 if (Android.updateFloatingSettingsExtended) {
                     Android.updateFloatingSettingsExtended(
                         parseInt(cX), parseInt(cY), parseFloat(cScale), showEmpty, moveC,
                         parseInt(eX), parseInt(eY), parseFloat(eScale), moveE,
                         parseInt(width), parseInt(height), showClose,
-                        dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragC
+                        dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragC,
+                        showHistoryButton
                     );
                 } else if (Android.updateFloatingSettings) {
                     // 互換性のため古いメソッドも呼ぶ（必要なら）
@@ -2756,12 +2786,14 @@
             document.getElementById('floatExpandedY').value = defaultY;
             document.getElementById('showCloseButtonExpanded').checked = false;
             document.getElementById('showCheckedToggle').checked = false;
+            document.getElementById('showHistoryButton').checked = false;
             document.getElementById('allowDrag').checked = true;
             document.getElementById('scrollButtonType').value = 'both';
             document.getElementById('displayTaskCount').value = 1;
             document.getElementById('scrollTaskCount').value = 1;
             document.getElementById('checkedHideDelay').value = 2;
 
+            updateFloatingSettingsVisibility();
             saveFloatingSettings();
         }
 
@@ -2989,6 +3021,7 @@
                 floatExpandedY: localStorage.getItem('floatExpandedY'),
                 showCloseButtonExpanded: localStorage.getItem('showCloseButtonExpanded') === 'true',
                 showCheckedToggle: localStorage.getItem('showCheckedToggle') === 'true',
+                showHistoryButton: localStorage.getItem('showHistoryButton') === 'true',
                 allowDrag: localStorage.getItem('allowDrag') !== 'false',
                 scrollButtonType: localStorage.getItem('scrollButtonType') || 'both',
                 displayTaskCount: localStorage.getItem('displayTaskCount'),
@@ -3224,7 +3257,7 @@
                             'displayTaskCount', 'scrollTaskCount', 'recheckInterval', 'scrollButtonType'
                         ];
                         const boolKeys = [
-                            'showWhenEmpty', 'alwaysMoveCollapsed', 'alwaysMoveExpanded', 'showCloseButtonExpanded', 'showCheckedToggle', 'allowDrag', 'allowDragCollapsed'
+                            'showWhenEmpty', 'alwaysMoveCollapsed', 'alwaysMoveExpanded', 'showCloseButtonExpanded', 'showCheckedToggle', 'allowDrag', 'allowDragCollapsed', 'showHistoryButton'
                         ];
                         if (data.showAllInFloating !== undefined) {
                             localStorage.setItem('showAllInFloating', data.showAllInFloating);

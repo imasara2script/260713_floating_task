@@ -154,12 +154,13 @@ class FloatingWindowService : Service() {
             val displayTaskCount = prefs.getInt("displayTaskCount", 1)
             val scrollTaskCount = prefs.getInt("scrollTaskCount", 1)
             val showCheckedToggle = prefs.getBoolean("showCheckedToggle", false)
+            val showHistoryButton = prefs.getBoolean("showHistoryButton", false)
             val scrollButtonType = prefs.getString("scrollButtonType", "both") ?: "both"
             val allowDrag = prefs.getBoolean("allowDrag", true)
             val allowDragCollapsed = prefs.getBoolean("allowDragCollapsed", true)
             
             val webView: WebView = view.findViewById(R.id.floatingWebView)
-            webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount, $showCheckedToggle, '$scrollButtonType', $allowDrag, $allowDragCollapsed);", null)
+            webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount, $showCheckedToggle, '$scrollButtonType', $allowDrag, $allowDragCollapsed, $showHistoryButton);", null)
         }
     }
 
@@ -279,18 +280,18 @@ class FloatingWindowService : Service() {
             val floatWidth = prefs.getInt("floatWidth", (300 * density).toInt())
             val displayTaskCount = prefs.getInt("displayTaskCount", 1)
             val showCheckedToggle = prefs.getBoolean("showCheckedToggle", false)
+            val showHistoryButton = prefs.getBoolean("showHistoryButton", false)
             
             // WebView側 (index.html) の計算と一致させる
             // let buttonsWidth = 42 + 8; // Home + Padding
             // if (showCheckedToggle) buttonsWidth += 42;
-            // if (scrollButtonType === 'both') buttonsWidth += 84;
-            // else if (scrollButtonType === 'down' || scrollButtonType === 'up') buttonsWidth += 42;
-            // const counterWidth = (displayTaskCount > 1) ? 50 : 35;
-            // buttonsWidth += counterWidth;
+            // if (showHistoryButton) buttonsWidth += 42;
+            // ...
             
             val scrollButtonType = prefs.getString("scrollButtonType", "both") ?: "both"
             var buttonsReservedWidthDp = 42 + 8 // Home + Padding
             if (showCheckedToggle) buttonsReservedWidthDp += 42
+            if (showHistoryButton) buttonsReservedWidthDp += 42
             when (scrollButtonType) {
                 "both" -> buttonsReservedWidthDp += 84
                 "down", "up" -> buttonsReservedWidthDp += 42
@@ -645,6 +646,36 @@ class FloatingWindowService : Service() {
                     }
                 } catch (e: Exception) {
                     AppLogger.log(this@FloatingWindowService, "Error opening MainActivity: ${e.message}")
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun openHistory() {
+            AppLogger.log(this@FloatingWindowService, "JS: openHistory called")
+            val handler = Handler(Looper.getMainLooper())
+            handler.post {
+                try {
+                    val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    }
+                    if (intent != null) {
+                        startActivity(intent)
+                        
+                        // MainActivityに履歴タブへの切り替えを依頼するブロードキャストなどを送るか、
+                        // MainActivity側でonResume時にタブを切り替える仕組みが必要。
+                        // ここでは MainActivity の WebAppInterface.openHistory と同様に WebView に介入したいが、
+                        // サービスのプロセスから Activity の WebView を触ることはできないので、
+                        // ブロードキャストを送信する。
+                        val tabIntent = Intent("com.example.floatingtask.SWITCH_TAB")
+                        tabIntent.setPackage(packageName)
+                        tabIntent.putExtra("tab", "history")
+                        sendBroadcast(tabIntent)
+                    }
+                } catch (e: Exception) {
+                    AppLogger.log(this@FloatingWindowService, "Error opening History: ${e.message}")
                 }
             }
         }

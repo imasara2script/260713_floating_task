@@ -94,6 +94,12 @@ class MainActivity : AppCompatActivity() {
                     val isExpanded = intent.getBooleanExtra("isExpanded", false)
                     webView.evaluateJavascript("onFloatingPositionChanged($x, $y, $isExpanded);", null)
                 }
+                "com.example.floatingtask.SWITCH_TAB" -> {
+                    val tab = intent.getStringExtra("tab")
+                    if (tab != null) {
+                        webView.evaluateJavascript("switchTab('$tab');", null)
+                    }
+                }
             }
         }
     }
@@ -295,6 +301,7 @@ class MainActivity : AppCompatActivity() {
         val filter = IntentFilter().apply {
             addAction("com.example.floatingtask.DATA_CHANGED")
             addAction("com.example.floatingtask.POSITION_CHANGED")
+            addAction("com.example.floatingtask.SWITCH_TAB")
         }
         ContextCompat.registerReceiver(
             this,
@@ -488,6 +495,19 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun openHistory() {
+            runOnUiThread {
+                val intent = Intent(mContext, MainActivity::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                mContext.startActivity(intent)
+                
+                // WebViewのタブを履歴に切り替える
+                val webView: WebView = findViewById(R.id.webView)
+                webView.evaluateJavascript("switchTab('history');", null)
+            }
+        }
+
+        @JavascriptInterface
         fun toggleExpand(expanded: Boolean) {
             if (Settings.canDrawOverlays(mContext)) {
                 val intent = Intent(mContext, FloatingWindowService::class.java)
@@ -643,7 +663,8 @@ class MainActivity : AppCompatActivity() {
             width: Int, height: Int, showClose: Boolean,
             displayTaskCount: Int, scrollTaskCount: Int,
             showCheckedToggle: Boolean, scrollButtonType: String,
-            allowDrag: Boolean, allowDragCollapsed: Boolean
+            allowDrag: Boolean, allowDragCollapsed: Boolean,
+            showHistoryButton: Boolean
         ) {
             val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
             prefs.edit {
@@ -663,6 +684,7 @@ class MainActivity : AppCompatActivity() {
                 putInt("floatHeight", height)
                 putBoolean("showCloseButtonExpanded", showClose)
                 putBoolean("showCheckedToggle", showCheckedToggle)
+                putBoolean("showHistoryButton", showHistoryButton)
                 putBoolean("allowDrag", allowDrag)
                 putString("scrollButtonType", scrollButtonType)
                 putInt("displayTaskCount", displayTaskCount)
