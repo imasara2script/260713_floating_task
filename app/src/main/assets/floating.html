@@ -166,18 +166,34 @@
 
             inputtingCommentForTaskId = null;
             if (typeof Android !== 'undefined') {
-                if (Android.toggleExpand) Android.toggleExpand(true);
                 if (Android.setFocusable) Android.setFocusable(false);
             }
+            toggleFloatingExpand(isFloatingExpanded);
         }
 
         function cancelFloatingComment() {
+            const ta = document.getElementById('floatingCommentText');
+            if (ta) {
+                const t = tasks.find(x => x.id === inputtingCommentForTaskId);
+                const initialNote = (t && t.note) ? t.note : '';
+                if (ta.value !== initialNote) {
+                    window.nativeConfirm(getTranslation('msg_confirm_discard'), (ok) => {
+                        if (ok) {
+                            inputtingCommentForTaskId = null;
+                            if (typeof Android !== 'undefined') {
+                                if (Android.setFocusable) Android.setFocusable(false);
+                            }
+                            toggleFloatingExpand(isFloatingExpanded);
+                        }
+                    });
+                    return;
+                }
+            }
             inputtingCommentForTaskId = null;
             if (typeof Android !== 'undefined') {
-                if (Android.toggleExpand) Android.toggleExpand(true);
                 if (Android.setFocusable) Android.setFocusable(false);
             }
-            render();
+            toggleFloatingExpand(isFloatingExpanded);
         }
 
         function repeatTimer(id) {

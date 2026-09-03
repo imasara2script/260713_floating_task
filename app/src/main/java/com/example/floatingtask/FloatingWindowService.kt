@@ -567,6 +567,37 @@ class FloatingWindowService : Service() {
         }
 
         @JavascriptInterface
+        fun showConfirmDialog(title: String, message: String, callbackId: String) {
+            val handler = Handler(Looper.getMainLooper())
+            handler.post {
+                // サービスから表示するためにテーマ付きのコンテキストを使用
+                val themedContext = android.view.ContextThemeWrapper(this@FloatingWindowService, androidx.appcompat.R.style.Theme_AppCompat_DayNight_Dialog)
+                val dialog = androidx.appcompat.app.AlertDialog.Builder(themedContext)
+                    .setTitle(title)
+                    .setMessage(message)
+                    .setPositiveButton(android.R.string.ok) { _, _ ->
+                        val fView = floatingView ?: return@setPositiveButton
+                        val webView: WebView = fView.findViewById(R.id.floatingWebView)
+                        webView.evaluateJavascript("window.onNativeConfirmResult('$callbackId', true);", null)
+                    }
+                    .setNegativeButton(android.R.string.cancel) { _, _ ->
+                        val fView = floatingView ?: return@setNegativeButton
+                        val webView: WebView = fView.findViewById(R.id.floatingWebView)
+                        webView.evaluateJavascript("window.onNativeConfirmResult('$callbackId', false);", null)
+                    }
+                    .setOnCancelListener {
+                        val fView = floatingView ?: return@setOnCancelListener
+                        val webView: WebView = fView.findViewById(R.id.floatingWebView)
+                        webView.evaluateJavascript("window.onNativeConfirmResult('$callbackId', false);", null)
+                    }
+                    .create()
+
+                dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
+                dialog.show()
+            }
+        }
+
+        @JavascriptInterface
         fun updateFloatingColors(bgColor: String, textColor: String) {
             val handler = Handler(Looper.getMainLooper())
             handler.post {

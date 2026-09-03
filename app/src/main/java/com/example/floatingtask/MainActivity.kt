@@ -587,6 +587,28 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun showConfirmDialog(title: String, message: String, callbackId: String) {
+            runOnUiThread {
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle(title)
+                    .setMessage(message)
+                    .setPositiveButton(android.R.string.ok) { _, _ ->
+                        val webView: WebView = findViewById(R.id.webView)
+                        webView.evaluateJavascript("window.onNativeConfirmResult('$callbackId', true);", null)
+                    }
+                    .setNegativeButton(android.R.string.cancel) { _, _ ->
+                        val webView: WebView = findViewById(R.id.webView)
+                        webView.evaluateJavascript("window.onNativeConfirmResult('$callbackId', false);", null)
+                    }
+                    .setOnCancelListener {
+                        val webView: WebView = findViewById(R.id.webView)
+                        webView.evaluateJavascript("window.onNativeConfirmResult('$callbackId', false);", null)
+                    }
+                    .show()
+            }
+        }
+
+        @JavascriptInterface
         fun setIntervalAlarm(minutes: Int) {
             val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
             prefs.edit { putInt("recheckInterval", minutes) }

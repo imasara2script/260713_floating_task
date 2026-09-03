@@ -998,21 +998,29 @@
         }
 
         function handleTouchStart(e) {
+            // 編集モードでない場合はドラッグ不可
             if (!isEditMode) return;
+            // ドラッグハンドル以外からのタッチは無視
             if (!e.target.classList.contains('drag-handle')) return;
+
             draggingElement = e.target.closest('.task-item');
             if (draggingElement) {
                 draggingElement.classList.add('dragging');
+                // スクロールを防止
                 if (e.cancelable) e.preventDefault();
             }
         }
 
         function handleTouchMove(e) {
             if (!draggingElement) return;
+
+            // タッチ位置の取得
             const touch = e.touches[0];
             const list = document.getElementById('managerTaskList');
             const items = Array.from(list.querySelectorAll('.task-item:not(.dragging)'));
             const touchY = touch.clientY;
+
+            // 挿入先を特定
             const nextElement = items.reduce((closest, child) => {
                 const box = child.getBoundingClientRect();
                 const offset = touchY - box.top - box.height / 2;
@@ -1022,11 +1030,13 @@
                     return closest;
                 }
             }, { offset: Number.NEGATIVE_INFINITY }).element;
+
             if (nextElement == null) {
                 list.appendChild(draggingElement);
             } else {
                 list.insertBefore(draggingElement, nextElement);
             }
+
             if (e.cancelable) e.preventDefault();
         }
 
@@ -1044,9 +1054,14 @@
                         taskMap.delete(id);
                     }
                 });
+                // 万が一DOMになかったタスクがあれば末尾に残す
                 taskMap.forEach(task => newTasks.push(task));
                 tasks = newTasks;
-                draggingElement = null;
+                draggingElement = null; // saveTasksの前のrenderでスキップされないように先にnullにする
+
+                // 完了済みが混ざっている状態で保存されるため、isEditModeを抜けた時に
+                // 並べ替えがリセットされないように考慮が必要ですが、
+                // tasks配列自体が真の順序となる。
                 saveTasks();
             }
             draggingElement = null;
@@ -1102,13 +1117,16 @@
             inputEl.style.display = options.showInput ? 'block' : 'none';
             textareaEl.style.display = options.showTextarea ? 'block' : 'none';
 
+            let initialValue = '';
             if (options.showInput) {
                 inputEl.value = options.inputValue || '';
                 inputEl.type = options.inputType || 'text';
+                initialValue = inputEl.value;
             }
             if (options.showTextarea) {
                 textareaEl.value = options.inputValue || '';
                 textareaEl.placeholder = options.placeholder || '';
+                initialValue = textareaEl.value;
             }
 
             // キャンセルボタンの表示制御
@@ -1146,10 +1164,24 @@
                 }
             };
 
-            cancelBtn.onclick = () => {
+            const handleCancel = () => {
+                if (options.confirmDiscard) {
+                    const currentVal = options.showTextarea ? textareaEl.value : inputEl.value;
+                    if (currentVal !== initialValue) {
+                        window.nativeConfirm(getTranslation('msg_confirm_discard'), (ok) => {
+                            if (ok) {
+                                closeModal();
+                                if (options.onCancel) options.onCancel();
+                            }
+                        });
+                        return;
+                    }
+                }
                 closeModal();
                 if (options.onCancel) options.onCancel();
             };
+
+            cancelBtn.onclick = handleCancel;
 
             // 背景（グレーのエリア）クリックで閉じる
             modal.onclick = (e) => {
@@ -1157,7 +1189,7 @@
                     if (options.hideCancel) {
                         if (confirmBtn.onclick) confirmBtn.onclick();
                     } else {
-                        if (cancelBtn.onclick) cancelBtn.onclick();
+                        handleCancel();
                     }
                 }
             };
@@ -1741,6 +1773,8 @@
                             taskIdToCompleteWithMemo = id;
                             return t;
                         }
+
+                        // 通常の完了処理
                         const historyId = Date.now();
                         history.unshift({
                             id: historyId,
@@ -1751,6 +1785,7 @@
                         });
                         if (history.length > 500) history.pop();
 
+                        // 連続実行回数の更新 (タイマーなしタスクのみ)
                         if (!t.durationMs) {
                             const today = new Date().toDateString();
                             const yesterday = new Date(Date.now() - 86400000).toDateString();
@@ -1763,9 +1798,11 @@
                         }
                     }
 
+                    // Android 側に完了状態を通知
                     if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
                         Android.updateTaskCompletionState(t.id, newState);
                     }
+
                     return { ...t, completed: newState };
                 }
                 return t;
@@ -2073,6 +2110,7 @@
                 inputValue: initialMemo,
                 placeholder: getTranslation('placeholder_history_memo'),
                 cancelText: getTranslation('btn_no_comment'),
+                confirmDiscard: true,
                 onConfirm: (val) => {
                     if (isInitial && taskId) {
                         completeTaskWithMemo(taskId, val);

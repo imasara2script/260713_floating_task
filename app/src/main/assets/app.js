@@ -337,3 +337,26 @@ function completeTaskWithMemo(taskId, memo) {
     saveTasks();
 }
 window.completeTaskWithMemo = completeTaskWithMemo;
+
+// ネイティブダイアログ用のコールバック管理
+window._nativeConfirmCallbacks = {};
+
+window.nativeConfirm = function(message, onResult) {
+    if (typeof Android === 'undefined' || !Android.showConfirmDialog) {
+        // ネイティブ機能が使えない場合は標準の confirm をフォールバックとして使用
+        const res = confirm(message);
+        if (onResult) onResult(res);
+        return;
+    }
+    const callbackId = 'confirm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    window._nativeConfirmCallbacks[callbackId] = onResult;
+    Android.showConfirmDialog(getTranslation('header_title'), message, callbackId);
+};
+
+window.onNativeConfirmResult = function(callbackId, result) {
+    const callback = window._nativeConfirmCallbacks[callbackId];
+    if (callback) {
+        callback(result);
+        delete window._nativeConfirmCallbacks[callbackId];
+    }
+};
