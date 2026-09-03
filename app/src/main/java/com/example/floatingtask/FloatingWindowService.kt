@@ -38,6 +38,7 @@ class FloatingWindowService : Service() {
 
     private lateinit var windowManager: WindowManager
     private var floatingView: View? = null
+    private var floatingViewV2: View? = null
     private var isSettingsMode = false
 
     private val dataChangeReceiver = object : BroadcastReceiver() {
@@ -106,8 +107,15 @@ class FloatingWindowService : Service() {
             "ACTION_HIDE" -> {
                 isSettingsMode = false
                 hideFloatingWindow()
+                hideFloatingWindowV2()
             }
-            "ACTION_SHOW" -> showFloatingWindow()
+            "ACTION_SHOW" -> {
+                showFloatingWindow()
+                val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+                if (prefs.getBoolean("experimentalWindowEnabled", false)) {
+                    showFloatingWindowV2()
+                }
+            }
             "ACTION_REFRESH" -> refreshWebView()
             "ACTION_UPDATE_SETTINGS" -> applySettings()
             "ACTION_EXPAND" -> {
@@ -130,6 +138,8 @@ class FloatingWindowService : Service() {
                     webView?.evaluateJavascript("toggleFloatingExpand(false, true);", null)
                 }
             }
+            "ACTION_SHOW_V2" -> showFloatingWindowV2()
+            "ACTION_HIDE_V2" -> hideFloatingWindowV2()
         }
         return START_STICKY
     }
@@ -174,11 +184,24 @@ class FloatingWindowService : Service() {
         floatingView?.visibility = View.GONE
     }
 
+    private fun hideFloatingWindowV2() {
+        AppLogger.log(this, "hideFloatingWindowV2 called")
+        floatingViewV2?.visibility = View.GONE
+    }
+
     private fun removeFloatingWindow() {
         if (floatingView != null) {
             AppLogger.log(this, "removeFloatingWindow called")
             windowManager.removeView(floatingView)
             floatingView = null
+        }
+    }
+
+    private fun removeFloatingWindowV2() {
+        if (floatingViewV2 != null) {
+            AppLogger.log(this, "removeFloatingWindowV2 called")
+            windowManager.removeView(floatingViewV2)
+            floatingViewV2 = null
         }
     }
 
@@ -500,11 +523,99 @@ class FloatingWindowService : Service() {
         updateWindowSize(expanded = isExpanded)
     }
 
+    @SuppressLint("SetJavaScriptEnabled", "InflateParams")
+    private fun showFloatingWindowV2() {
+        AppLogger.log(this, "showFloatingWindowV2 called")
+        if (!Settings.canDrawOverlays(this)) return
+
+        if (floatingViewV2 != null) {
+            floatingViewV2?.visibility = View.VISIBLE
+            return
+        }
+
+        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
+        floatingViewV2 = inflater.inflate(R.layout.floating_layout, null)
+
+        val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+        val density = resources.displayMetrics.density
+
+        // V2 用の独立した座標/サイズ設定 (存在しなければ V1 の設定を流用)
+        val scale = prefs.getFloat("floatExpandedScale", 1.0f)
+        val width = prefs.getInt("floatWidth", (300 * density).toInt())
+        val height = prefs.getInt("floatHeight", (44 * density).toInt())
+
+        val params = WindowManager.LayoutParams(
+            (width * scale).toInt(),
+            (height * scale).toInt(),
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            PixelFormat.TRANSLUCENT,
+        )
+
+        params.gravity = Gravity.TOP or Gravity.START
+        // 位置は V1 と被らないように少しずらす (初回のみ)
+        params.x = prefs.getInt("floatExpandedX", 100) + 50
+        params.y = prefs.getInt("floatExpandedY", 100) + 100
+
+        // WebViewの設定
+        val webView: WebView = floatingViewV2!!.findViewById(R.id.floatingWebView)
+        webView.webViewClient = WebViewClient()
+        webView.webChromeClient = WebChromeClient()
+        webView.settings.javaScriptEnabled = true
+        webView.settings.domStorageEnabled = true
+        webView.setBackgroundColor(0) // 透明に設定
+
+        webView.addJavascriptInterface(FloatingWebAppInterface(), "Android")
+
+        // 展開状態で起動することを想定
+        webView.loadUrl("file:///android_asset/floating.html?mode=floating&expanded=true")
+
+        val dragHandle: View = floatingViewV2!!.findViewById(R.id.dragHandle)
+        val dragHandleParams = dragHandle.layoutParams as FrameLayout.LayoutParams
+        dragHandleParams.width = ViewGroup.LayoutParams.MATCH_PARENT
+        dragHandleParams.height = (32 * density * scale).toInt() // ヘッダー部分
+        dragHandleParams.gravity = Gravity.TOP or Gravity.START
+        dragHandle.layoutParams = dragHandleParams
+
+        var initialX = 0
+        var initialY = 0
+        var initialTouchX = 0f
+        var initialTouchY = 0f
+
+        dragHandle.setOnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    v.performClick()
+                    initialX = params.x
+                    initialY = params.y
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    params.x = initialX + (event.rawX - initialTouchX).toInt()
+                    params.y = initialY + (event.rawY - initialTouchY).toInt()
+                    if (floatingViewV2 != null) {
+                        windowManager.updateViewLayout(floatingViewV2, params)
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+
+        windowManager.addView(floatingViewV2, params)
+    }
+
     override fun onDestroy() {
         AppLogger.log(this, "FloatingWindowService onDestroy")
         super.onDestroy()
         unregisterReceiver(dataChangeReceiver)
         floatingView?.let {
+            windowManager.removeView(it)
+        }
+        floatingViewV2?.let {
             windowManager.removeView(it)
         }
     }

@@ -314,6 +314,23 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun setExperimentalWindowEnabled(enabled: Boolean) {
+            val intent = Intent(mContext, FloatingWindowService::class.java)
+            intent.action = if (enabled) "ACTION_SHOW_V2" else "ACTION_HIDE_V2"
+            mContext.startService(intent)
+            
+            // 設定を保存
+            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+            prefs.edit().putBoolean("experimentalWindowEnabled", enabled).apply()
+        }
+
+        @JavascriptInterface
+        fun isExperimentalWindowEnabled(): Boolean {
+            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+            return prefs.getBoolean("experimentalWindowEnabled", false)
+        }
+
+        @JavascriptInterface
         fun shareLog() {
             // 共有直前に最新のシステム状態を記録
             AppLogger.logSystemStatus(mContext)

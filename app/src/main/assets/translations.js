@@ -212,7 +212,8 @@ const translations = {
         label_select_items_to_show: "一時的に表示したい項目にチェックを入れてください",
         btn_ok: "OK",
         btn_test_melody: "テスト再生",
-        btn_stop_melody: "停止"
+        btn_stop_melody: "停止",
+        label_experimental_window_enabled: "新しいフローティングウィンドウ（試用版）を有効にする"
     },
     en: {
         tab_tasks: "Tasks",
@@ -429,6 +430,7 @@ const translations = {
         label_select_items_to_show: "Check the items you want to show temporarily",
         btn_ok: "OK",
         btn_test_melody: "Test",
-        btn_stop_melody: "Stop"
+        btn_stop_melody: "Stop",
+        label_experimental_window_enabled: "Enable new floating window (Trial)"
     }
 };

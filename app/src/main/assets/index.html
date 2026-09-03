@@ -559,6 +559,13 @@
                 </label>
             </div>
 
+            <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #eee;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+                    <input type="checkbox" id="experimentalWindowToggle" onchange="toggleExperimentalWindow()">
+                    <span data-i18n="label_experimental_window_enabled">新しいフローティングウィンドウ（試用版）を有効にする</span>
+                </label>
+            </div>
+
             <div id="logInfoSection" style="display: none;">
                 <div style="font-size: 12px; color: #666; margin-bottom: 12px;">
                     <span data-i18n="label_log_size">ログファイルサイズ: </span>
@@ -668,69 +675,10 @@
             return false;
         }
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const mode = urlParams.get('mode') || 'manager';
-
-        let currentLang = 'ja';
-
-        function setLanguageInitial(lang) {
-            localStorage.setItem('appLanguage', lang);
-            applyLanguage();
-            if (typeof Android !== 'undefined' && Android.setAppLanguage) {
-                Android.setAppLanguage(lang);
-            }
-            document.getElementById('languageModal').style.display = 'none';
-        }
-
-        function applyLanguage() {
-            const savedLang = localStorage.getItem('appLanguage') || 'system';
-            if (savedLang === 'system') {
-                const sysLang = (typeof Android !== 'undefined' && Android.getSystemLanguage) ? Android.getSystemLanguage() : navigator.language;
-                currentLang = sysLang.startsWith('ja') ? 'ja' : 'en';
-            } else {
-                currentLang = savedLang;
-            }
-
-            const select = document.getElementById('languageSelect');
-            if (select) select.value = savedLang;
-
-            // Translate static elements
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                el.textContent = getTranslation(key);
-            });
-
-            // Translate placeholders
-            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-                const key = el.getAttribute('data-i18n-placeholder');
-                el.placeholder = getTranslation(key);
-            });
-
-            render();
-        }
-
-        let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-        let history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
         let historyFilterPeriodType = 'all'; // all, day, week, month
         let historyFilterPeriodValue = '';
         let historyFilterQuery = '';
         let inputtingCommentForTaskId = null;
-        let calendarMark = localStorage.getItem('calendarMark') || '⭕';
-        let bgThresholds = JSON.parse(localStorage.getItem('bgThresholds') || '[]');
-
-        // 初期値の設定
-        if (bgThresholds.length === 0 && localStorage.getItem('bgThresholds') === null) {
-            bgThresholds = [
-                { threshold: 3600, bgColor: '#ffff00', textColor: '#000000' }, // 60分以下 -> 黄
-                { threshold: 600, bgColor: '#ffc0cb', textColor: '#d9534f' }   // 10分以下 -> ピンク
-            ];
-            localStorage.setItem('bgThresholds', JSON.stringify(bgThresholds));
-        }
-
-        let showAllInFloating = localStorage.getItem('showAllInFloating') === 'true';
-        let displayTaskCount = parseInt(localStorage.getItem('displayTaskCount') || '1');
-        let scrollTaskCount = parseInt(localStorage.getItem('scrollTaskCount') || '1');
-        let checkedHideDelay = parseInt(localStorage.getItem('checkedHideDelay') || '2');
         let currentFloatingIndex = 0;
         let draggingElement = null;
         let isEditMode = false;
@@ -755,20 +703,10 @@
         let selectedCustomName = null;
         let isFloatingExpanded = (urlParams.get('expanded') === 'true');
         let isDragging = false;
-        let timerDisplayMode = 'countdown'; // 'countdown' or 'endtime'
-        let isAdFree = false;
-        let isPremium = false;
         let pendingAction = null; // 'backup' or 'restore'
         let isImportMode = false;
         let pendingRestoreData = null;
         let pendingRestoreOptions = null;
-
-        function checkAdFree() {
-            if (typeof Android !== 'undefined') {
-                if (Android.isAdFree) isAdFree = Android.isAdFree();
-                if (Android.isPremium) isPremium = Android.isPremium();
-            }
-        }
 
         function testReminder(id) {
             const r = currentTaskReminders.find(x => x.id == id);
@@ -1177,118 +1115,6 @@
             if (floatingTasks.length > 0) {
                 currentFloatingIndex = (currentFloatingIndex - scrollTaskCount + floatingTasks.length) % floatingTasks.length;
                 render();
-            }
-        }
-
-        function getVisibleFloatingTasks() {
-            const now = Date.now();
-            const pendingSorted = tasks.filter(t => !t.completed || (t.justCompletedUntil && now < t.justCompletedUntil)).sort((a, b) => {
-                const aIsTimer = !!a.durationMs;
-                const bIsTimer = !!b.durationMs;
-                if (aIsTimer !== bIsTimer) return aIsTimer ? -1 : 1;
-                return 0;
-            });
-            if (showAllInFloating) {
-                return [...pendingSorted, ...tasks.filter(t => t.completed)];
-            }
-            return pendingSorted;
-        }
-
-        function toggleShowAllInFloating() {
-            showAllInFloating = !showAllInFloating;
-            localStorage.setItem('showAllInFloating', showAllInFloating);
-            render();
-        }
-
-        function checkDailyReset() {
-            const lastReset = localStorage.getItem('lastResetDate');
-            const today = new Date().toDateString();
-
-            if (lastReset !== today) {
-                tasks = tasks.map(t => {
-                    const updatedTask = { ...t, completed: false };
-                    // 時刻指定タスクの場合は、新しい日の指定時刻に向けて再計算
-                    if (t.targetTime) {
-                        const [hours, minutes] = t.targetTime.split(':').map(Number);
-                        const now = new Date();
-                        const target = new Date();
-                        target.setHours(hours, minutes, 0, 0);
-
-                        // リセット時は基本0:00頃なので、targetは未来のはずだが念のため
-                        if (target <= now) {
-                            target.setDate(target.getDate() + 1);
-                        }
-                        updatedTask.startTime = now.getTime();
-                        updatedTask.durationMs = target.getTime() - now.getTime();
-                    }
-
-                    // Android 側の完了状態もリセット
-                    if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
-                        Android.updateTaskCompletionState(t.id, false);
-                    }
-
-                    return updatedTask;
-                });
-                localStorage.setItem('lastResetDate', today);
-                saveTasks();
-            }
-
-            // 端末再起動時などのアラーム再登録チェック
-            tasks.forEach(t => {
-                if (t.durationMs && !t.completed) {
-                    const remaining = (t.startTime + t.durationMs) - Date.now();
-                    if (remaining > 0) {
-                        // まだ終了していないタイマーがあれば再登録
-                        if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-                            Android.setTimerAlarm(t.id, t.text, remaining, t.melody || 'default');
-                        }
-                    }
-                }
-            });
-
-            // デイリーボーナスチェック
-            if (typeof Android !== 'undefined' && Android.checkDailyCoinBonus) {
-                if (Android.checkDailyCoinBonus()) {
-                    history.unshift({
-                        id: Date.now(),
-                        type: 'coin_daily',
-                        text: getTranslation('history_coin_daily'),
-                        memo: "",
-                        completedAt: new Date().toISOString()
-                    });
-                    if (history.length > 500) history.pop();
-                    saveTasks(); // 内部で render() も呼ばれる
-                    updateCoinDisplay();
-
-                    showModal(getTranslation('msg_daily_bonus_earned'), { hideCancel: true });
-                }
-            }
-
-            // 常に最新の状態（バッテリー最適化等）を確認するために呼び出す
-            refreshData();
-        }
-
-        function refreshData() {
-            tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-            history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
-            displayTaskCount = parseInt(localStorage.getItem('displayTaskCount') || '1');
-            scrollTaskCount = parseInt(localStorage.getItem('scrollTaskCount') || '1');
-
-            checkAdFree();
-
-            updateBatteryStatus();
-            updateAlarmStatus();
-            updateNotificationStatus();
-            updateOverlayStatus();
-            render();
-        }
-
-        function saveTasks() {
-            localStorage.setItem('tasks', JSON.stringify(tasks));
-            localStorage.setItem('taskHistory', JSON.stringify(history));
-            render();
-            if (typeof Android !== 'undefined' && Android.onDataChanged) {
-                Android.onDataChanged();
             }
         }
 
@@ -1969,67 +1795,6 @@
         function toggleTimerDisplayMode() {
             timerDisplayMode = (timerDisplayMode === 'countdown') ? 'endtime' : 'countdown';
             render();
-        }
-
-        function getRemainingTimeText(t) {
-            if (!t.durationMs) return '';
-            const remaining = (t.startTime + t.durationMs) - Date.now();
-            if (remaining <= 0) return `0${getTranslation('unit_sec')}`;
-
-            const hoursFloat = remaining / 3600000;
-            if (hoursFloat >= 1) {
-                return `${hoursFloat.toFixed(1)}${getTranslation('unit_hour')}`;
-            }
-
-            const mins = Math.floor(remaining / 60000);
-            if (mins > 0) {
-                return `${mins}${getTranslation('unit_min')}`;
-            }
-            const secs = Math.floor((remaining % 60000) / 1000);
-            return `${secs}${getTranslation('unit_sec')}`;
-        }
-
-        function getRemainingTimeTextDetailed(t) {
-            if (!t.durationMs) return '';
-            const remaining = (t.startTime + t.durationMs) - Date.now();
-            if (remaining <= 0) return `0${getTranslation('unit_sec')}`;
-
-            const hoursFloat = remaining / 3600000;
-            if (hoursFloat >= 1) {
-                return `${hoursFloat.toFixed(1)}${getTranslation('unit_hour')}`;
-            }
-
-            const mins = Math.floor(remaining / 60000);
-            const secs = Math.floor((remaining % 60000) / 1000);
-
-            if (mins > 0) {
-                return `${mins}${getTranslation('unit_min')}${secs}${getTranslation('unit_sec')}`;
-            }
-            return `${secs}${getTranslation('unit_sec')}`;
-        }
-
-        function getEndTimeText(t) {
-            if (!t.startTime || !t.durationMs) return '';
-            const endTime = new Date(t.startTime + t.durationMs);
-            const hh = String(endTime.getHours()).padStart(2, '0');
-            const mm = String(endTime.getMinutes()).padStart(2, '0');
-            const ss = String(endTime.getSeconds()).padStart(2, '0');
-            return `${hh}:${mm}:${ss} ${currentLang === 'ja' ? '終了' : 'End'}`;
-        }
-
-        function getTotalTimeText(t) {
-            if (!t.durationMs) return '';
-            const hoursFloat = t.durationMs / 3600000;
-            if (hoursFloat >= 1) {
-                return `${hoursFloat.toFixed(1)}${getTranslation('unit_hour')}`;
-            }
-            const mins = Math.floor(t.durationMs / 60000);
-            const secs = Math.floor((t.durationMs % 60000) / 1000);
-
-            let res = '';
-            if (mins > 0) res += mins + getTranslation('unit_min');
-            if (secs > 0 || res === '') res += secs + getTranslation('unit_sec');
-            return res;
         }
 
         function toggleTask(id) {
@@ -3842,6 +3607,10 @@
                 if (isEnabled) updateLogSize();
             }
 
+            if (typeof Android !== 'undefined' && Android.isExperimentalWindowEnabled) {
+                document.getElementById('experimentalWindowToggle').checked = Android.isExperimentalWindowEnabled();
+            }
+
             modal.onclick = (e) => {
                 if (e.target === modal) closeDeveloperModal();
             };
@@ -3874,6 +3643,13 @@
                     Android.setLoggingEnabled(false);
                 }
                 document.getElementById('logInfoSection').style.display = 'none';
+            }
+        }
+
+        function toggleExperimentalWindow() {
+            const checkbox = document.getElementById('experimentalWindowToggle');
+            if (typeof Android !== 'undefined' && Android.setExperimentalWindowEnabled) {
+                Android.setExperimentalWindowEnabled(checkbox.checked);
             }
         }
 

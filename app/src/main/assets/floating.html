@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Task V2 (Experimental)</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="translations.js"></script>
+    <script src="app.js"></script>
+</head>
+<body style="background: transparent; margin: 0; padding: 0; overflow: hidden; height: 100%;">
+    <div id="floating-collapsed" class="floating-label-collapsed" onclick="if(!isDragging) toggleFloatingExpand(true)">
+        <!-- JavaScript で動的に生成 -->
+    </div>
+    <div id="floating-expanded" class="compact-container" style="display: none; width: 100%; height: 100%; flex-direction: column; padding: 0;">
+        <div id="floatingTaskContent" style="width: 100%; height: 100%; overflow: hidden; display: flex; flex-direction: column;"></div>
+    </div>
+
+    <script>
+        let isDragging = false;
+        let isFloatingExpanded = (urlParams.get('expanded') === 'true');
+        let currentFloatingIndex = 0;
+        let inputtingCommentForTaskId = null;
+
+        function initializeV2() {
+            console.log("Floating V2 Initialized");
+            applyLanguage();
+            // 初期状態の反映
+            toggleFloatingExpand(isFloatingExpanded, true);
+        }
+
+        function toggleFloatingExpand(expand, fromAndroid = false) {
+            isFloatingExpanded = expand;
+            const collapsedEl = document.getElementById('floating-collapsed');
+            const expandedEl = document.getElementById('floating-expanded');
+            if (collapsedEl) collapsedEl.style.display = expand ? 'none' : 'flex';
+            if (expandedEl) expandedEl.style.display = expand ? 'flex' : 'none';
+
+            // 倍率の再適用
+            const scale = expand ?
+                (localStorage.getItem('floatExpandedScale') || '1.0') :
+                (localStorage.getItem('floatCollapsedScale') || '1.0');
+            updateScale(scale);
+
+            if (!fromAndroid && typeof Android !== 'undefined' && Android.toggleExpand) {
+                Android.toggleExpand(expand);
+            }
+
+            if (inputtingCommentForTaskId !== null && typeof Android !== 'undefined' && Android.setFocusable) {
+                Android.setFocusable(expand);
+            }
+
+            render();
+        }
+
+        function updateScale(scale) {
+            document.body.style.transform = `scale(${scale})`;
+            document.body.style.transformOrigin = 'top left';
+            document.body.style.width = (100 / parseFloat(scale)) + '%';
+            document.body.style.height = (100 / parseFloat(scale)) + '%';
+        }
+
+        function setIsDragging(dragging) {
+            isDragging = dragging;
+        }
+
+        function toggleShowAllInFloating() {
+            showAllInFloating = !showAllInFloating;
+            localStorage.setItem('showAllInFloating', showAllInFloating);
+            render();
+        }
+
+        function nextTask() {
+            const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
+            if (scrollButtonType === 'scroll') {
+                const container = document.getElementById('floating-task-container');
+                if (container) {
+                    container.scrollBy({ top: container.clientHeight * 0.8, behavior: 'smooth' });
+                }
+                return;
+            }
+            const floatingTasks = getVisibleFloatingTasks();
+            if (floatingTasks.length > 0) {
+                currentFloatingIndex = (currentFloatingIndex + scrollTaskCount) % floatingTasks.length;
+                render();
+            }
+        }
+
+        function prevTask() {
+            const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
+            if (scrollButtonType === 'scroll') {
+                const container = document.getElementById('floating-task-container');
+                if (container) {
+                    container.scrollBy({ top: -container.clientHeight * 0.8, behavior: 'smooth' });
+                }
+                return;
+            }
+            const floatingTasks = getVisibleFloatingTasks();
+            if (floatingTasks.length > 0) {
+                currentFloatingIndex = (currentFloatingIndex - scrollTaskCount + floatingTasks.length) % floatingTasks.length;
+                render();
+            }
+        }
+
+        function toggleTask(id) {
+            tasks = tasks.map(t => {
+                if (t.id === id) {
+                    const newState = !t.completed;
+                    if (newState) {
+                        // 簡易的な完了処理 (V2では一旦コメントなしを基本とするか、後で実装)
+                        const historyId = Date.now();
+                        history.unshift({
+                            id: historyId,
+                            taskId: t.id,
+                            text: t.text,
+                            memo: "",
+                            completedAt: new Date().toISOString()
+                        });
+                        if (history.length > 500) history.pop();
+
+                        t.justCompletedUntil = Date.now() + (checkedHideDelay * 1000);
+                        setTimeout(() => render(), checkedHideDelay * 1000);
+                    }
+
+                    if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
+                        Android.updateTaskCompletionState(t.id, newState);
+                    }
+                    return { ...t, completed: newState };
+                }
+                return t;
+            });
+            saveTasks();
+        }
+
+        function repeatTimer(id) {
+            tasks = tasks.map(t => {
+                if (t.id === id && t.durationMs) {
+                    const melody = t.melody || 'default';
+                    if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
+                        Android.setTimerAlarm(t.id, t.text, t.durationMs, melody);
+                    }
+                    const historyId = Date.now();
+                    history.unshift({
+                        id: historyId,
+                        taskId: t.id,
+                        text: t.text + getTranslation('repeat_suffix'),
+                        memo: "",
+                        completedAt: new Date().toISOString()
+                    });
+                    if (history.length > 500) history.pop();
+                    return { ...t, startTime: Date.now(), completed: false };
+                }
+                return t;
+            });
+            saveTasks();
+        }
+
+        function toggleTimerDisplayMode() {
+            timerDisplayMode = (timerDisplayMode === 'countdown') ? 'endtime' : 'countdown';
+            render();
+        }
+
+        function render() {
+            const floatingTasks = getVisibleFloatingTasks();
+            const collapsedEl = document.getElementById('floating-collapsed');
+            const expandedEl = document.getElementById('floating-expanded');
+            const floatingContent = document.getElementById('floatingTaskContent');
+
+            if (currentFloatingIndex >= floatingTasks.length) {
+                currentFloatingIndex = Math.max(0, floatingTasks.length - 1);
+            }
+
+            // 配色ルールの計算
+            const activeTimers = tasks.filter(t => t.durationMs && !t.completed)
+                .map(t => ({...t, remaining: Math.max(0, (t.startTime + t.durationMs) - Date.now())}))
+                .filter(t => t.remaining > 0)
+                .sort((a, b) => a.remaining - b.remaining);
+
+            let appliedBgColor = '#ffffff';
+            let appliedTextColor = '#333333';
+            if (activeTimers.length > 0) {
+                const shortestRemaining = activeTimers[0].remaining / 1000;
+                const sortedRules = [...bgThresholds].sort((a, b) => a.threshold - b.threshold);
+                const rule = sortedRules.find(r => shortestRemaining <= r.threshold);
+                if (rule) {
+                    appliedBgColor = rule.bgColor;
+                    appliedTextColor = rule.textColor;
+                }
+            }
+
+            // スタイルの適用
+            if (collapsedEl) {
+                collapsedEl.style.backgroundColor = appliedBgColor;
+                collapsedEl.style.color = appliedTextColor;
+                if (activeTimers.length > 0) {
+                    const timeText = getRemainingTimeText(activeTimers[0]);
+                    collapsedEl.innerHTML = `<div class="ft-tiny">FT</div><div class="timer-collapsed-large" id="timer-collapsed-text">${timeText}</div>`;
+                } else {
+                    collapsedEl.innerHTML = `<div>Floating</div><div>task</div>`;
+                }
+            }
+
+            if (expandedEl) {
+                expandedEl.style.backgroundColor = appliedBgColor;
+                expandedEl.style.color = appliedTextColor;
+            }
+
+            if (floatingContent) {
+                if (floatingTasks.length === 0) {
+                    const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
+                    const buttonsWidth = 36 + 6 + (showCheckedToggle ? 42 : 0) + 8;
+                    floatingContent.innerHTML = `
+                        <div style="display: flex; flex-direction: column; width: 100%; height: 100%; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: inherit; opacity: 0.8; padding: 4px 8px 4px 0; border-bottom: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); flex-shrink: 0;">
+                                <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 24px; border-right: 1px solid rgba(0,0,0,0.2); background: rgba(0,0,0,0.05); flex-shrink: 0; margin-right: 8px;">
+                                    <span style="font-size: 10px; font-weight: bold; opacity: 0.7;">V2</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px; width: ${buttonsWidth}px; justify-content: flex-end; flex-shrink: 0;">
+                                    ${showCheckedToggle ? `<button onclick="toggleShowAllInFloating()" style="background: ${!showAllInFloating ? '#007bff' : '#eee'}; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: ${!showAllInFloating ? 'white' : '#333'}; cursor: pointer; display: flex; align-items: center; justify-content: center;">👁️</button>` : ''}
+                                    <button onclick="if(typeof Android !== 'undefined' && Android.openMainActivity) Android.openMainActivity();" style="background: #007bff; border: none; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;">🏠</button>
+                                </div>
+                            </div>
+                            <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; padding: 2px 4px;">
+                                <span style="color:#888; font-size:12px;">${getTranslation('none')}</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
+                    const isScrollMode = scrollButtonType === 'scroll';
+                    const tasksToShow = isScrollMode ? floatingTasks : floatingTasks.slice(currentFloatingIndex, currentFloatingIndex + displayTaskCount);
+                    if (!isScrollMode && tasksToShow.length < displayTaskCount && floatingTasks.length > tasksToShow.length) {
+                        tasksToShow.push(...floatingTasks.slice(0, displayTaskCount - tasksToShow.length));
+                    }
+
+                    const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
+                    let buttonsWidth = 42 + 8;
+                    if (showCheckedToggle) buttonsWidth += 42;
+                    if (scrollButtonType === 'both') buttonsWidth += 84;
+                    else if (scrollButtonType === 'down' || scrollButtonType === 'up') buttonsWidth += 42;
+                    const counterWidth = (isScrollMode || displayTaskCount > 1) ? 50 : 35;
+                    buttonsWidth += counterWidth;
+
+                    let tasksHtml = '';
+                    tasksToShow.forEach((t, i) => {
+                        const isTimer = !!t.durationMs;
+                        const remainingText = isTimer ? getRemainingTimeTextDetailed(t) : '';
+                        const totalText = isTimer ? getTotalTimeText(t) : '';
+                        const isExpired = isTimer && (t.startTime + t.durationMs <= Date.now());
+                        const timerDisplay = isTimer ? (timerDisplayMode === 'countdown' ? `${remainingText} / ${totalText}` : getEndTimeText(t)) : '';
+
+                        tasksHtml += `
+                            <div style="display: flex; align-items: center; min-width: 0; margin-bottom: 2px;">
+                                <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})" style="width: 16px; height: 16px; margin-right: 6px; flex-shrink: 0;">
+                                ${isTimer && !t.completed ? `
+                                    <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-right: 6px; opacity: 0.9;">
+                                        <span class="floating-timer-badge ${isExpired ? 'timer-expired' : ''}" data-task-id="${t.id}" onclick="toggleTimerDisplayMode()" style="font-variant-numeric: tabular-nums; cursor:pointer; background: #ffc107; padding: 1px 4px; border-radius: 3px; font-weight: bold; font-size: 10px; white-space: nowrap;">${timerDisplay}</span>
+                                        <button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size: 12px; padding: 0; background: none; border: none; cursor: pointer;">🔄</button>
+                                    </div>
+                                ` : ''}
+                                <span class="floating-task-text" style="font-size: 14px; font-weight: bold; margin: 0; flex-grow: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; ${t.completed ? 'text-decoration: line-through; color: #888;' : ''}">${t.text}</span>
+                            </div>
+                        `;
+                    });
+
+                    const counterText = isScrollMode ? `(${floatingTasks.length})` : (displayTaskCount > 1 ? `${currentFloatingIndex + 1}-${(currentFloatingIndex + tasksToShow.length - 1) % floatingTasks.length + 1}/${floatingTasks.length}` : `(${currentFloatingIndex + 1}/${floatingTasks.length})`);
+
+                    floatingContent.innerHTML = `
+                        <div style="display: flex; flex-direction: column; width: 100%; height: 100%; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: inherit; opacity: 0.8; padding: 4px 8px 4px 0; border-bottom: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); flex-shrink: 0;">
+                                <div id="expanded-drag-handle" style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 24px; border-right: 1px solid rgba(0,0,0,0.2); background: rgba(0,0,0,0.05); flex-shrink: 0; margin-right: 8px;">
+                                    <span style="font-size: 10px; font-weight: bold; opacity: 0.7;">V2</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px; width: ${buttonsWidth}px; justify-content: flex-end; flex-shrink: 0;">
+                                    <span class="floating-task-counter" style="font-size: 11px; margin-right: 4px;">${counterText}</span>
+                                    ${showCheckedToggle ? `<button onclick="toggleShowAllInFloating()" style="background: ${!showAllInFloating ? '#007bff' : '#eee'}; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: ${!showAllInFloating ? 'white' : '#333'}; cursor: pointer; display: flex; align-items: center; justify-content: center;">👁️</button>` : ''}
+                                    ${(scrollButtonType === 'both' || scrollButtonType === 'up') ? `<button onclick="prevTask()" style="background: #eee; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: #333; cursor: pointer; display: flex; align-items: center; justify-content: center;">△</button>` : ''}
+                                    ${(scrollButtonType === 'both' || scrollButtonType === 'down') ? `<button onclick="nextTask()" style="background: #eee; border: 1px solid #ccc; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: #333; cursor: pointer; display: flex; align-items: center; justify-content: center;">▽</button>` : ''}
+                                    <button onclick="if(typeof Android !== 'undefined' && Android.openMainActivity) Android.openMainActivity();" style="background: #007bff; border: none; border-radius: 4px; width: 36px; height: 24px; padding: 0; font-size: 14px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;">🏠</button>
+                                </div>
+                            </div>
+                            <div id="floating-task-container" style="flex-grow: 1; display: flex; flex-direction: column; overflow-y: ${isScrollMode ? 'auto' : 'hidden'}; padding: 4px;">
+                                ${tasksHtml}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            if (typeof Android !== 'undefined' && Android.updateFloatingColors) {
+                Android.updateFloatingColors(appliedBgColor, appliedTextColor);
+            }
+        }
+
+        function updateTimersOnly() {
+            const activeTimers = tasks.filter(t => t.durationMs && !t.completed)
+                .map(t => ({...t, remaining: Math.max(0, (t.startTime + t.durationMs) - Date.now())}))
+                .filter(t => t.remaining >= 0)
+                .sort((a, b) => a.remaining - b.remaining);
+
+            const currentActiveIds = tasks.filter(t => t.durationMs && !t.completed).map(t => t.id).sort().join(',');
+            if (typeof window.lastActiveIds === 'undefined') window.lastActiveIds = '';
+            if (currentActiveIds !== window.lastActiveIds) {
+                window.lastActiveIds = currentActiveIds;
+                render();
+                return;
+            }
+
+            tasks.forEach(t => {
+                if (t.durationMs && !t.completed) {
+                    const isExpired = (t.startTime + t.durationMs <= Date.now());
+                    const timerDisplay = (timerDisplayMode === 'countdown' ? `${getRemainingTimeTextDetailed(t)} / ${getTotalTimeText(t)}` : getEndTimeText(t));
+                    document.querySelectorAll(`.floating-timer-badge[data-task-id="${t.id}"]`).forEach(el => {
+                        if (el.textContent !== timerDisplay) el.textContent = timerDisplay;
+                        el.classList.toggle('timer-expired', isExpired);
+                    });
+                }
+            });
+
+            const collapsedTimerText = document.getElementById('timer-collapsed-text');
+            if (collapsedTimerText && activeTimers.length > 0) {
+                const timeText = getRemainingTimeText(activeTimers[0]);
+                if (collapsedTimerText.textContent !== timeText) collapsedTimerText.textContent = timeText;
+            }
+        }
+
+        setInterval(() => {
+            const hasActiveTimers = tasks.some(t => t.durationMs && !t.completed);
+            if (hasActiveTimers) updateTimersOnly();
+        }, 1000);
+
+        document.addEventListener('DOMContentLoaded', initializeV2);
+    </script>
+</body>
+</html>
