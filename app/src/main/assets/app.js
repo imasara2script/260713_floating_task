@@ -233,7 +233,13 @@ function checkDailyReset() {
     const today = new Date().toDateString();
 
     if (lastReset !== today) {
+        const todayDay = new Date().getDay(); // 0 (Sun) to 6 (Sat)
         tasks = tasks.map(t => {
+            // 曜日指定がある場合、今日が含まれているかチェック
+            const shouldReset = !t.selectedDays || t.selectedDays.length === 0 || t.selectedDays.includes(todayDay);
+
+            if (!shouldReset) return t;
+
             const updatedTask = { ...t, completed: false };
             // 時刻指定タスクの場合は、新しい日の指定時刻に向けて再計算
             if (t.targetTime) {

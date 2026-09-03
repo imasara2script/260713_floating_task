@@ -185,6 +185,13 @@
 
                         <div style="margin-bottom: 8px;">
                             <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="showDaysOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
+                                <span data-i18n="label_reset_days">曜日</span>
+                            </label>
+                        </div>
+
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
                                 <input type="checkbox" id="showCommentOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
                                 <span data-i18n="label_show_comment_on_check">チェックを入れた時にコメント記入欄を表示</span>
                             </label>
@@ -442,6 +449,7 @@
             <div id="taskViewContainer" style="display: none;">
                 <div id="viewTaskText" style="font-size: 18px; font-weight: bold; margin-bottom: 12px; word-break: break-all;"></div>
                 <div id="viewTaskTimer" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none;"></div>
+                <div id="viewTaskDays" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none; background: #f8f9fa; padding: 8px; border-radius: 6px; border: 1px solid #eee;"></div>
                 <div id="viewTaskReminders" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none; background: #f0f7ff; padding: 8px; border-radius: 6px;"></div>
                 <div id="viewNoteGroup">
                     <div style="color: #666; font-size: 12px; margin-bottom: 4px;" data-i18n="label_note">補足文章：</div>
@@ -491,6 +499,18 @@
                         <span data-i18n="label_show_comment_on_check">チェックを入れた時にコメント記入欄を表示</span>
                     </label>
                 </div>
+                <div id="daysGroup" style="margin-bottom: 12px; border-top: 1px solid #eee; padding-top: 12px;">
+                    <label style="color: #666; font-size: 14px; display: block; margin-bottom: 8px;" data-i18n="label_reset_days">曜日：</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="0"> <span data-i18n="calendar_sun">日</span></label>
+                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="1"> <span data-i18n="calendar_mon">月</span></label>
+                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="2"> <span data-i18n="calendar_tue">火</span></label>
+                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="3"> <span data-i18n="calendar_wed">水</span></label>
+                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="4"> <span data-i18n="calendar_thu">木</span></label>
+                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="5"> <span data-i18n="calendar_fri">金</span></label>
+                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="6"> <span data-i18n="calendar_sat">土</span></label>
+                    </div>
+                </div>
                 <div id="noteGroup" style="margin-bottom: 20px;">
                     <label for="taskNote" style="color: #666; font-size: 14px; display: block; margin-bottom: 4px;" data-i18n="label_note">補足文章：</label>
                     <textarea id="taskNote" placeholder="補足情報を入力..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; height: 120px; resize: none; box-sizing: border-box;" data-i18n-placeholder="placeholder_note"></textarea>
@@ -526,6 +546,10 @@
                 <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
                     <input type="checkbox" id="tempShowComment" style="margin-right: 8px;">
                     <span data-i18n="label_show_comment_on_check">チェックを入れた時にコメント記入欄を表示</span>
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
+                    <input type="checkbox" id="tempShowDays" style="margin-right: 8px;">
+                    <span data-i18n="label_reset_days">曜日</span>
                 </label>
                 <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
                     <input type="checkbox" id="tempShowNote" style="margin-right: 8px;">
@@ -681,6 +705,7 @@
             timer: false,
             remind: false,
             comment: false,
+            days: false,
             note: false
         };
         let isDurationPickerRequested = false;
@@ -1272,7 +1297,7 @@
             const editBtn = document.getElementById('modalEditBtn');
 
             // Reset temp visibility flags
-            tempVisibilityFlags = { timer: false, remind: false, comment: false, note: false };
+            tempVisibilityFlags = { timer: false, remind: false, comment: false, days: false, note: false };
 
             if (taskId) {
                 const task = tasks.find(t => t.id === taskId);
@@ -1284,6 +1309,15 @@
                 document.getElementById('taskInput').value = task.text;
                 document.getElementById('taskNote').value = task.note || '';
                 document.getElementById('showCommentOnCheck').checked = !!task.showCommentOnCheck;
+
+                // Reset day checkboxes
+                document.querySelectorAll('.reset-day-check').forEach(el => el.checked = false);
+                if (task.selectedDays && task.selectedDays.length > 0) {
+                    task.selectedDays.forEach(day => {
+                        const cb = document.querySelector(`.reset-day-check[value="${day}"]`);
+                        if (cb) cb.checked = true;
+                    });
+                }
 
                 currentTaskReminders = (task.reminders || []).map(r => ({ ...r, id: Math.random() }));
                 renderReminderList();
@@ -1301,6 +1335,15 @@
                     document.getElementById('viewTaskReminders').style.display = 'block';
                 } else {
                     document.getElementById('viewTaskReminders').style.display = 'none';
+                }
+
+                if (task.selectedDays && task.selectedDays.length > 0) {
+                    const daysMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+                    const daysText = task.selectedDays.map(d => getTranslation('calendar_' + daysMap[d])).join(', ');
+                    document.getElementById('viewTaskDays').innerHTML = `<div style="font-weight:bold; margin-bottom:4px;">${getTranslation('label_reset_days')}</div><div>${daysText}</div>`;
+                    document.getElementById('viewTaskDays').style.display = 'block';
+                } else {
+                    document.getElementById('viewTaskDays').style.display = 'none';
                 }
 
                 if (task.durationMs) {
@@ -1358,6 +1401,8 @@
                 document.getElementById('timerValue').value = '';
                 document.getElementById('timerUnit').value = 'none';
                 document.getElementById('melodySelect').value = 'default';
+                // Reset day checkboxes
+                document.querySelectorAll('.reset-day-check').forEach(el => el.checked = false);
                 currentDuration = { h: "0", m: "0", s: "0" };
                 document.getElementById('durationBtn').textContent = getTranslation('btn_set_duration');
                 currentTaskReminders = [];
@@ -1609,9 +1654,17 @@
                 targetTask.text = text;
                 targetTask.note = note;
                 targetTask.showCommentOnCheck = document.getElementById('showCommentOnCheck').checked;
+                targetTask.selectedDays = Array.from(document.querySelectorAll('.reset-day-check:checked')).map(el => parseInt(el.value));
             } else {
                 const id = Date.now();
-                targetTask = { id: id, text: text, note: note, completed: false, showCommentOnCheck: document.getElementById('showCommentOnCheck').checked };
+                targetTask = {
+                    id: id,
+                    text: text,
+                    note: note,
+                    completed: false,
+                    showCommentOnCheck: document.getElementById('showCommentOnCheck').checked,
+                    selectedDays: Array.from(document.querySelectorAll('.reset-day-check:checked')).map(el => parseInt(el.value))
+                };
             }
 
             if (unitSelect.value !== 'none') {
@@ -2331,10 +2384,12 @@
         function loadNewTaskSettings() {
             const showTimer = localStorage.getItem('showTimerOnCreate') === 'true';
             const showRemind = localStorage.getItem('showRemindOnCreate') === 'true';
+            const showDays = localStorage.getItem('showDaysOnCreate') === 'true';
             const showComment = localStorage.getItem('showCommentOnCreate') === 'true';
             const showNote = localStorage.getItem('showNoteOnCreate') === 'true';
             document.getElementById('showTimerOnCreate').checked = showTimer;
             document.getElementById('showRemindOnCreate').checked = showRemind;
+            document.getElementById('showDaysOnCreate').checked = showDays;
             document.getElementById('showCommentOnCreate').checked = showComment;
             document.getElementById('showNoteOnCreate').checked = showNote;
         }
@@ -2342,10 +2397,12 @@
         function updateNewTaskSettings() {
             const showTimer = document.getElementById('showTimerOnCreate').checked;
             const showRemind = document.getElementById('showRemindOnCreate').checked;
+            const showDays = document.getElementById('showDaysOnCreate').checked;
             const showComment = document.getElementById('showCommentOnCreate').checked;
             const showNote = document.getElementById('showNoteOnCreate').checked;
             localStorage.setItem('showTimerOnCreate', showTimer);
             localStorage.setItem('showRemindOnCreate', showRemind);
+            localStorage.setItem('showDaysOnCreate', showDays);
             localStorage.setItem('showCommentOnCreate', showComment);
             localStorage.setItem('showNoteOnCreate', showNote);
         }
@@ -2353,6 +2410,7 @@
         function openTemporaryVisibilityModal() {
             document.getElementById('tempShowTimer').checked = document.getElementById('timerGroup').style.display === 'block';
             document.getElementById('tempShowRemind').checked = document.getElementById('reminderGroup').style.display === 'block';
+            document.getElementById('tempShowDays').checked = document.getElementById('daysGroup').style.display === 'block';
             document.getElementById('tempShowComment').checked = document.getElementById('commentConfigGroup').style.display === 'block';
             document.getElementById('tempShowNote').checked = document.getElementById('noteGroup').style.display === 'block';
             document.getElementById('tempVisibilityModal').style.display = 'flex';
@@ -2365,6 +2423,7 @@
         function applyTemporaryVisibility() {
             tempVisibilityFlags.timer = document.getElementById('tempShowTimer').checked;
             tempVisibilityFlags.remind = document.getElementById('tempShowRemind').checked;
+            tempVisibilityFlags.days = document.getElementById('tempShowDays').checked;
             tempVisibilityFlags.comment = document.getElementById('tempShowComment').checked;
             tempVisibilityFlags.note = document.getElementById('tempShowNote').checked;
 
@@ -2375,18 +2434,26 @@
         function updateTaskModalVisibility(task = null) {
             const showTimerSetting = localStorage.getItem('showTimerOnCreate') === 'true';
             const showRemindSetting = localStorage.getItem('showRemindOnCreate') === 'true';
+            const showDaysSetting = localStorage.getItem('showDaysOnCreate') === 'true';
             const showCommentSetting = localStorage.getItem('showCommentOnCreate') === 'true';
             const showNoteSetting = localStorage.getItem('showNoteOnCreate') === 'true';
 
             const hasTimer = task ? !!task.durationMs : false;
             const hasReminders = task ? (task.reminders && task.reminders.length > 0) : false;
+            const hasDays = task ? (task.selectedDays && task.selectedDays.length > 0) : false;
             const hasCommentConfig = task ? !!task.showCommentOnCheck : false;
             const hasNote = task ? !!task.note : false;
 
             document.getElementById('timerGroup').style.display = (showTimerSetting || hasTimer || tempVisibilityFlags.timer) ? 'block' : 'none';
             document.getElementById('reminderGroup').style.display = (showRemindSetting || hasReminders || tempVisibilityFlags.remind) ? 'block' : 'none';
+            document.getElementById('daysGroup').style.display = (showDaysSetting || hasDays || tempVisibilityFlags.days) ? 'block' : 'none';
             document.getElementById('commentConfigGroup').style.display = (showCommentSetting || hasCommentConfig || tempVisibilityFlags.comment) ? 'block' : 'none';
             document.getElementById('noteGroup').style.display = (showNoteSetting || hasNote || tempVisibilityFlags.note) ? 'block' : 'none';
+
+            const viewDays = document.getElementById('viewTaskDays');
+            if (viewDays) {
+                viewDays.style.display = (showDaysSetting || hasDays || tempVisibilityFlags.days) ? 'block' : 'none';
+            }
 
             const viewNoteGroup = document.getElementById('viewNoteGroup');
             if (viewNoteGroup) {
