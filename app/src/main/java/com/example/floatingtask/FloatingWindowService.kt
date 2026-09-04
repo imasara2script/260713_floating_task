@@ -158,13 +158,14 @@ class FloatingWindowService : Service() {
             val scrollTaskCount = prefs.getInt("scrollTaskCount", 1)
             val showCheckedToggle = prefs.getBoolean("showCheckedToggle", false)
             val showHistoryButton = prefs.getBoolean("showHistoryButton", false)
+            val showCloseButtonExpanded = prefs.getBoolean("showCloseButtonExpanded", false)
             val navType = prefs.getString("navType", "button") ?: "button"
             val scrollButtonType = prefs.getString("scrollButtonType", "both") ?: "both"
             val allowDrag = prefs.getBoolean("allowDrag", true)
             val allowDragCollapsed = prefs.getBoolean("allowDragCollapsed", true)
             
             val webView: WebView = view.findViewById(R.id.floatingWebView)
-            webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount, $showCheckedToggle, '$scrollButtonType', $allowDrag, $allowDragCollapsed, $showHistoryButton, '$navType', $floatWidth, $floatHeight);", null)
+            webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount, $showCheckedToggle, '$scrollButtonType', $allowDrag, $allowDragCollapsed, $showHistoryButton, '$navType', $floatWidth, $floatHeight, $showCloseButtonExpanded);", null)
         }
     }
 
@@ -268,7 +269,8 @@ class FloatingWindowService : Service() {
         }
 
         // 閉じるボタンの表示切り替え
-        val showClose = if (expanded) {
+        val navType = prefs.getString("navType", "button") ?: "button"
+        val showClose = if (expanded && navType == "button") {
             prefs.getBoolean("showCloseButtonExpanded", false)
         } else {
             false
@@ -285,13 +287,14 @@ class FloatingWindowService : Service() {
             val displayTaskCount = prefs.getInt("displayTaskCount", 1)
             val showCheckedToggle = prefs.getBoolean("showCheckedToggle", false)
             val showHistoryButton = prefs.getBoolean("showHistoryButton", false)
+            val showCloseButtonExpanded = prefs.getBoolean("showCloseButtonExpanded", false)
             val navType = prefs.getString("navType", "button") ?: "button"
             
             // WebView側 (index.html) の計算と一致させる
             val scrollButtonType = prefs.getString("scrollButtonType", "both") ?: "both"
             
             val buttonsReservedWidthDp = if (navType == "menu") {
-                65 // Menu select width approx
+                32 // Menu select width approx
             } else {
                 var width = 42 + 8 // Home + Padding
                 if (showCheckedToggle) width += 42
@@ -305,7 +308,7 @@ class FloatingWindowService : Service() {
             }
             
             // 閉じるボタンがある場合
-            val extraReserved = if (showClose) 40 else 8
+            val extraReserved = if (showClose) 44 else 4
             
             // ピクセル単位の幅から、ボタンエリア（dp * density）を引いて、スケールをかける
             val reservedPx = (buttonsReservedWidthDp + extraReserved) * density
@@ -734,6 +737,22 @@ class FloatingWindowService : Service() {
             val handler = Handler(Looper.getMainLooper())
             handler.post {
                 updateWindowSize(isExpanded)
+            }
+        }
+
+        @JavascriptInterface
+        fun closeService() {
+            val handler = Handler(Looper.getMainLooper())
+            handler.post {
+                val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+                val intervalMinutes = prefs.getInt("recheckInterval", 0)
+                
+                if (intervalMinutes > 0) {
+                    AlarmScheduler.scheduleIntervalAlarm(this@FloatingWindowService, intervalMinutes)
+                }
+
+                removeFloatingWindow()
+                stopSelf()
             }
         }
 

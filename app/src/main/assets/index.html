@@ -812,7 +812,7 @@
         }
 
         // ネイティブ側から設定変更を通知してもらうための関数
-        function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragCollapsed, showHistoryButton, navType, widthPx, heightPx) {
+        function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragCollapsed, showHistoryButton, navType, widthPx, heightPx, showCloseButtonExpanded) {
             if (mode === 'floating') {
                 updateScale(scale);
                 if (isFloatingExpanded !== expanded) {
@@ -837,6 +837,15 @@
                 }
                 if (allowDragCollapsed !== undefined) {
                     localStorage.setItem('allowDragCollapsed', allowDragCollapsed);
+                }
+                if (showHistoryButton !== undefined) {
+                    localStorage.setItem('showHistoryButton', showHistoryButton);
+                }
+                if (navType !== undefined) {
+                    localStorage.setItem('navType', navType);
+                }
+                if (showCloseButtonExpanded !== undefined) {
+                    localStorage.setItem('showCloseButtonExpanded', showCloseButtonExpanded);
                 }
                 refreshData();
             }
