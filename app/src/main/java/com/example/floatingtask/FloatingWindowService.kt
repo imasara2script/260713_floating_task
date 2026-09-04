@@ -151,16 +151,20 @@ class FloatingWindowService : Service() {
             } else {
                 prefs.getFloat("floatCollapsedScale", 1.0f)
             }
+            val density = resources.displayMetrics.density
+            val floatWidth = prefs.getInt("floatWidth", (300 * density).toInt())
+            val floatHeight = prefs.getInt("floatHeight", (44 * density).toInt())
             val displayTaskCount = prefs.getInt("displayTaskCount", 1)
             val scrollTaskCount = prefs.getInt("scrollTaskCount", 1)
             val showCheckedToggle = prefs.getBoolean("showCheckedToggle", false)
             val showHistoryButton = prefs.getBoolean("showHistoryButton", false)
+            val navType = prefs.getString("navType", "button") ?: "button"
             val scrollButtonType = prefs.getString("scrollButtonType", "both") ?: "both"
             val allowDrag = prefs.getBoolean("allowDrag", true)
             val allowDragCollapsed = prefs.getBoolean("allowDragCollapsed", true)
             
             val webView: WebView = view.findViewById(R.id.floatingWebView)
-            webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount, $showCheckedToggle, '$scrollButtonType', $allowDrag, $allowDragCollapsed, $showHistoryButton);", null)
+            webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount, $showCheckedToggle, '$scrollButtonType', $allowDrag, $allowDragCollapsed, $showHistoryButton, '$navType', $floatWidth, $floatHeight);", null)
         }
     }
 
@@ -281,23 +285,24 @@ class FloatingWindowService : Service() {
             val displayTaskCount = prefs.getInt("displayTaskCount", 1)
             val showCheckedToggle = prefs.getBoolean("showCheckedToggle", false)
             val showHistoryButton = prefs.getBoolean("showHistoryButton", false)
+            val navType = prefs.getString("navType", "button") ?: "button"
             
             // WebView側 (index.html) の計算と一致させる
-            // let buttonsWidth = 42 + 8; // Home + Padding
-            // if (showCheckedToggle) buttonsWidth += 42;
-            // if (showHistoryButton) buttonsWidth += 42;
-            // ...
-            
             val scrollButtonType = prefs.getString("scrollButtonType", "both") ?: "both"
-            var buttonsReservedWidthDp = 42 + 8 // Home + Padding
-            if (showCheckedToggle) buttonsReservedWidthDp += 42
-            if (showHistoryButton) buttonsReservedWidthDp += 42
-            when (scrollButtonType) {
-                "both" -> buttonsReservedWidthDp += 84
-                "down", "up" -> buttonsReservedWidthDp += 42
+            
+            val buttonsReservedWidthDp = if (navType == "menu") {
+                65 // Menu select width approx
+            } else {
+                var width = 42 + 8 // Home + Padding
+                if (showCheckedToggle) width += 42
+                if (showHistoryButton) width += 42
+                when (scrollButtonType) {
+                    "both" -> width += 84
+                    "down", "up" -> width += 42
+                }
+                val counterWidth = if (displayTaskCount > 1) 50 else 35
+                width + counterWidth
             }
-            val counterWidth = if (displayTaskCount > 1) 50 else 35
-            buttonsReservedWidthDp += counterWidth
             
             // 閉じるボタンがある場合
             val extraReserved = if (showClose) 40 else 8
@@ -372,7 +377,12 @@ class FloatingWindowService : Service() {
 
         // WebViewの設定
         val webView: WebView = floatingView!!.findViewById(R.id.floatingWebView)
-        webView.webViewClient = WebViewClient()
+        webView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                applySettings()
+            }
+        }
         webView.webChromeClient = WebChromeClient()
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
@@ -720,6 +730,14 @@ class FloatingWindowService : Service() {
         }
 
         @JavascriptInterface
+        fun restoreHeight() {
+            val handler = Handler(Looper.getMainLooper())
+            handler.post {
+                updateWindowSize(isExpanded)
+            }
+        }
+
+        @JavascriptInterface
         fun requestHeight(heightDp: Int) {
             val handler = Handler(Looper.getMainLooper())
             handler.post {
@@ -777,6 +795,16 @@ class FloatingWindowService : Service() {
         @JavascriptInterface
         fun stopMelody() {
             MelodyPlayer.stop()
+        }
+
+        @JavascriptInterface
+        fun getDisplayMetrics(): String {
+            val dm = android.content.res.Resources.getSystem().displayMetrics
+            val json = org.json.JSONObject()
+            json.put("widthPixels", dm.widthPixels)
+            json.put("heightPixels", dm.heightPixels)
+            json.put("density", dm.density)
+            return json.toString()
         }
     }
 }
