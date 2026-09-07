@@ -36,12 +36,13 @@ import androidx.activity.OnBackPressedCallback
 import android.widget.Toast
 import java.security.MessageDigest
 
-class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListener {
+class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListener, WebSettingsHandler.SettingsActionListener {
 
     private var pendingTaskCount = 0
     private var isPageLoaded = false
     private lateinit var adCoinHandler: WebAdCoinHandler
     private lateinit var taskActionHandler: WebTaskActionHandler
+    private lateinit var settingsHandler: WebSettingsHandler
     private var overlayPermissionDialog: AlertDialog? = null
     private var backPressedTime: Long = 0
 
@@ -184,6 +185,7 @@ class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListene
         adCoinHandler = WebAdCoinHandler(this, webView)
         val permissionHandler = WebPermissionHandler(this)
         taskActionHandler = WebTaskActionHandler(this, permissionHandler, this)
+        settingsHandler = WebSettingsHandler(this, adCoinHandler, this)
         
         webView.addJavascriptInterface(WebAppInterface(this), "Android")
 
@@ -298,6 +300,15 @@ class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListene
         intent.action = "ACTION_SHOW"
         intent.putExtra("IS_SETTINGS_MODE", isSettingsMode)
         startForegroundService(intent)
+    }
+
+    override fun onPremiumUnlocked() {
+        runOnUiThread {
+            val adView: AdView = findViewById(R.id.adView)
+            adView.visibility = View.GONE
+            val webView: WebView = findViewById(R.id.webView)
+            webView.evaluateJavascript("location.reload();", null)
+        }
     }
 
     @Suppress("unused")
@@ -560,70 +571,23 @@ class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListene
             allowDrag: Boolean, allowDragCollapsed: Boolean,
             showHistoryButton: Boolean, navType: String, keepService: Boolean,
             menuActionDelay: Int
-        ) {
-            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
-            prefs.edit {
-                putInt("floatCollapsedX", cX)
-                putInt("floatCollapsedY", cY)
-                putFloat("floatCollapsedScale", cScale)
-                putBoolean("showWhenEmpty", showEmpty)
-                putBoolean("alwaysMoveCollapsed", moveC)
-                putBoolean("allowDragCollapsed", allowDragCollapsed)
-                
-                putInt("floatExpandedX", eX)
-                putInt("floatExpandedY", eY)
-                putFloat("floatExpandedScale", eScale)
-                putBoolean("alwaysMoveExpanded", moveE)
-                
-                putInt("floatWidth", width)
-                putInt("floatHeight", height)
-                putBoolean("showCloseButtonExpanded", showClose)
-                putBoolean("keepServiceOnClose", keepService)
-                putBoolean("showCheckedToggle", showCheckedToggle)
-                putBoolean("showHistoryButton", showHistoryButton)
-                putString("navType", navType)
-                putInt("menuActionDelay", menuActionDelay)
-                putBoolean("allowDrag", allowDrag)
-                putString("scrollButtonType", scrollButtonType)
-                putInt("displayTaskCount", displayTaskCount)
-                putInt("scrollTaskCount", scrollTaskCount)
-
-                // 互換性のための古いキーも更新しておく
-                putInt("floatX", eX)
-                putInt("floatY", eY)
-                putFloat("floatScale", eScale)
-            }
-            // サービスが実行中なら更新を通知
-            val intent = Intent(mContext, FloatingWindowService::class.java)
-            intent.action = "ACTION_UPDATE_SETTINGS"
-            mContext.startService(intent)
-        }
+        ) = settingsHandler.updateFloatingSettingsExtended(
+            cX, cY, cScale, showEmpty, moveC,
+            eX, eY, eScale, moveE,
+            width, height, showClose,
+            displayTaskCount, scrollTaskCount,
+            showCheckedToggle, scrollButtonType,
+            allowDrag, allowDragCollapsed,
+            showHistoryButton, navType, keepService,
+            menuActionDelay
+        )
 
         @JavascriptInterface
-        fun updateFloatingSettings(x: Int, y: Int, width: Int, height: Int, scale: Float) {
-            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
-            prefs.edit {
-                putInt("floatX", x)
-                putInt("floatY", y)
-                putInt("floatWidth", width)
-                putInt("floatHeight", height)
-                putFloat("floatScale", scale)
-            }
-            // サービスが実行中なら更新を通知
-            val intent = Intent(mContext, FloatingWindowService::class.java)
-            intent.action = "ACTION_UPDATE_SETTINGS"
-            mContext.startService(intent)
-        }
+        fun updateFloatingSettings(x: Int, y: Int, width: Int, height: Int, scale: Float) =
+            settingsHandler.updateFloatingSettings(x, y, width, height, scale)
 
         @JavascriptInterface
-        fun getDisplayMetrics(): String {
-            val dm = Resources.getSystem().displayMetrics
-            val json = org.json.JSONObject()
-            json.put("widthPixels", dm.widthPixels)
-            json.put("heightPixels", dm.heightPixels)
-            json.put("density", dm.density)
-            return json.toString()
-        }
+        fun getDisplayMetrics(): String = settingsHandler.getDisplayMetrics()
 
         @JavascriptInterface
         fun backupData(jsonData: String) {
@@ -674,43 +638,17 @@ class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListene
         fun isPremium(): Boolean = adCoinHandler.isAdFree
 
         @JavascriptInterface
-        fun submitUnlockCode(code: String): Boolean {
-            val salt = BuildConfig.PREMIUM_CODE_SALT
-            val expectedHash = BuildConfig.PREMIUM_CODE_HASH
-            
-            val inputWithSalt = code + salt
-            val hashedInput = sha256(inputWithSalt)
-
-            if (hashedInput == expectedHash) {
-                adCoinHandler.setAdFree(true)
-                
-                runOnUiThread {
-                    val adView: AdView = findViewById(R.id.adView)
-                    adView.visibility = View.GONE
-                    val webView: WebView = findViewById(R.id.webView)
-                    webView.evaluateJavascript("location.reload();", null)
-                }
-                return true
-            }
-            return false
-        }
+        fun submitUnlockCode(code: String): Boolean = settingsHandler.submitUnlockCode(code)
 
         @JavascriptInterface
         fun setAppLanguage(languageCode: String) {
-            val appLocale: androidx.core.os.LocaleListCompat = if (languageCode == "system") {
-                androidx.core.os.LocaleListCompat.getEmptyLocaleList()
-            } else {
-                androidx.core.os.LocaleListCompat.forLanguageTags(languageCode)
-            }
             runOnUiThread {
-                androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(appLocale)
+                settingsHandler.setAppLanguage(languageCode)
             }
         }
 
         @JavascriptInterface
-        fun getSystemLanguage(): String {
-            return java.util.Locale.getDefault().language
-        }
+        fun getSystemLanguage(): String = settingsHandler.getSystemLanguage()
 
         @JavascriptInterface
         fun playMelody(melody: String) {
@@ -720,11 +658,6 @@ class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListene
         @JavascriptInterface
         fun stopMelody() {
             MelodyPlayer.stop()
-        }
-
-        private fun sha256(input: String): String {
-            val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
-            return bytes.joinToString("") { "%02x".format(it) }
         }
     }
 
