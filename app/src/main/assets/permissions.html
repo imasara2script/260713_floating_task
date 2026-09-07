@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Task - Permissions</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="translations.js"></script>
+    <script src="app.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            color: #333;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 20px;
+            margin-top: 0;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        p.desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .perm-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 16px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            transition: background-color 0.3s;
+        }
+        .perm-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .perm-title {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .perm-status {
+            font-size: 13px;
+        }
+        .perm-desc {
+            font-size: 13px;
+            color: #777;
+        }
+        .btn-setting {
+            align-self: flex-end;
+            padding: 8px 16px;
+            font-size: 13px;
+            border-radius: 20px;
+        }
+        .start-container {
+            margin-top: 24px;
+            text-align: center;
+        }
+        .btn-start {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            display: none;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #218838;
+        }
+        .btn-start:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #218838;
+        }
+
+        /* 詳細説明レイヤー */
+        #detail-layer {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 1000;
+            padding: 24px;
+            box-sizing: border-box;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .detail-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .btn-back {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 8px;
+        }
+        .detail-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .detail-desc {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 30px;
+        }
+
+        /* スマホイメージ図のスタイル */
+        .illustration-container {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+            perspective: 1000px;
+        }
+        .phone-mockup {
+            width: 160px;
+            height: 320px;
+            background: #333;
+            border-radius: 24px;
+            padding: 10px;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            transform: rotateX(10deg) rotateY(-10deg);
+        }
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #8e9eab; /* 壁紙風グラデーション */
+            background: linear-gradient(to bottom, #8e9eab, #eef2f3);
+            border-radius: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        .app-icons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 20px 10px;
+        }
+        .icon-stub {
+            width: 30px;
+            height: 30px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 6px;
+        }
+        .floating-preview {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            width: 110px;
+            height: 30px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            border: 1px solid #007bff;
+            animation: floatingAnim 4s ease-in-out infinite;
+        }
+        .fp-inner {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            width: 100%;
+        }
+        .fp-check { width: 10px; height: 10px; border: 1px solid #ddd; border-radius: 2px; }
+        .fp-text { height: 6px; background: #eee; flex-grow: 1; border-radius: 3px; }
+        .fp-timer { width: 30px; height: 10px; background: #ffc107; border-radius: 2px; }
+
+        @keyframes floatingAnim {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(15px) scale(1.05); }
+        }
+
+        .btn-large-primary {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #0056b3;
+            width: 100%;
+            margin-top: auto;
+        }
+        .btn-large-primary:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #0056b3;
+        }
+
+        .lang-button-container {
+            display: flex;
+            gap: 12px;
+            margin-top: 4px;
+        }
+        .btn-lang {
+            flex: 1;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-lang.active {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+            color: #007bff;
+            font-weight: bold;
+            box-shadow: 0 0 0 1px #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div id="main-container" class="container">
+        <h1 data-i18n="permissions_title">アプリの利用準備</h1>
+        <p class="desc" data-i18n="permissions_desc">このアプリを正常に動作させるために、以下の設定が必要です。</p>
+
+        <!-- 言語選択 -->
+        <div class="perm-item">
+            <div class="perm-header">
+                <span class="perm-title" data-i18n="label_language">言語設定</span>
+            </div>
+            <div class="lang-button-container">
+                <button id="btn-lang-ja" class="btn-lang" onclick="changeLanguage('ja')">日本語</button>
+                <button id="btn-lang-en" class="btn-lang" onclick="changeLanguage('en')">English</button>
+            </div>
+        </div>
+
+        <!-- 重ねて表示 -->
+        <div class="perm-item" id="item-overlay">
+            <div class="perm-header">
+                <span class="perm-title" data-i18n="perm_overlay_title">重ねて表示</span>
+                <span id="status-overlay" class="perm-status"></span>
+            </div>
+            <div class="perm-desc" data-i18n="perm_overlay_desc">フローティングウィンドウを表示するために必要です。</div>
+            <button id="btn-overlay" class="btn btn-primary btn-setting" onclick="showDetail('overlay')" data-i18n="btn_setting">設定する</button>
+        </div>
+
+        <!-- 通知 -->
+        <div class="perm-item" id="item-notification">
+            <div class="perm-header">
+                <span class="perm-title" data-i18n="perm_notification_title">通知</span>
+                <span id="status-notification" class="perm-status"></span>
+            </div>
+            <div class="perm-desc" data-i18n="perm_notification_desc">タイマー終了やリマインドを通知するために必要です。</div>
+            <button id="btn-notification" class="btn btn-primary btn-setting" onclick="showDetail('notification')" data-i18n="btn_setting">設定する</button>
+        </div>
+
+        <!-- アラーム -->
+        <div class="perm-item" id="item-alarm">
+            <div class="perm-header">
+                <span class="perm-title" data-i18n="perm_alarm_title">正確なアラーム</span>
+                <span id="status-alarm" class="perm-status"></span>
+            </div>
+            <div class="perm-desc" data-i18n="perm_alarm_desc">リセットやタイマーの正確な動作に必要です。</div>
+            <button id="btn-alarm" class="btn btn-primary btn-setting" onclick="showDetail('alarm')" data-i18n="btn_setting">設定する</button>
+        </div>
+
+        <!-- バッテリー -->
+        <div class="perm-item" id="item-battery">
+            <div class="perm-header">
+                <span class="perm-title" data-i18n="perm_battery_title">バッテリー制限の解除</span>
+                <span id="status-battery" class="perm-status"></span>
+            </div>
+            <div class="perm-desc" data-i18n="perm_battery_desc">バックグラウンド動作を安定させるために必要です。</div>
+            <button id="btn-battery" class="btn btn-primary btn-setting" onclick="showDetail('battery')" data-i18n="btn_setting">設定する</button>
+        </div>
+
+        <div class="start-container">
+            <button id="btn-start-app" class="btn-start" onclick="location.href='index.html'" data-i18n="btn_start_app">アプリを始める</button>
+        </div>
+    </div>
+
+    <!-- 詳細説明レイヤー -->
+    <div id="detail-layer">
+        <div class="detail-header">
+            <button class="btn-back" onclick="hideDetail()">←</button>
+            <span id="detail-title" class="detail-title"></span>
+        </div>
+
+        <div id="illustration-area" class="illustration-container">
+            <!-- JavaScript で切り替え -->
+        </div>
+
+        <div class="detail-content">
+            <p id="detail-desc" class="detail-desc"></p>
+
+            <div id="instruction-steps" style="background: #f0f7ff; padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px dashed #007bff;">
+                <div style="font-weight: bold; margin-bottom: 12px; color: #0056b3; font-size: 15px; display: flex; align-items: center; gap: 6px;">
+                    <span>💡</span>
+                    <span data-i18n="label_how_to_operate">設定画面での操作方法</span>
+                </div>
+                <div id="steps-list" style="font-size: 14px; color: #444; display: flex; flex-direction: column; gap: 10px; line-height: 1.4;">
+                </div>
+            </div>
+        </div>
+
+        <button id="btn-action" class="btn-large-primary" data-i18n="btn_open_settings"></button>
+    </div>
+
+    <script>
+        let currentDetailType = null;
+
+        function changeLanguage(lang) {
+            localStorage.setItem('appLanguage', lang);
+            applyLanguage();
+            if (typeof Android !== 'undefined' && Android.setAppLanguage) {
+                Android.setAppLanguage(lang);
+            }
+            updateLangButtons();
+        }
+
+        function updateLangButtons() {
+            const currentLang = localStorage.getItem('appLanguage') || 'system';
+            // 実際の言語判定（システム設定等も考慮）に合わせてボタンのハイライトを更新
+            const effectiveLang = window.currentLang;
+
+            document.getElementById('btn-lang-ja').classList.toggle('active', effectiveLang === 'ja');
+            document.getElementById('btn-lang-en').classList.toggle('active', effectiveLang === 'en');
+        }
+
+        function showDetail(type) {
+            currentDetailType = type;
+            document.getElementById('main-container').style.display = 'none';
+            document.getElementById('detail-layer').style.display = 'flex';
+
+            const titleEl = document.getElementById('detail-title');
+            const descEl = document.getElementById('detail-desc');
+            const illusEl = document.getElementById('illustration-area');
+            const stepsEl = document.getElementById('steps-list');
+            const actionBtn = document.getElementById('btn-action');
+
+            stepsEl.innerHTML = '';
+
+            if (type === 'overlay') {
+                titleEl.textContent = getTranslation('overlay_detail_title');
+                descEl.textContent = getTranslation('overlay_detail_desc');
+                illusEl.innerHTML = `
+                    <div class="phone-mockup">
+                        <div class="phone-screen">
+                            <div class="app-icons">
+                                <div class="icon-stub"></div><div class="icon-stub"></div><div class="icon-stub"></div>
+                                <div class="icon-stub"></div><div class="icon-stub"></div><div class="icon-stub"></div>
+                            </div>
+                            <div class="floating-preview">
+                                <div class="fp-inner">
+                                    <div class="fp-check"></div>
+                                    <div class="fp-text"></div>
+                                    <div class="fp-timer"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                addStep(getTranslation('overlay_step1'));
+                addStep(getTranslation('overlay_step2'));
+                actionBtn.onclick = () => Android.launchOverlayPermissionSettings();
+            } else if (type === 'notification') {
+                titleEl.textContent = getTranslation('notification_detail_title');
+                descEl.textContent = getTranslation('notification_detail_desc');
+                illusEl.innerHTML = `
+                    <div style="font-size: 80px; margin-bottom: 20px;">🔔</div>
+                    <div style="background: white; border-radius: 8px; padding: 10px; width: 200px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-left: 4px solid #007bff;">
+                        <div style="font-weight: bold; font-size: 12px; text-align: left;">Floating Task</div>
+                        <div style="font-size: 11px; color: #666; text-align: left;">タイマーが終了しました</div>
+                    </div>
+                `;
+                addStep(getTranslation('notification_step1'));
+                addStep(getTranslation('notification_step2'));
+                actionBtn.onclick = () => Android.requestNotificationPermission();
+            } else if (type === 'alarm') {
+                titleEl.textContent = getTranslation('alarm_detail_title');
+                descEl.textContent = getTranslation('alarm_detail_desc');
+                illusEl.innerHTML = `
+                    <div style="font-size: 80px; margin-bottom: 10px;">⏰</div>
+                    <div style="font-size: 14px; font-weight: bold; color: #d9534f;">12:00:00</div>
+                `;
+                addStep(getTranslation('alarm_step1'));
+                actionBtn.onclick = () => Android.openExactAlarmSettings();
+            } else if (type === 'battery') {
+                titleEl.textContent = getTranslation('battery_detail_title');
+                descEl.textContent = getTranslation('battery_detail_desc');
+                illusEl.innerHTML = `
+                    <div style="font-size: 80px; margin-bottom: 10px;">🔋</div>
+                    <div style="font-size: 24px; color: #28a745;">100%</div>
+                `;
+                addStep(getTranslation('battery_step1'));
+                actionBtn.onclick = () => Android.requestBatteryOptimizationExemption();
+            }
+
+            applyLanguage();
+        }
+
+        function addStep(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            document.getElementById('steps-list').appendChild(div);
+        }
+
+        function hideDetail() {
+            document.getElementById('main-container').style.display = 'block';
+            document.getElementById('detail-layer').style.display = 'none';
+            document.getElementById('illustration-area').style.fontSize = 'initial';
+            currentDetailType = null;
+        }
+
+        // Android のバックボタン対応
+        function handleBack() {
+            if (currentDetailType !== null) {
+                hideDetail();
+                return true; // バックイベントを消費
+            }
+            return false; // デフォルトの挙動（終了確認）へ
+        }
+
+        function updateAllStatus() {
+            if (typeof Android === 'undefined') return;
+
+            const overlay = Android.checkOverlayPermissionGranted();
+            const notification = Android.checkNotificationPermissionGranted();
+            const alarm = Android.checkExactAlarmPermission();
+            const battery = Android.checkBatteryOptimizationExempt();
+
+            updateItemStatus('overlay', overlay);
+            updateItemStatus('notification', notification);
+            updateItemStatus('alarm', alarm);
+            updateItemStatus('battery', battery);
+
+            if (overlay && notification && alarm && battery) {
+                document.getElementById('btn-start-app').style.display = 'block';
+                if (currentDetailType) hideDetail();
+            } else {
+                document.getElementById('btn-start-app').style.display = 'none';
+                // 現在表示中の詳細項目が許可されたら自動で閉じる
+                if (currentDetailType === 'overlay' && overlay) hideDetail();
+                if (currentDetailType === 'notification' && notification) hideDetail();
+                if (currentDetailType === 'alarm' && alarm) hideDetail();
+                if (currentDetailType === 'battery' && battery) hideDetail();
+            }
+        }
+
+        function updateItemStatus(id, granted) {
+            const statusEl = document.getElementById('status-' + id);
+            const btnEl = document.getElementById('btn-' + id);
+            const itemEl = document.getElementById('item-' + id);
+            if (granted) {
+                statusEl.textContent = getTranslation('status_enabled');
+                statusEl.style.color = 'green';
+                btnEl.style.display = 'none';
+                itemEl.style.backgroundColor = 'rgba(40, 167, 69, 0.05)';
+            } else {
+                statusEl.textContent = getTranslation('status_enabled').startsWith('✅') ? getTranslation('status_disabled') : '⚠️ Disabled';
+                statusEl.style.color = 'orange';
+                btnEl.style.display = 'inline-block';
+                itemEl.style.backgroundColor = 'transparent';
+            }
+        }
+
+        // 定期的にチェック
+        setInterval(updateAllStatus, 1000);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applyLanguage();
+            updateAllStatus();
+            updateLangButtons();
+        });
+
+        function refreshData() {
+            updateAllStatus();
+        }
+    </script>
+</body>
+</html>
