@@ -32,13 +32,14 @@
             position: absolute;
             top: 28px;
             right: 0;
-            width: 90px;
+            width: 100px; /* 少し幅を広げる */
             background: white;
             border: 1px solid #ccc;
             border-radius: 6px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.25);
             z-index: 10000;
-            overflow: hidden;
+            overflow-y: auto; /* 縦スクロールを有効に */
+            max-height: 350px; /* 最大高さを制限 */
             opacity: 1 !important; /* 確実に不透明にする */
         }
         .nav-menu-item {
@@ -201,8 +202,8 @@
 
             if (typeof Android !== 'undefined' && Android.requestHeight) {
                 if (isNavMenuOpen) {
-                    // メニュー表示用に高さを拡張 (250dp程度確保)
-                    Android.requestHeight(250);
+                    // メニュー表示用に高さを拡張 (400dp程度確保)
+                    Android.requestHeight(400);
                 } else {
                     // 元の高さに戻す
                     restoreOriginalHeight();
@@ -212,50 +213,60 @@
 
         function handleNavAction(val) {
             // 1. 内部状態の更新と再描画（チェックマーク等を即座に反映）
+            let isInternalAction = false;
             if (val === 'history') {
                 floatingViewMode = 'history';
+                isInternalAction = true;
             } else if (val === 'all') {
                 floatingViewMode = 'tasks';
                 showAllInFloating = true;
                 window.showAllInFloating = true;
                 localStorage.setItem('showAllInFloating', 'true');
+                isInternalAction = true;
             } else if (val === 'pending') {
                 floatingViewMode = 'tasks';
                 showAllInFloating = false;
                 window.showAllInFloating = false;
                 localStorage.setItem('showAllInFloating', 'false');
+                isInternalAction = true;
             } else if (val === 'type-all') {
                 floatingViewMode = 'tasks';
                 taskTypeFilter = 'all';
                 window.taskTypeFilter = 'all';
                 localStorage.setItem('taskTypeFilter', 'all');
+                isInternalAction = true;
             } else if (val === 'type-task') {
                 floatingViewMode = 'tasks';
                 taskTypeFilter = 'task';
                 window.taskTypeFilter = 'task';
                 localStorage.setItem('taskTypeFilter', 'task');
+                isInternalAction = true;
             } else if (val === 'type-timer') {
                 floatingViewMode = 'tasks';
                 taskTypeFilter = 'timer';
                 window.taskTypeFilter = 'timer';
                 localStorage.setItem('taskTypeFilter', 'timer');
+                isInternalAction = true;
             } else if (val === 'prev') {
                 const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
                 if (scrollButtonType !== 'scroll') {
                     const fTasks = getVisibleFloatingTasks();
                     if (fTasks.length > 0) currentFloatingIndex = (currentFloatingIndex - scrollTaskCount + fTasks.length) % fTasks.length;
                 }
+                isInternalAction = true;
             } else if (val === 'next') {
                 const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
                 if (scrollButtonType !== 'scroll') {
                     const fTasks = getVisibleFloatingTasks();
                     if (fTasks.length > 0) currentFloatingIndex = (currentFloatingIndex + scrollTaskCount) % fTasks.length;
                 }
+                isInternalAction = true;
             }
 
-            render();
+            // 内部アクションの場合は即座に再描画してフィードバック
+            if (isInternalAction) render();
 
-            // 2. メニューを閉じる処理と外部アクションをディレイ
+            // 2. メニューを閉じる処理と外部アクションを（設定があれば）ディレイ
             const delaySec = parseInt(localStorage.getItem('menuActionDelay') || '0');
             if (delaySec > 0) {
                 setTimeout(() => {
@@ -267,13 +278,11 @@
         }
 
         function finalizeNavAction(val) {
-            // メニューを閉じて高さを戻す
-            if (isNavMenuOpen) {
-                isNavMenuOpen = false;
-                const menuList = document.getElementById('navMenuList');
-                if (menuList) menuList.style.display = 'none';
-                restoreOriginalHeight();
-            }
+            // メニューを閉じて高さを戻す処理を確実に行う
+            isNavMenuOpen = false;
+            const menuList = document.getElementById('navMenuList');
+            if (menuList) menuList.style.display = 'none';
+            restoreOriginalHeight();
 
             // 外部アクション（アプリ起動・サービス終了）の実行
             if (val === 'home') {
@@ -434,6 +443,41 @@
             render();
         }
 
+        function updateDynamicColors() {
+            const activeTimers = tasks.filter(t => t.durationMs && !t.completed)
+                .map(t => ({...t, remaining: Math.max(0, (t.startTime + t.durationMs) - Date.now())}))
+                .filter(t => t.remaining > 0)
+                .sort((a, b) => a.remaining - b.remaining);
+
+            let appliedBgColor = '#ffffff';
+            let appliedTextColor = '#333333';
+            if (activeTimers.length > 0) {
+                const shortestRemaining = activeTimers[0].remaining / 1000;
+                const sortedRules = [...bgThresholds].sort((a, b) => a.threshold - b.threshold);
+                const rule = sortedRules.find(r => shortestRemaining <= r.threshold);
+                if (rule) {
+                    appliedBgColor = rule.bgColor;
+                    appliedTextColor = rule.textColor;
+                }
+            }
+
+            const collapsedEl = document.getElementById('floating-collapsed');
+            const expandedEl = document.getElementById('floating-expanded');
+            if (collapsedEl) {
+                collapsedEl.style.backgroundColor = appliedBgColor;
+                collapsedEl.style.color = appliedTextColor;
+            }
+            if (expandedEl) {
+                expandedEl.style.backgroundColor = appliedBgColor;
+                expandedEl.style.color = appliedTextColor;
+            }
+
+            if (typeof Android !== 'undefined' && Android.updateFloatingColors) {
+                Android.updateFloatingColors(appliedBgColor, appliedTextColor);
+            }
+            return activeTimers;
+        }
+
         function render() {
             const floatingTasks = getVisibleFloatingTasks();
             const collapsedEl = document.getElementById('floating-collapsed');
@@ -452,39 +496,17 @@
                 currentFloatingIndex = Math.max(0, floatingTasks.length - 1);
             }
 
-            // 配色ルールの計算
-            const activeTimers = tasks.filter(t => t.durationMs && !t.completed)
-                .map(t => ({...t, remaining: Math.max(0, (t.startTime + t.durationMs) - Date.now())}))
-                .filter(t => t.remaining > 0)
-                .sort((a, b) => a.remaining - b.remaining);
+            // 配色ルールの計算と適用
+            const activeTimersForColor = updateDynamicColors();
 
-            let appliedBgColor = '#ffffff';
-            let appliedTextColor = '#333333';
-            if (activeTimers.length > 0) {
-                const shortestRemaining = activeTimers[0].remaining / 1000;
-                const sortedRules = [...bgThresholds].sort((a, b) => a.threshold - b.threshold);
-                const rule = sortedRules.find(r => shortestRemaining <= r.threshold);
-                if (rule) {
-                    appliedBgColor = rule.bgColor;
-                    appliedTextColor = rule.textColor;
-                }
-            }
-
-            // スタイルの適用
+            // スタイルの適用 (collapsedEl の innerHTML)
             if (collapsedEl) {
-                collapsedEl.style.backgroundColor = appliedBgColor;
-                collapsedEl.style.color = appliedTextColor;
-                if (activeTimers.length > 0) {
-                    const timeText = getRemainingTimeText(activeTimers[0]);
+                if (activeTimersForColor.length > 0) {
+                    const timeText = getRemainingTimeText(activeTimersForColor[0]);
                     collapsedEl.innerHTML = `<div class="ft-tiny">FT</div><div class="timer-collapsed-large" id="timer-collapsed-text">${timeText}</div>`;
                 } else {
                     collapsedEl.innerHTML = `<div>Floating</div><div>task</div>`;
                 }
-            }
-
-            if (expandedEl) {
-                expandedEl.style.backgroundColor = appliedBgColor;
-                expandedEl.style.color = appliedTextColor;
             }
 
             if (floatingContent) {
@@ -526,18 +548,18 @@
                 if (navType === 'menu') {
                     navHtml = `
                         <div class="nav-menu-container">
-                            <button class="nav-menu-trigger" onclick="toggleNavMenu()">▼</button>
+                            <button class="nav-menu-trigger" onclick="event.stopPropagation(); toggleNavMenu()">▼</button>
                             <div id="navMenuList" class="nav-menu-list">
-                                <div class="nav-menu-item ${floatingViewMode === 'history' ? 'active-item' : ''}" onclick="handleNavAction('history')">${floatingViewMode === 'history' ? '✓ ' : ''}${getTranslation('nav_menu_history')}</div>
-                                <div class="nav-menu-item ${(floatingViewMode === 'tasks' && taskTypeFilter === 'all') ? 'active-item' : ''}" onclick="handleNavAction('type-all')">${(floatingViewMode === 'tasks' && taskTypeFilter === 'all') ? '✓ ' : ''}${getTranslation('nav_menu_type_all')}</div>
-                                <div class="nav-menu-item ${(floatingViewMode === 'tasks' && taskTypeFilter === 'task') ? 'active-item' : ''}" onclick="handleNavAction('type-task')">${(floatingViewMode === 'tasks' && taskTypeFilter === 'task') ? '✓ ' : ''}${getTranslation('nav_menu_type_task')}</div>
-                                <div class="nav-menu-item ${(floatingViewMode === 'tasks' && taskTypeFilter === 'timer') ? 'active-item' : ''}" onclick="handleNavAction('type-timer')">${(floatingViewMode === 'tasks' && taskTypeFilter === 'timer') ? '✓ ' : ''}${getTranslation('nav_menu_type_timer')}</div>
-                                ${showCheckedToggle ? `<div class="nav-menu-item ${(floatingViewMode === 'tasks' && !showAllInFloating) ? 'active-item' : ''}" onclick="handleNavAction('pending')">${(floatingViewMode === 'tasks' && !showAllInFloating) ? '✓ ' : ''}${getTranslation('nav_menu_show_pending')}</div>` : ''}
-                                ${showCheckedToggle ? `<div class="nav-menu-item ${(floatingViewMode === 'tasks' && showAllInFloating) ? 'active-item' : ''}" onclick="handleNavAction('all')">${(floatingViewMode === 'tasks' && showAllInFloating) ? '✓ ' : ''}${getTranslation('nav_menu_show_all')}</div>` : ''}
-                                ${(!isScrollMode && (scrollButtonType === 'both' || scrollButtonType === 'up')) ? `<div class="nav-menu-item" onclick="handleNavAction('prev')">${getTranslation('nav_menu_prev')}</div>` : ''}
-                                ${(!isScrollMode && (scrollButtonType === 'both' || scrollButtonType === 'down')) ? `<div class="nav-menu-item" onclick="handleNavAction('next')">${getTranslation('nav_menu_next')}</div>` : ''}
-                                <div class="nav-menu-item" onclick="handleNavAction('home')">${getTranslation('nav_menu_home')}</div>
-                                ${showClose ? `<div class="nav-menu-item" style="color: #dc3545;" onclick="handleNavAction('close')">${getTranslation('nav_menu_close')}</div>` : ''}
+                                <div class="nav-menu-item ${floatingViewMode === 'history' ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('history')">${floatingViewMode === 'history' ? '✓ ' : ''}${getTranslation('nav_menu_history')}</div>
+                                <div class="nav-menu-item ${(floatingViewMode === 'tasks' && taskTypeFilter === 'all') ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('type-all')">${(floatingViewMode === 'tasks' && taskTypeFilter === 'all') ? '✓ ' : ''}${getTranslation('nav_menu_type_all')}</div>
+                                <div class="nav-menu-item ${(floatingViewMode === 'tasks' && taskTypeFilter === 'task') ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('type-task')">${(floatingViewMode === 'tasks' && taskTypeFilter === 'task') ? '✓ ' : ''}${getTranslation('nav_menu_type_task')}</div>
+                                <div class="nav-menu-item ${(floatingViewMode === 'tasks' && taskTypeFilter === 'timer') ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('type-timer')">${(floatingViewMode === 'tasks' && taskTypeFilter === 'timer') ? '✓ ' : ''}${getTranslation('nav_menu_type_timer')}</div>
+                                ${showCheckedToggle ? `<div class="nav-menu-item ${(floatingViewMode === 'tasks' && !showAllInFloating) ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('pending')">${(floatingViewMode === 'tasks' && !showAllInFloating) ? '✓ ' : ''}${getTranslation('nav_menu_show_pending')}</div>` : ''}
+                                ${showCheckedToggle ? `<div class="nav-menu-item ${(floatingViewMode === 'tasks' && showAllInFloating) ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('all')">${(floatingViewMode === 'tasks' && showAllInFloating) ? '✓ ' : ''}${getTranslation('nav_menu_show_all')}</div>` : ''}
+                                ${(!isScrollMode && (scrollButtonType === 'both' || scrollButtonType === 'up')) ? `<div class="nav-menu-item" onclick="event.stopPropagation(); handleNavAction('prev')">${getTranslation('nav_menu_prev')}</div>` : ''}
+                                ${(!isScrollMode && (scrollButtonType === 'both' || scrollButtonType === 'down')) ? `<div class="nav-menu-item" onclick="event.stopPropagation(); handleNavAction('next')">${getTranslation('nav_menu_next')}</div>` : ''}
+                                <div class="nav-menu-item" onclick="event.stopPropagation(); handleNavAction('home')">${getTranslation('nav_menu_home')}</div>
+                                ${showClose ? `<div class="nav-menu-item" style="color: #dc3545;" onclick="event.stopPropagation(); handleNavAction('close')">${getTranslation('nav_menu_close')}</div>` : ''}
                             </div>
                         </div>
                     `;
@@ -645,7 +667,7 @@
                         tasksHtml += `
                             <div style="display: flex; align-items: center; min-width: 0; margin-bottom: 2px; padding-left: 2px;">
                                 ${t.showCommentOnCheck && !t.completed ? `<span onclick="toggleTask(${t.id})" style="cursor:pointer; margin-right:6px; font-size:14px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px;">✏️</span>` : `<input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})" style="width: 16px; height: 16px; margin-right: 6px; flex-shrink: 0;">`}
-                                ${isTimer && !t.completed ? `<div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-right: 6px; opacity: 0.9;"><span class="floating-timer-badge ${isExpired ? 'timer-expired' : ''}" data-task-id="${t.id}" onclick="toggleTimerDisplayMode()" style="font-variant-numeric: tabular-nums; cursor:pointer; background: #ffc107; padding: 1px 4px; border-radius: 3px; font-weight: bold; font-size: 10px; white-space: nowrap;">${timerDisplay}</span><button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size: 12px; padding: 0; background: none; border: none; cursor: pointer;">🔄</button></div>` : ''}
+                                ${isTimer ? `<div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-right: 6px; opacity: 0.9;">${!t.completed ? `<span class="floating-timer-badge ${isExpired ? 'timer-expired' : ''}" data-task-id="${t.id}" onclick="toggleTimerDisplayMode()" style="font-variant-numeric: tabular-nums; cursor:pointer; background: #ffc107; padding: 1px 4px; border-radius: 3px; font-weight: bold; font-size: 10px; white-space: nowrap;">${timerDisplay}</span>` : ''}<button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size: 12px; padding: 0; background: none; border: none; cursor: pointer;">🔄</button></div>` : ''}
                                 <span class="floating-task-text" style="font-size: 14px; font-weight: bold; margin: 0; flex-grow: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; ${t.completed ? 'text-decoration: line-through; color: #888;' : ''}">${t.text}</span>
                             </div>
                         `;
@@ -686,6 +708,9 @@
         }
 
         function updateTimersOnly() {
+            // 配色の更新をリアルタイムに行う
+            updateDynamicColors();
+
             const activeTimers = tasks.filter(t => t.durationMs && !t.completed)
                 .map(t => ({...t, remaining: Math.max(0, (t.startTime + t.durationMs) - Date.now())}))
                 .filter(t => t.remaining >= 0)
