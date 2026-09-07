@@ -103,11 +103,13 @@ let showAllInFloating = localStorage.getItem('showAllInFloating') === 'true';
 let displayTaskCount = parseInt(localStorage.getItem('displayTaskCount') || '1');
 let scrollTaskCount = parseInt(localStorage.getItem('scrollTaskCount') || '1');
 let checkedHideDelay = parseInt(localStorage.getItem('checkedHideDelay') || '2');
+let taskTypeFilter = localStorage.getItem('taskTypeFilter') || 'all'; // 'all', 'task', 'timer'
 let timerDisplayMode = 'countdown'; // 'countdown' or 'endtime'
 window.showAllInFloating = showAllInFloating;
 window.displayTaskCount = displayTaskCount;
 window.scrollTaskCount = scrollTaskCount;
 window.checkedHideDelay = checkedHideDelay;
+window.taskTypeFilter = taskTypeFilter;
 window.timerDisplayMode = timerDisplayMode;
 
 function saveTasks() {
@@ -125,10 +127,12 @@ function refreshData() {
     history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
     displayTaskCount = parseInt(localStorage.getItem('displayTaskCount') || '1');
     scrollTaskCount = parseInt(localStorage.getItem('scrollTaskCount') || '1');
+    taskTypeFilter = localStorage.getItem('taskTypeFilter') || 'all';
     window.tasks = tasks;
     window.history = history;
     window.displayTaskCount = displayTaskCount;
     window.scrollTaskCount = scrollTaskCount;
+    window.taskTypeFilter = taskTypeFilter;
 
     checkAdFree();
 
@@ -234,7 +238,14 @@ function getVisibleFloatingTasks() {
         return '1_' + t.selectedDays.sort((a, b) => a - b).join(',');
     };
 
-    const pendingSorted = tasks.filter(t => isPendingForDisplay(t)).sort((a, b) => {
+    // 共通のフィルタリングロジック
+    const typeFilter = (t) => {
+        if (taskTypeFilter === 'task') return !t.durationMs;
+        if (taskTypeFilter === 'timer') return !!t.durationMs;
+        return true;
+    };
+
+    const pendingSorted = tasks.filter(t => isPendingForDisplay(t) && typeFilter(t)).sort((a, b) => {
         // 1. タイマー優先
         const aIsTimer = !!a.durationMs;
         const bIsTimer = !!b.durationMs;
@@ -248,7 +259,7 @@ function getVisibleFloatingTasks() {
         return 0;
     });
     if (showAllInFloating) {
-        const completedSorted = tasks.filter(t => !isPendingForDisplay(t)).sort((a, b) => {
+        const completedSorted = tasks.filter(t => !isPendingForDisplay(t) && typeFilter(t)).sort((a, b) => {
             const aKey = getGroupKey(a);
             const bKey = getGroupKey(b);
             return aKey.localeCompare(bKey);

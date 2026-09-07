@@ -706,7 +706,8 @@ class MainActivity : AppCompatActivity() {
             displayTaskCount: Int, scrollTaskCount: Int,
             showCheckedToggle: Boolean, scrollButtonType: String,
             allowDrag: Boolean, allowDragCollapsed: Boolean,
-            showHistoryButton: Boolean, navType: String, keepService: Boolean
+            showHistoryButton: Boolean, navType: String, keepService: Boolean,
+            menuActionDelay: Int
         ) {
             val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
             prefs.edit {
@@ -729,6 +730,7 @@ class MainActivity : AppCompatActivity() {
                 putBoolean("showCheckedToggle", showCheckedToggle)
                 putBoolean("showHistoryButton", showHistoryButton)
                 putString("navType", navType)
+                putInt("menuActionDelay", menuActionDelay)
                 putBoolean("allowDrag", allowDrag)
                 putString("scrollButtonType", scrollButtonType)
                 putInt("displayTaskCount", displayTaskCount)

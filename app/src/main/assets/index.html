@@ -357,6 +357,15 @@
                             </select>
                         </div>
 
+                        <div id="menuActionDelayContainer" style="margin-bottom: 12px;">
+                            <label for="menuActionDelay" style="display: block; margin-bottom: 4px;" data-i18n="label_menu_action_delay">メニュー項目選択後に閉じるまでの秒数:</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button class="btn btn-secondary" onclick="adjustMenuActionDelay(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
+                                <input type="number" id="menuActionDelay" min="0" max="10" onchange="saveFloatingSettings('expanded')" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center;">
+                                <button class="btn btn-secondary" onclick="adjustMenuActionDelay(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
+                            </div>
+                        </div>
+
                         <div style="margin-bottom: 12px;">
                             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                                 <input type="checkbox" id="allowDrag" onchange="saveFloatingSettings('expanded')">
@@ -2587,6 +2596,7 @@
             const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
             const showHistoryButton = localStorage.getItem('showHistoryButton') === 'true';
             const navType = localStorage.getItem('navType') || 'button';
+            const menuActionDelay = localStorage.getItem('menuActionDelay') || '0';
             const allowDrag = localStorage.getItem('allowDrag') !== 'false';
             const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
             const dCount = localStorage.getItem('displayTaskCount') || '1';
@@ -2605,6 +2615,7 @@
             document.getElementById('showCheckedToggle').checked = showCheckedToggle;
             document.getElementById('showHistoryButton').checked = showHistoryButton;
             document.getElementById('navType').value = navType;
+            document.getElementById('menuActionDelay').value = menuActionDelay;
             document.getElementById('allowDrag').checked = allowDrag;
             document.getElementById('scrollButtonType').value = scrollButtonType;
             document.getElementById('displayTaskCount').value = dCount;
@@ -2624,8 +2635,10 @@
 
         function updateFloatingSettingsVisibility() {
             const scrollButtonType = document.getElementById('scrollButtonType').value;
+            const navType = document.getElementById('navType').value;
             const displayTaskCountContainer = document.getElementById('displayTaskCountContainer');
             const scrollTaskCountContainer = document.getElementById('scrollTaskCountContainer');
+            const menuActionDelayContainer = document.getElementById('menuActionDelayContainer');
 
             if (scrollButtonType === 'scroll') {
                 displayTaskCountContainer.style.display = 'none';
@@ -2633,6 +2646,12 @@
             } else {
                 displayTaskCountContainer.style.display = 'block';
                 scrollTaskCountContainer.style.display = 'block';
+            }
+
+            if (navType === 'menu') {
+                menuActionDelayContainer.style.display = 'block';
+            } else {
+                menuActionDelayContainer.style.display = 'none';
             }
         }
 
@@ -2699,6 +2718,14 @@
             saveFloatingSettings('expanded');
         }
 
+        function adjustMenuActionDelay(delta) {
+            const input = document.getElementById('menuActionDelay');
+            let val = parseInt(input.value) || 0;
+            val = Math.max(0, Math.min(10, val + delta));
+            input.value = val;
+            saveFloatingSettings('expanded');
+        }
+
         function adjustCheckedHideDelay(delta) {
             const input = document.getElementById('checkedHideDelay');
             let val = parseInt(input.value) || 0;
@@ -2735,6 +2762,7 @@
             const showCheckedToggle = document.getElementById('showCheckedToggle').checked;
             const showHistoryButton = document.getElementById('showHistoryButton').checked;
             const navType = document.getElementById('navType').value;
+            const menuActionDelay = document.getElementById('menuActionDelay').value;
             const allowDrag = document.getElementById('allowDrag').checked;
             const scrollButtonType = document.getElementById('scrollButtonType').value;
 
@@ -2761,6 +2789,7 @@
             localStorage.setItem('showCheckedToggle', showCheckedToggle);
             localStorage.setItem('showHistoryButton', showHistoryButton);
             localStorage.setItem('navType', navType);
+            localStorage.setItem('menuActionDelay', menuActionDelay);
             localStorage.setItem('allowDrag', allowDrag);
             localStorage.setItem('scrollButtonType', scrollButtonType);
             localStorage.setItem('displayTaskCount', dCount);
@@ -2779,7 +2808,7 @@
                         parseInt(eX), parseInt(eY), parseFloat(eScale), moveE,
                         parseInt(width), parseInt(height), showClose,
                         dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragC,
-                        showHistoryButton, navType, keepService
+                        showHistoryButton, navType, keepService, parseInt(menuActionDelay)
                     );
                 } else if (Android.updateFloatingSettings) {
                     // 互換性のため古いメソッドも呼ぶ（必要なら）
@@ -2845,6 +2874,7 @@
             document.getElementById('showCheckedToggle').checked = false;
             document.getElementById('showHistoryButton').checked = false;
             document.getElementById('navType').value = 'button';
+            document.getElementById('menuActionDelay').value = 0;
             document.getElementById('allowDrag').checked = true;
             document.getElementById('scrollButtonType').value = 'both';
             document.getElementById('displayTaskCount').value = 1;
