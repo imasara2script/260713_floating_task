@@ -297,6 +297,12 @@
                         if (history.length > 500) history.pop();
 
                         t.justCompletedUntil = Date.now() + (checkedHideDelay * 1000);
+                        delete t.justUncompletedUntil;
+                        setTimeout(() => render(), checkedHideDelay * 1000);
+                    } else {
+                        // チェック解除時の処理
+                        t.justUncompletedUntil = Date.now() + (checkedHideDelay * 1000);
+                        delete t.justCompletedUntil;
                         setTimeout(() => render(), checkedHideDelay * 1000);
                     }
 

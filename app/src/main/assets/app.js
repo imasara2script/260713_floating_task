@@ -219,14 +219,22 @@ function getEndTimeText(t) {
 }
 window.getEndTimeText = getEndTimeText;
 
-function getVisibleFloatingTasks() {
+function isPendingForDisplay(t) {
     const now = Date.now();
+    const justCompleted = t.justCompletedUntil && now < t.justCompletedUntil;
+    const justUncompleted = t.justUncompletedUntil && now < t.justUncompletedUntil;
+    if (t.completed) return justCompleted;
+    return !justUncompleted;
+}
+window.isPendingForDisplay = isPendingForDisplay;
+
+function getVisibleFloatingTasks() {
     const getGroupKey = (t) => {
         if (!t.selectedDays || t.selectedDays.length === 0) return '0_daily';
         return '1_' + t.selectedDays.sort((a, b) => a - b).join(',');
     };
 
-    const pendingSorted = tasks.filter(t => !t.completed || (t.justCompletedUntil && now < t.justCompletedUntil)).sort((a, b) => {
+    const pendingSorted = tasks.filter(t => isPendingForDisplay(t)).sort((a, b) => {
         // 1. タイマー優先
         const aIsTimer = !!a.durationMs;
         const bIsTimer = !!b.durationMs;
@@ -240,7 +248,7 @@ function getVisibleFloatingTasks() {
         return 0;
     });
     if (showAllInFloating) {
-        const completedSorted = tasks.filter(t => t.completed).sort((a, b) => {
+        const completedSorted = tasks.filter(t => !isPendingForDisplay(t)).sort((a, b) => {
             const aKey = getGroupKey(a);
             const bKey = getGroupKey(b);
             return aKey.localeCompare(bKey);

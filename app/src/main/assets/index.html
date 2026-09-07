@@ -131,7 +131,17 @@
                         <button class="btn btn-primary" style="width: 100%;" onclick="openNewTaskSettings()" data-i18n="btn_new_task_settings">新規タスク作成時の設定</button>
                     </div>
 
-                    <!-- 4. データ管理 -->
+                    <!-- 4. チェック後のリスト更新ディレイ -->
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
+                        <label for="checkedHideDelay" style="display: block; margin-bottom: 8px;" data-i18n="label_checked_hide_delay">チェック後にリストを更新するまでの秒数:</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
+                            <input type="number" id="checkedHideDelay" min="0" max="60" onchange="saveFloatingSettings()" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center;">
+                            <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
+                        </div>
+                    </div>
+
+                    <!-- 5. データ管理 -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
                         <div style="font-size: 13px; margin-bottom: 8px;" data-i18n="label_data_management">💾 データ管理</div>
                         <div style="display: flex; gap: 8px;">
@@ -140,23 +150,20 @@
                         </div>
                     </div>
 
-                    <!-- 5. コイン管理 -->
+                    <!-- 6. コイン管理 -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
                         <div style="font-size: 13px; margin-bottom: 8px;" data-i18n="label_coin_management">🪙 コイン</div>
                         <button class="btn btn-primary" onclick="earnCoinReward()" style="width: 100%; font-size: 14px; margin-bottom: 8px;" data-i18n="btn_get_coin_reward">リワード広告を視聴して１コインをゲット</button>
                         <div id="coin-display" style="font-size: 14px; text-align: center; color: #666;"></div>
                     </div>
 
-                    <!-- 6. カレンダーのマーク -->
+                    <!-- 7. カレンダーのマーク -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
                         <label for="calendarMarkInput" style="display: block; margin-bottom: 8px;" data-i18n="label_calendar_mark">カレンダーのマーク (記号や絵文字):</label>
                         <input type="text" id="calendarMarkInput" placeholder="例: ⭕, ✔, ⭐" onchange="updateCalendarMark()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
                     </div>
 
-                    <!-- 6. 開発者用 -->
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <button class="btn btn-secondary" style="width: 100%; font-size: 14px;" onclick="openDeveloperModal()" data-i18n="btn_developer">開発者用</button>
-                    </div>
+                    <!-- 8. 開発者用 -->
                 </div>
 
                 <!-- 新規タスク作成時の設定詳細画面 -->
@@ -372,15 +379,6 @@
                                 <button class="btn btn-secondary" onclick="adjustScrollTaskCount(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
                                 <input type="number" id="scrollTaskCount" min="1" max="10" onchange="saveFloatingSettings('expanded')" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center;">
                                 <button class="btn btn-secondary" onclick="adjustScrollTaskCount(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
-                            </div>
-                        </div>
-
-                        <div style="margin-bottom: 12px;">
-                            <label for="checkedHideDelay" style="display: block; margin-bottom: 4px;" data-i18n="label_checked_hide_delay">チェック後に非表示にするまでの秒数:</label>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
-                                <input type="number" id="checkedHideDelay" min="0" max="60" onchange="saveFloatingSettings('expanded')" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center;">
-                                <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
                             </div>
                         </div>
                     </div>
@@ -1893,6 +1891,14 @@
                             }
                             t.lastCompletedDate = today;
                         }
+                        t.justCompletedUntil = Date.now() + (checkedHideDelay * 1000);
+                        delete t.justUncompletedUntil;
+                        setTimeout(() => render(), checkedHideDelay * 1000);
+                    } else {
+                        // チェック解除時の処理
+                        t.justUncompletedUntil = Date.now() + (checkedHideDelay * 1000);
+                        delete t.justCompletedUntil;
+                        setTimeout(() => render(), checkedHideDelay * 1000);
                     }
 
                     // Android 側に完了状態を通知
@@ -2303,8 +2309,8 @@
             }
 
             const managerTasks = isEditMode ? tasks : [
-                ...tasks.filter(t => !t.completed),
-                ...tasks.filter(t => t.completed)
+                ...tasks.filter(t => window.isPendingForDisplay(t)),
+                ...tasks.filter(t => !window.isPendingForDisplay(t))
             ];
 
             const pendingTasks = tasks.filter(t => !t.completed);
