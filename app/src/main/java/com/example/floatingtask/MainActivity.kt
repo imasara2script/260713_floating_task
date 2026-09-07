@@ -39,7 +39,8 @@ import java.security.MessageDigest
 class MainActivity : AppCompatActivity(), 
     WebTaskActionHandler.TaskActionListener, 
     WebSettingsHandler.SettingsActionListener,
-    WebMediaHandler.MediaActionListener {
+    WebMediaHandler.MediaActionListener,
+    WebUIHandler.UIActionListener {
 
     private var pendingTaskCount = 0
     private var isPageLoaded = false
@@ -47,6 +48,7 @@ class MainActivity : AppCompatActivity(),
     private lateinit var taskActionHandler: WebTaskActionHandler
     private lateinit var settingsHandler: WebSettingsHandler
     private lateinit var mediaHandler: WebMediaHandler
+    private lateinit var uiHandler: WebUIHandler
     private var overlayPermissionDialog: AlertDialog? = null
     private var backPressedTime: Long = 0
 
@@ -191,6 +193,7 @@ class MainActivity : AppCompatActivity(),
         taskActionHandler = WebTaskActionHandler(this, permissionHandler, this)
         settingsHandler = WebSettingsHandler(this, adCoinHandler, this)
         mediaHandler = WebMediaHandler(this, this)
+        uiHandler = WebUIHandler(this, this)
         
         webView.addJavascriptInterface(WebAppInterface(this), "Android")
 
@@ -329,6 +332,40 @@ class MainActivity : AppCompatActivity(),
         openDocumentLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*"))
     }
 
+    override fun onShowKeyboard() {
+        runOnUiThread {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            val webView: WebView = findViewById(R.id.webView)
+            imm.showSoftInput(webView, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+        }
+    }
+
+    override fun onOpenHistory() {
+        runOnUiThread {
+            val intent = Intent(this, MainActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            startActivity(intent)
+            
+            val webView: WebView = findViewById(R.id.webView)
+            webView.evaluateJavascript("switchTab('history');", null)
+        }
+    }
+
+    override fun onDurationSelected(h: String, m: String, s: String) {
+        val webView: WebView = findViewById(R.id.webView)
+        webView.evaluateJavascript("onDurationSelected('$h', '$m', '$s');", null)
+    }
+
+    override fun onDurationPickerDismissed() {
+        val webView: WebView = findViewById(R.id.webView)
+        webView.evaluateJavascript("onDurationPickerDismissed();", null)
+    }
+
+    override fun onNativeConfirmResult(callbackId: String, result: Boolean) {
+        val webView: WebView = findViewById(R.id.webView)
+        webView.evaluateJavascript("window.onNativeConfirmResult('$callbackId', $result);", null)
+    }
+
     @Suppress("unused")
     inner class WebAppInterface(private val mContext: Context) {
         private val logHandler = WebLogHandler(mContext)
@@ -365,13 +402,7 @@ class MainActivity : AppCompatActivity(),
         fun testIntervalNotification() = taskActionHandler.testIntervalNotification()
 
         @JavascriptInterface
-        fun showKeyboard() {
-            runOnUiThread {
-                val imm = mContext.getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                val webView: WebView = findViewById(R.id.webView)
-                imm.showSoftInput(webView, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
-            }
-        }
+        fun showKeyboard() = uiHandler.showKeyboard()
 
         @JavascriptInterface
         fun startFloatingWindow() {
@@ -427,17 +458,7 @@ class MainActivity : AppCompatActivity(),
         }
 
         @JavascriptInterface
-        fun openHistory() {
-            runOnUiThread {
-                val intent = Intent(mContext, MainActivity::class.java)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-                mContext.startActivity(intent)
-                
-                // WebViewのタブを履歴に切り替える
-                val webView: WebView = findViewById(R.id.webView)
-                webView.evaluateJavascript("switchTab('history');", null)
-            }
-        }
+        fun openHistory() = uiHandler.openHistory()
 
         @JavascriptInterface
         fun toggleExpand(expanded: Boolean) = taskActionHandler.toggleExpand(expanded)
@@ -507,59 +528,12 @@ class MainActivity : AppCompatActivity(),
         }
 
         @JavascriptInterface
-        fun showDurationPicker(h: String, m: String, s: String) {
-            runOnUiThread {
-                val inflater = LayoutInflater.from(this@MainActivity)
-                val view = inflater.inflate(R.layout.dialog_duration_picker, null)
-                val editH = view.findViewById<EditText>(R.id.editHours)
-                val editM = view.findViewById<EditText>(R.id.editMinutes)
-                val editS = view.findViewById<EditText>(R.id.editSeconds)
-
-                editH.setText(h)
-                editM.setText(m)
-                editS.setText(s)
-
-                AlertDialog.Builder(this@MainActivity)
-                    .setTitle(R.string.timer_duration_title)
-                    .setView(view)
-                    .setPositiveButton(R.string.btn_done) { dialog, which ->
-                        val resH = editH.text.toString()
-                        val resM = editM.text.toString()
-                        val resS = editS.text.toString()
-                        
-                        val webView: WebView = findViewById(R.id.webView)
-                        webView.evaluateJavascript("onDurationSelected('$resH', '$resM', '$resS');", null)
-                    }
-                    .setNegativeButton(R.string.cancel, null)
-                    .setOnDismissListener {
-                        val webView: WebView = findViewById(R.id.webView)
-                        webView.evaluateJavascript("onDurationPickerDismissed();", null)
-                    }
-                    .show()
-            }
-        }
+        fun showDurationPicker(h: String, m: String, s: String) =
+            uiHandler.showDurationPicker(h, m, s)
 
         @JavascriptInterface
-        fun showConfirmDialog(title: String, message: String, callbackId: String) {
-            runOnUiThread {
-                AlertDialog.Builder(this@MainActivity)
-                    .setTitle(title)
-                    .setMessage(message)
-                    .setPositiveButton(android.R.string.ok) { _, _ ->
-                        val webView: WebView = findViewById(R.id.webView)
-                        webView.evaluateJavascript("window.onNativeConfirmResult('$callbackId', true);", null)
-                    }
-                    .setNegativeButton(android.R.string.cancel) { _, _ ->
-                        val webView: WebView = findViewById(R.id.webView)
-                        webView.evaluateJavascript("window.onNativeConfirmResult('$callbackId', false);", null)
-                    }
-                    .setOnCancelListener {
-                        val webView: WebView = findViewById(R.id.webView)
-                        webView.evaluateJavascript("window.onNativeConfirmResult('$callbackId', false);", null)
-                    }
-                    .show()
-            }
-        }
+        fun showConfirmDialog(title: String, message: String, callbackId: String) =
+            uiHandler.showConfirmDialog(title, message, callbackId)
 
         @JavascriptInterface
         fun setIntervalAlarm(minutes: Int) = taskActionHandler.setIntervalAlarm(minutes)
