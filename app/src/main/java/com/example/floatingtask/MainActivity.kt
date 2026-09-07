@@ -36,13 +36,17 @@ import androidx.activity.OnBackPressedCallback
 import android.widget.Toast
 import java.security.MessageDigest
 
-class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListener, WebSettingsHandler.SettingsActionListener {
+class MainActivity : AppCompatActivity(), 
+    WebTaskActionHandler.TaskActionListener, 
+    WebSettingsHandler.SettingsActionListener,
+    WebMediaHandler.MediaActionListener {
 
     private var pendingTaskCount = 0
     private var isPageLoaded = false
     private lateinit var adCoinHandler: WebAdCoinHandler
     private lateinit var taskActionHandler: WebTaskActionHandler
     private lateinit var settingsHandler: WebSettingsHandler
+    private lateinit var mediaHandler: WebMediaHandler
     private var overlayPermissionDialog: AlertDialog? = null
     private var backPressedTime: Long = 0
 
@@ -186,6 +190,7 @@ class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListene
         val permissionHandler = WebPermissionHandler(this)
         taskActionHandler = WebTaskActionHandler(this, permissionHandler, this)
         settingsHandler = WebSettingsHandler(this, adCoinHandler, this)
+        mediaHandler = WebMediaHandler(this, this)
         
         webView.addJavascriptInterface(WebAppInterface(this), "Android")
 
@@ -309,6 +314,19 @@ class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListene
             val webView: WebView = findViewById(R.id.webView)
             webView.evaluateJavascript("location.reload();", null)
         }
+    }
+
+    override fun onPickRingtone(intent: Intent) {
+        ringtonePickerLauncher.launch(intent)
+    }
+
+    override fun onBackupData(fileName: String, jsonData: String) {
+        dataToBackup = jsonData
+        createDocumentLauncher.launch(fileName)
+    }
+
+    override fun onRestoreData() {
+        openDocumentLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*"))
     }
 
     @Suppress("unused")
@@ -551,15 +569,7 @@ class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListene
             taskActionHandler.setTimerAlarm(taskId, taskText, durationMs, melody)
 
         @JavascriptInterface
-        fun pickRingtone() {
-            val intent = Intent(android.media.RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_TYPE, android.media.RingtoneManager.TYPE_ALL)
-                putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_TITLE, getString(R.string.pick_melody))
-                putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-            }
-            ringtonePickerLauncher.launch(intent)
-        }
+        fun pickRingtone() = mediaHandler.pickRingtone()
 
         @JavascriptInterface
         fun updateFloatingSettingsExtended(
@@ -590,18 +600,10 @@ class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListene
         fun getDisplayMetrics(): String = settingsHandler.getDisplayMetrics()
 
         @JavascriptInterface
-        fun backupData(jsonData: String) {
-            dataToBackup = jsonData
-            val sdf = java.text.SimpleDateFormat("yyyyMMdd HHmmss", java.util.Locale.getDefault())
-            val timestamp = sdf.format(java.util.Date())
-            val fileName = "floating task $timestamp.json"
-            createDocumentLauncher.launch(fileName)
-        }
+        fun backupData(jsonData: String) = mediaHandler.backupData(jsonData)
 
         @JavascriptInterface
-        fun restoreData() {
-            openDocumentLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*"))
-        }
+        fun restoreData() = mediaHandler.restoreData()
 
         @JavascriptInterface
         fun showRewardedAd() {
@@ -651,14 +653,10 @@ class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListene
         fun getSystemLanguage(): String = settingsHandler.getSystemLanguage()
 
         @JavascriptInterface
-        fun playMelody(melody: String) {
-            MelodyPlayer.play(mContext, melody)
-        }
+        fun playMelody(melody: String) = mediaHandler.playMelody(melody)
 
         @JavascriptInterface
-        fun stopMelody() {
-            MelodyPlayer.stop()
-        }
+        fun stopMelody() = mediaHandler.stopMelody()
     }
 
     override fun onNewIntent(intent: Intent) {
