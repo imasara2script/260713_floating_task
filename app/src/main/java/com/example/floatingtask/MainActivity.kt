@@ -344,82 +344,34 @@ class MainActivity : AppCompatActivity() {
 
     @Suppress("unused")
     inner class WebAppInterface(private val mContext: Context) {
-        @JavascriptInterface
-        fun isLoggingEnabled(): Boolean {
-            return AppLogger.isEnabled(mContext)
-        }
+        private val logHandler = WebLogHandler(mContext)
 
         @JavascriptInterface
-        fun setLoggingEnabled(enabled: Boolean) {
-            AppLogger.setEnabled(mContext, enabled)
-        }
+        fun isLoggingEnabled(): Boolean = logHandler.isLoggingEnabled()
 
         @JavascriptInterface
-        fun getLogContent(): String {
-            val logFile = AppLogger.getLogFile(mContext)
-            return if (logFile.exists()) {
-                try {
-                    logFile.readText()
-                } catch (e: Exception) {
-                    "Error reading log: ${e.message}"
-                }
-            } else {
-                "Log file does not exist."
-            }
-        }
+        fun setLoggingEnabled(enabled: Boolean) = logHandler.setLoggingEnabled(enabled)
 
         @JavascriptInterface
-        fun shareLog() {
-            // 共有直前に最新のシステム状態を記録
-            AppLogger.logSystemStatus(mContext)
-            
-            val logFile = AppLogger.getLogFile(mContext)
-            if (!logFile.exists()) return
-
-            runOnUiThread {
-                try {
-                    val contentUri = androidx.core.content.FileProvider.getUriForFile(
-                        mContext,
-                        "${mContext.packageName}.fileprovider",
-                        logFile
-                    )
-
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_STREAM, contentUri)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
-                    mContext.startActivity(Intent.createChooser(intent, "Share Log"))
-                } catch (e: Exception) {
-                    AppLogger.log(mContext, "Error sharing log: ${e.message}")
-                }
-            }
-        }
+        fun getLogContent(): String = logHandler.getLogContent()
 
         @JavascriptInterface
-        fun clearLog() {
-            AppLogger.clearLog(mContext)
-        }
+        fun shareLog() = logHandler.shareLog()
 
         @JavascriptInterface
-        fun getLogSize(): Double {
-            return AppLogger.getLogSizeKb(mContext)
-        }
+        fun clearLog() = logHandler.clearLog()
 
         @JavascriptInterface
-        fun logComment(comment: String) {
-            AppLogger.log(mContext, "[USER COMMENT] $comment")
-        }
+        fun getLogSize(): Double = logHandler.getLogSize()
 
         @JavascriptInterface
-        fun logToAppLog(message: String) {
-            AppLogger.log(mContext, "[JS LOG] $message")
-        }
+        fun logComment(comment: String) = logHandler.logComment(comment)
 
         @JavascriptInterface
-        fun logSystemStatus() {
-            AppLogger.logSystemStatus(mContext)
-        }
+        fun logToAppLog(message: String) = logHandler.logToAppLog(message)
+
+        @JavascriptInterface
+        fun logSystemStatus() = logHandler.logSystemStatus()
 
         @JavascriptInterface
         fun testIntervalNotification() {
