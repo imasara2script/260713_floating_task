@@ -2,7 +2,6 @@ package com.example.floatingtask
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.AlarmManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -12,7 +11,6 @@ import android.content.res.Resources
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.PowerManager
 import android.provider.OpenableColumns
 import android.provider.Settings
 import android.webkit.JavascriptInterface
@@ -28,34 +26,22 @@ import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdView
-import com.google.android.gms.ads.FullScreenContentCallback
-import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
-import com.google.android.gms.ads.rewarded.RewardedAd
-import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
-import org.json.JSONArray
-import org.json.JSONObject
 import android.util.Log
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.widget.EditText
-import java.util.Locale
-import androidx.core.app.NotificationCompat
-import java.security.MessageDigest
 import androidx.activity.OnBackPressedCallback
 import android.widget.Toast
+import java.security.MessageDigest
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), WebTaskActionHandler.TaskActionListener {
 
     private var pendingTaskCount = 0
     private var isPageLoaded = false
     private lateinit var adCoinHandler: WebAdCoinHandler
+    private lateinit var taskActionHandler: WebTaskActionHandler
     private var overlayPermissionDialog: AlertDialog? = null
     private var backPressedTime: Long = 0
 
@@ -168,7 +154,7 @@ class MainActivity : AppCompatActivity() {
             if (uri != null) {
                 val ringtone = android.media.RingtoneManager.getRingtone(this, uri)
                 val title = ringtone.getTitle(this)
-                webView.evaluateJavascript("onRingtoneSelected('$uri', '${title.replace("'", "\\'")}');", null)
+                webView.evaluateJavascript("onRingtoneSelected('$uri', '${title.replace("'", "\\'") }');", null)
             }
         }
     }
@@ -179,8 +165,6 @@ class MainActivity : AppCompatActivity() {
         AppLogger.log(this, "MainActivity onCreate")
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
-
-        val permissionHandler = WebPermissionHandler(this)
 
         val webView: WebView = findViewById(R.id.webView)
         WebView.setWebContentsDebuggingEnabled(true)
@@ -198,6 +182,9 @@ class MainActivity : AppCompatActivity() {
         webView.settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         
         adCoinHandler = WebAdCoinHandler(this, webView)
+        val permissionHandler = WebPermissionHandler(this)
+        taskActionHandler = WebTaskActionHandler(this, permissionHandler, this)
+        
         webView.addJavascriptInterface(WebAppInterface(this), "Android")
 
         webView.webChromeClient = object : android.webkit.WebChromeClient() {
@@ -302,6 +289,17 @@ class MainActivity : AppCompatActivity() {
         unregisterReceiver(dataChangeReceiver)
     }
 
+    override fun onPendingTaskCountChanged(count: Int) {
+        pendingTaskCount = count
+    }
+
+    override fun startFloatingService(isSettingsMode: Boolean) {
+        val intent = Intent(this, FloatingWindowService::class.java)
+        intent.action = "ACTION_SHOW"
+        intent.putExtra("IS_SETTINGS_MODE", isSettingsMode)
+        startForegroundService(intent)
+    }
+
     @Suppress("unused")
     inner class WebAppInterface(private val mContext: Context) {
         private val logHandler = WebLogHandler(mContext)
@@ -335,10 +333,7 @@ class MainActivity : AppCompatActivity() {
         fun logSystemStatus() = logHandler.logSystemStatus()
 
         @JavascriptInterface
-        fun testIntervalNotification() {
-            AppLogger.log(mContext, "MainActivity: testIntervalNotification triggered")
-            AlarmReceiver().showIntervalNotification(mContext)
-        }
+        fun testIntervalNotification() = taskActionHandler.testIntervalNotification()
 
         @JavascriptInterface
         fun showKeyboard() {
@@ -356,7 +351,7 @@ class MainActivity : AppCompatActivity() {
                     launchOverlayPermissionSettings()
                 }
             } else {
-                startFloatingService(isSettingsMode = true)
+                taskActionHandler.startFloatingWindow()
             }
         }
 
@@ -378,88 +373,22 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun stopFloatingWindow() {
-            val intent = Intent(mContext, FloatingWindowService::class.java)
-            intent.action = "ACTION_HIDE"
-            mContext.startService(intent)
-        }
+        fun stopFloatingWindow() = taskActionHandler.stopFloatingWindow()
 
         @JavascriptInterface
-        fun setReminderAlarms(taskId: Long, taskText: String, jsonReminders: String) {
-            val prefs = mContext.getSharedPreferences("task_reminders_prefs", Context.MODE_PRIVATE)
-            val oldTimesJson = prefs.getString(taskId.toString(), null)
-            if (oldTimesJson != null) {
-                try {
-                    val oldTimes = JSONArray(oldTimesJson)
-                    val timeList = mutableListOf<String>()
-                    for (i in 0 until oldTimes.length()) {
-                        timeList.add(oldTimes.getString(i))
-                    }
-                    AlarmScheduler.cancelReminderAlarms(mContext, taskId, timeList)
-                } catch (e: Exception) {
-                    Log.e("MainActivity", "Error parsing old reminders", e)
-                }
-            }
-
-            try {
-                val reminders = JSONArray(jsonReminders)
-                val newTimes = JSONArray()
-                for (i in 0 until reminders.length()) {
-                    val obj = reminders.getJSONObject(i)
-                    val time = obj.getString("time")
-                    val message = obj.optString("message", "")
-                    AlarmScheduler.scheduleReminderAlarm(mContext, taskId, taskText, time, message)
-                    newTimes.put(time)
-                }
-                prefs.edit().putString(taskId.toString(), newTimes.toString()).apply()
-            } catch (e: Exception) {
-                Log.e("MainActivity", "Error parsing reminders", e)
-            }
-        }
+        fun setReminderAlarms(taskId: Long, taskText: String, jsonReminders: String) =
+            taskActionHandler.setReminderAlarms(taskId, taskText, jsonReminders)
 
         @JavascriptInterface
-        fun updateTaskCompletionState(taskId: Long, isCompleted: Boolean) {
-            val prefs = mContext.getSharedPreferences("task_completion_prefs", Context.MODE_PRIVATE)
-            prefs.edit().putBoolean(taskId.toString(), isCompleted).apply()
-        }
+        fun updateTaskCompletionState(taskId: Long, isCompleted: Boolean) =
+            taskActionHandler.updateTaskCompletionState(taskId, isCompleted)
 
         @JavascriptInterface
-        fun testReminderNotification(taskText: String, message: String) {
-            val channelId = "reminders_channel"
-            val manager = mContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val channel = NotificationChannel(
-                    channelId,
-                    mContext.getString(R.string.channel_reminders),
-                    NotificationManager.IMPORTANCE_HIGH
-                )
-                manager.createNotificationChannel(channel)
-            }
-
-            val body = if (message.isNotEmpty()) {
-                mContext.getString(R.string.reminder_body_with_msg, taskText, message)
-            } else {
-                mContext.getString(R.string.reminder_body_no_msg, taskText)
-            }
-
-            val notification = NotificationCompat.Builder(mContext, channelId)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle(mContext.getString(R.string.reminder_title))
-                .setContentText(body)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true)
-                .build()
-
-            manager.notify(System.currentTimeMillis().toInt(), notification)
-        }
+        fun testReminderNotification(taskText: String, message: String) =
+            taskActionHandler.testReminderNotification(taskText, message)
 
         @JavascriptInterface
-        fun onDataChanged() {
-            val intent = Intent("com.example.floatingtask.DATA_CHANGED")
-            intent.setPackage(mContext.packageName)
-            mContext.sendBroadcast(intent)
-        }
+        fun onDataChanged() = taskActionHandler.onDataChanged()
 
         @JavascriptInterface
         fun openMainActivity() {
@@ -482,21 +411,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun toggleExpand(expanded: Boolean) {
-            if (permissionHandler.checkOverlayPermissionGranted()) {
-                val intent = Intent(mContext, FloatingWindowService::class.java)
-                intent.action = if (expanded) "ACTION_EXPAND" else "ACTION_COLLAPSE"
-                mContext.startService(intent)
-            }
-        }
+        fun toggleExpand(expanded: Boolean) = taskActionHandler.toggleExpand(expanded)
 
         @JavascriptInterface
-        fun updatePendingTaskCount(count: Int) {
-            pendingTaskCount = count
-            // 背景アラーム等から参照できるように保存
-            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
-            prefs.edit { putInt("pendingTaskCount", count) }
-        }
+        fun updatePendingTaskCount(count: Int) = taskActionHandler.updatePendingTaskCount(count)
 
         @JavascriptInterface
         fun checkBatteryOptimizationExempt(): Boolean = permissionHandler.checkBatteryOptimizationExempt()
@@ -515,10 +433,8 @@ class MainActivity : AppCompatActivity() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     val permission = Manifest.permission.POST_NOTIFICATIONS
                     if (shouldShowRequestPermissionRationale(permission)) {
-                        // ユーザーが一度拒否したが「二度と表示しない」は選んでいない場合
                         requestPermissionLauncher.launch(permission)
                     } else {
-                        // 初回起動時、または完全に拒否されている場合
                         val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
                         val requested = prefs.getBoolean("notif_permission_requested", false)
                         
@@ -526,12 +442,10 @@ class MainActivity : AppCompatActivity() {
                             prefs.edit { putBoolean("notif_permission_requested", true) }
                             requestPermissionLauncher.launch(permission)
                         } else {
-                            // 以前リクエストしたがRationaleがfalse -> 設定画面へ誘導
                             launchNotificationSettings()
                         }
                     }
                 } else {
-                    // Android 13 未満では常に許可されているはずだが、一応設定を開く
                     launchNotificationSettings()
                 }
             }
@@ -546,7 +460,6 @@ class MainActivity : AppCompatActivity() {
                     mContext.startActivity(intent)
                 } catch (e: Exception) {
                     AppLogger.log(mContext, "Error launching notification settings: ${e.message}")
-                    // アプリ詳細設定画面をフォールバックとして開く
                     val intent = permissionHandler.getAppDetailsSettingsIntent()
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     mContext.startActivity(intent)
@@ -620,22 +533,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun setIntervalAlarm(minutes: Int) {
-            AppLogger.log(mContext, "MainActivity: setIntervalAlarm called. minutes=$minutes")
-            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
-            prefs.edit { putInt("recheckInterval", minutes) }
-
-            if (minutes > 0) {
-                AlarmScheduler.scheduleIntervalAlarm(mContext, minutes)
-            } else {
-                AlarmScheduler.cancelIntervalAlarm(mContext)
-            }
-        }
+        fun setIntervalAlarm(minutes: Int) = taskActionHandler.setIntervalAlarm(minutes)
 
         @JavascriptInterface
-        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String) {
-            AlarmScheduler.scheduleTimerAlarm(mContext, taskId, taskText, durationMs, melody)
-        }
+        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String) =
+            taskActionHandler.setTimerAlarm(taskId, taskText, durationMs, melody)
 
         @JavascriptInterface
         fun pickRingtone() {
@@ -715,7 +617,6 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun getDisplayMetrics(): String {
-            // システム全体のメトリクスを使用することで、より確実に物理ピクセルと密度を取得
             val dm = Resources.getSystem().displayMetrics
             val json = org.json.JSONObject()
             json.put("widthPixels", dm.widthPixels)
@@ -774,8 +675,6 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun submitUnlockCode(code: String): Boolean {
-            // セキュリティ対策: 平文のコードではなくハッシュ値で比較する
-            // local.properties -> build.gradle.kts 経由で提供されるハッシュとソルトを使用
             val salt = BuildConfig.PREMIUM_CODE_SALT
             val expectedHash = BuildConfig.PREMIUM_CODE_HASH
             
@@ -843,8 +742,6 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
         prefs.edit { putBoolean("isAppInForeground", true) }
 
-        // 全画面表示中はフローティングウィンドウを隠す。
-        // ただし、設定画面のフローティング調整中はこの限りではない（JS側から表示指示が出る）。
         if (Settings.canDrawOverlays(this)) {
             overlayPermissionDialog?.dismiss()
             overlayPermissionDialog = null
@@ -854,10 +751,9 @@ class MainActivity : AppCompatActivity() {
             startService(intent)
         }
 
-        // 日付を跨いでいた場合、リセットを確認する。そうでない場合もデータを同期する。
         if (isPageLoaded) {
             val webView: WebView = findViewById(R.id.webView)
-            webView.requestLayout() // 再描画を強制
+            webView.requestLayout()
 
             val permissionHandler = WebPermissionHandler(this)
             if (webView.url?.contains("permissions.html") == true) {
@@ -870,7 +766,6 @@ class MainActivity : AppCompatActivity() {
                 webView.evaluateJavascript("checkDailyReset();", null)
             }
             
-            // バナー広告の表示更新
             val adView: AdView = findViewById(R.id.adView)
             if (adCoinHandler.isAdFreeEffective()) {
                 adView.visibility = View.GONE
@@ -889,7 +784,6 @@ class MainActivity : AppCompatActivity() {
 
         val showWhenEmpty = prefs.getBoolean("showWhenEmpty", false)
 
-        // アプリがバックグラウンドに回った時、未完了タスクがあるか、またはタスクゼロでも表示設定の場合に表示する
         if (((pendingTaskCount > 0) || showWhenEmpty) && Settings.canDrawOverlays(this)) {
             startFloatingService(isSettingsMode = false)
         }
@@ -905,12 +799,5 @@ class MainActivity : AppCompatActivity() {
         super.onLowMemory()
         AppLogger.log(this, "MainActivity onLowMemory")
         AppLogger.logMemoryStatus(this, "onLowMemory", "MainActivity")
-    }
-
-    private fun startFloatingService(isSettingsMode: Boolean) {
-        val intent = Intent(this, FloatingWindowService::class.java)
-        intent.action = "ACTION_SHOW"
-        intent.putExtra("IS_SETTINGS_MODE", isSettingsMode)
-        startForegroundService(intent)
     }
 }
