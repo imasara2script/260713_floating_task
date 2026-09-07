@@ -27,4 +27,6 @@
     <string name="unit_sec">秒</string>
     <string name="timer_duration_title">経過時間を設定</string>
     <string name="btn_done">完了</string>
+    <string name="notification_interval_title">未完了タスクがあります</string>
+    <string name="notification_interval_body">タップしてフローティングウィンドウを表示します</string>
 </resources>

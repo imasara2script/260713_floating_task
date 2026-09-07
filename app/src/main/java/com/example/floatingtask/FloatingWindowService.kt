@@ -159,13 +159,14 @@ class FloatingWindowService : Service() {
             val showCheckedToggle = prefs.getBoolean("showCheckedToggle", false)
             val showHistoryButton = prefs.getBoolean("showHistoryButton", false)
             val showCloseButtonExpanded = prefs.getBoolean("showCloseButtonExpanded", false)
+            val keepServiceOnClose = prefs.getBoolean("keepServiceOnClose", false)
             val navType = prefs.getString("navType", "button") ?: "button"
             val scrollButtonType = prefs.getString("scrollButtonType", "both") ?: "both"
             val allowDrag = prefs.getBoolean("allowDrag", true)
             val allowDragCollapsed = prefs.getBoolean("allowDragCollapsed", true)
             
             val webView: WebView = view.findViewById(R.id.floatingWebView)
-            webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount, $showCheckedToggle, '$scrollButtonType', $allowDrag, $allowDragCollapsed, $showHistoryButton, '$navType', $floatWidth, $floatHeight, $showCloseButtonExpanded);", null)
+            webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount, $showCheckedToggle, '$scrollButtonType', $allowDrag, $allowDragCollapsed, $showHistoryButton, '$navType', $floatWidth, $floatHeight, $showCloseButtonExpanded, $keepServiceOnClose);", null)
         }
     }
 
@@ -177,6 +178,7 @@ class FloatingWindowService : Service() {
     private fun hideFloatingWindow() {
         AppLogger.log(this, "hideFloatingWindow called")
         floatingView?.visibility = View.GONE
+        getSharedPreferences("prefs", MODE_PRIVATE).edit().putBoolean("isFloatingVisible", false).apply()
     }
 
     private fun removeFloatingWindow() {
@@ -184,6 +186,7 @@ class FloatingWindowService : Service() {
             AppLogger.log(this, "removeFloatingWindow called")
             windowManager.removeView(floatingView)
             floatingView = null
+            getSharedPreferences("prefs", MODE_PRIVATE).edit().putBoolean("isFloatingVisible", false).apply()
         }
     }
 
@@ -288,6 +291,7 @@ class FloatingWindowService : Service() {
             val showCheckedToggle = prefs.getBoolean("showCheckedToggle", false)
             val showHistoryButton = prefs.getBoolean("showHistoryButton", false)
             val showCloseButtonExpanded = prefs.getBoolean("showCloseButtonExpanded", false)
+            val keepServiceOnClose = prefs.getBoolean("keepServiceOnClose", false)
             val navType = prefs.getString("navType", "button") ?: "button"
             
             // WebView側 (index.html) の計算と一致させる
@@ -338,6 +342,13 @@ class FloatingWindowService : Service() {
     @SuppressLint("SetJavaScriptEnabled", "InflateParams")
     private fun showFloatingWindow() {
         AppLogger.log(this, "showFloatingWindow called")
+        
+        // インターバル通知があれば3秒後に消去（通知音やポップアップを確実にユーザーに届けるため）
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+        Handler(Looper.getMainLooper()).postDelayed({
+            notificationManager.cancel(1001)
+        }, 3000)
+
         if (!Settings.canDrawOverlays(this)) {
             AppLogger.log(this, "showFloatingWindow: No overlay permission")
             return
@@ -352,6 +363,7 @@ class FloatingWindowService : Service() {
 
         if (floatingView != null) {
             floatingView?.visibility = View.VISIBLE
+            getSharedPreferences("prefs", MODE_PRIVATE).edit().putBoolean("isFloatingVisible", true).apply()
             return
         }
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -401,13 +413,17 @@ class FloatingWindowService : Service() {
         closeButton.setOnClickListener {
             val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
             val intervalMinutes = prefs.getInt("recheckInterval", 0)
+            AppLogger.log(this, "FloatingWindowService: closeButton clicked. intervalMinutes=$intervalMinutes")
             
             if (intervalMinutes > 0) {
                 AlarmScheduler.scheduleIntervalAlarm(this, intervalMinutes)
             }
 
+            val keepServiceOnClose = prefs.getBoolean("keepServiceOnClose", false)
             removeFloatingWindow()
-            stopSelf()
+            if (!keepServiceOnClose) {
+                stopSelf()
+            }
         }
 
         // ドラッグ移動の設定
@@ -508,6 +524,7 @@ class FloatingWindowService : Service() {
         dragHandle.setOnTouchListener(touchListener)
 
         windowManager.addView(floatingView, params)
+        getSharedPreferences("prefs", MODE_PRIVATE).edit().putBoolean("isFloatingVisible", true).apply()
 
         // 初期状態の表示を反映
         updateWindowSize(expanded = isExpanded)
@@ -696,6 +713,8 @@ class FloatingWindowService : Service() {
         @JavascriptInterface
         fun updatePendingTaskCount(count: Int) {
             val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+            prefs.edit().putInt("pendingTaskCount", count).apply()
+            
             val showWhenEmpty = prefs.getBoolean("showWhenEmpty", false)
             
             if (count == 0 && !showWhenEmpty) {
@@ -709,6 +728,7 @@ class FloatingWindowService : Service() {
                         val isAppInForeground = prefs.getBoolean("isAppInForeground", false)
                         if (!isAppInForeground || isSettingsMode) {
                             view.visibility = View.VISIBLE
+                            prefs.edit().putBoolean("isFloatingVisible", true).apply()
                         }
                     }
                 }
@@ -746,13 +766,17 @@ class FloatingWindowService : Service() {
             handler.post {
                 val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
                 val intervalMinutes = prefs.getInt("recheckInterval", 0)
+                AppLogger.log(this@FloatingWindowService, "FloatingWindowService: JS closeService called. intervalMinutes=$intervalMinutes")
                 
                 if (intervalMinutes > 0) {
                     AlarmScheduler.scheduleIntervalAlarm(this@FloatingWindowService, intervalMinutes)
                 }
 
+                val keepServiceOnClose = prefs.getBoolean("keepServiceOnClose", false)
                 removeFloatingWindow()
-                stopSelf()
+                if (!keepServiceOnClose) {
+                    stopSelf()
+                }
             }
         }
 

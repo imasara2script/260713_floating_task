@@ -309,6 +309,15 @@ class MainActivity : AppCompatActivity() {
             filter,
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
+
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra("EXTRA_SHOW_FLOATING", false) == true) {
+            AppLogger.log(this, "MainActivity: EXTRA_SHOW_FLOATING received")
+            startFloatingService(false)
+        }
     }
 
     override fun onDestroy() {
@@ -326,6 +335,20 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun setLoggingEnabled(enabled: Boolean) {
             AppLogger.setEnabled(mContext, enabled)
+        }
+
+        @JavascriptInterface
+        fun getLogContent(): String {
+            val logFile = AppLogger.getLogFile(mContext)
+            return if (logFile.exists()) {
+                try {
+                    logFile.readText()
+                } catch (e: Exception) {
+                    "Error reading log: ${e.message}"
+                }
+            } else {
+                "Log file does not exist."
+            }
         }
 
         @JavascriptInterface
@@ -369,6 +392,22 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun logComment(comment: String) {
             AppLogger.log(mContext, "[USER COMMENT] $comment")
+        }
+
+        @JavascriptInterface
+        fun logToAppLog(message: String) {
+            AppLogger.log(mContext, "[JS LOG] $message")
+        }
+
+        @JavascriptInterface
+        fun logSystemStatus() {
+            AppLogger.logSystemStatus(mContext)
+        }
+
+        @JavascriptInterface
+        fun testIntervalNotification() {
+            AppLogger.log(mContext, "MainActivity: testIntervalNotification triggered")
+            AlarmReceiver().showIntervalNotification(mContext)
         }
 
         @JavascriptInterface
@@ -519,7 +558,9 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun updatePendingTaskCount(count: Int) {
             pendingTaskCount = count
-            // 必要に応じてネイティブ側でバッジ表示などの処理
+            // 背景アラーム等から参照できるように保存
+            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+            prefs.edit().putInt("pendingTaskCount", count).apply()
         }
 
         @JavascriptInterface
@@ -630,6 +671,7 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun setIntervalAlarm(minutes: Int) {
+            AppLogger.log(mContext, "MainActivity: setIntervalAlarm called. minutes=$minutes")
             val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
             prefs.edit { putInt("recheckInterval", minutes) }
 
@@ -664,7 +706,7 @@ class MainActivity : AppCompatActivity() {
             displayTaskCount: Int, scrollTaskCount: Int,
             showCheckedToggle: Boolean, scrollButtonType: String,
             allowDrag: Boolean, allowDragCollapsed: Boolean,
-            showHistoryButton: Boolean, navType: String
+            showHistoryButton: Boolean, navType: String, keepService: Boolean
         ) {
             val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
             prefs.edit {
@@ -683,6 +725,7 @@ class MainActivity : AppCompatActivity() {
                 putInt("floatWidth", width)
                 putInt("floatHeight", height)
                 putBoolean("showCloseButtonExpanded", showClose)
+                putBoolean("keepServiceOnClose", keepService)
                 putBoolean("showCheckedToggle", showCheckedToggle)
                 putBoolean("showHistoryButton", showHistoryButton)
                 putString("navType", navType)
@@ -931,6 +974,7 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        handleIntent(intent)
         AppLogger.log(this, "MainActivity onNewIntent")
     }
 

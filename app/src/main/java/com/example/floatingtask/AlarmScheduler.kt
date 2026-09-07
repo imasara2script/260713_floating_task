@@ -17,6 +17,7 @@ object AlarmScheduler {
     }
 
     fun scheduleIntervalAlarm(context: Context, minutes: Int) {
+        AppLogger.log(context, "AlarmScheduler: Scheduling interval alarm. minutes=$minutes")
         // 設定を保存
         val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         prefs.edit().putInt("recheckInterval", minutes).apply()
@@ -39,6 +40,7 @@ object AlarmScheduler {
         }
 
         val triggerAt = System.currentTimeMillis() + minutes * 60 * 1000
+        AppLogger.log(context, "AlarmScheduler: Trigger set at ${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(triggerAt))}")
         setExactAlarm(alarmManager, triggerAt, pendingIntent)
     }
 

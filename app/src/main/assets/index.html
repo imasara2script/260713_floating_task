@@ -312,6 +312,13 @@
 
                         <div style="margin-bottom: 12px;">
                             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="keepServiceOnClose" onchange="saveFloatingSettings('expanded')">
+                                <span data-i18n="label_keep_service_on_close">ウィンドウを閉じる場合もサービスは維持</span>
+                            </label>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                                 <input type="checkbox" id="showCheckedToggle" onchange="saveFloatingSettings('expanded')">
                                 <span data-i18n="label_show_checked_toggle">チェック済みタスクの表示切替ボタンを表示</span>
                             </label>
@@ -379,7 +386,7 @@
                     </div>
 
                     <div style="margin-bottom: 16px;">
-                        <label for="intervalSelect" style="display: block; margin-bottom: 8px;" data-i18n="label_interval">未完了時の再表示間隔:</label>
+                        <label for="intervalSelect" style="display: block; margin-bottom: 8px;" data-i18n="label_interval">未完了タスクがある場合の再表示・通知間隔:</label>
                         <select id="intervalSelect" onchange="updateInterval()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white;">
                             <option value="0" data-i18n="interval_none">なし</option>
                             <option value="1" data-i18n="interval_1min">1分ごと</option>
@@ -602,9 +609,13 @@
                     <button class="btn btn-secondary" onclick="addLogComment()" style="width: 100%; margin-top: 4px; font-size: 12px;" data-i18n="btn_log_comment">コメントを記録</button>
                 </div>
 
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-primary" onclick="if(typeof Android !== 'undefined') Android.shareLog()" style="flex: 1; font-size: 13px;" data-i18n="btn_share_log">ログを出力 (共有)</button>
-                    <button class="btn btn-danger" onclick="clearAppLog()" style="flex: 1; font-size: 13px;" data-i18n="btn_clear_log">ログを消去</button>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button class="btn btn-secondary" onclick="viewAppLog()" style="width: 100%; font-size: 13px;" data-i18n="btn_view_log">ログを画面で確認</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-primary" onclick="if(typeof Android !== 'undefined') Android.shareLog()" style="flex: 1; font-size: 13px;" data-i18n="btn_share_log">ログを出力 (共有)</button>
+                        <button class="btn btn-danger" onclick="clearAppLog()" style="flex: 1; font-size: 13px;" data-i18n="btn_clear_log">ログを消去</button>
+                    </div>
+                    <button class="btn btn-secondary" onclick="if(typeof Android !== 'undefined' && Android.testIntervalNotification) { console.log('Testing notification...'); Android.testIntervalNotification(); } else { alert('Interface not available'); }" style="width: 100%; font-size: 12px; margin-top: 8px;" data-i18n="btn_test_interval_notif">テスト通知を即座に実行</button>
                 </div>
 
                 <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
@@ -812,7 +823,7 @@
         }
 
         // ネイティブ側から設定変更を通知してもらうための関数
-        function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragCollapsed, showHistoryButton, navType, widthPx, heightPx, showCloseButtonExpanded) {
+        function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragCollapsed, showHistoryButton, navType, widthPx, heightPx, showCloseButtonExpanded, keepServiceOnClose) {
             if (mode === 'floating') {
                 updateScale(scale);
                 if (isFloatingExpanded !== expanded) {
@@ -846,6 +857,9 @@
                 }
                 if (showCloseButtonExpanded !== undefined) {
                     localStorage.setItem('showCloseButtonExpanded', showCloseButtonExpanded);
+                }
+                if (keepServiceOnClose !== undefined) {
+                    localStorage.setItem('keepServiceOnClose', keepServiceOnClose);
                 }
                 refreshData();
             }
@@ -2563,6 +2577,7 @@
             const eX = localStorage.getItem('floatExpandedX') || '100';
             const eY = localStorage.getItem('floatExpandedY') || '100';
             const showClose = localStorage.getItem('showCloseButtonExpanded') === 'true';
+            const keepService = localStorage.getItem('keepServiceOnClose') === 'true';
             const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
             const showHistoryButton = localStorage.getItem('showHistoryButton') === 'true';
             const navType = localStorage.getItem('navType') || 'button';
@@ -2580,6 +2595,7 @@
             document.getElementById('floatExpandedX').value = eX;
             document.getElementById('floatExpandedY').value = eY;
             document.getElementById('showCloseButtonExpanded').checked = showClose;
+            document.getElementById('keepServiceOnClose').checked = keepService;
             document.getElementById('showCheckedToggle').checked = showCheckedToggle;
             document.getElementById('showHistoryButton').checked = showHistoryButton;
             document.getElementById('navType').value = navType;
@@ -2709,6 +2725,7 @@
             const eX = document.getElementById('floatExpandedX').value;
             const eY = document.getElementById('floatExpandedY').value;
             const showClose = document.getElementById('showCloseButtonExpanded').checked;
+            const keepService = document.getElementById('keepServiceOnClose').checked;
             const showCheckedToggle = document.getElementById('showCheckedToggle').checked;
             const showHistoryButton = document.getElementById('showHistoryButton').checked;
             const navType = document.getElementById('navType').value;
@@ -2734,6 +2751,7 @@
             localStorage.setItem('floatExpandedX', eX);
             localStorage.setItem('floatExpandedY', eY);
             localStorage.setItem('showCloseButtonExpanded', showClose);
+            localStorage.setItem('keepServiceOnClose', keepService);
             localStorage.setItem('showCheckedToggle', showCheckedToggle);
             localStorage.setItem('showHistoryButton', showHistoryButton);
             localStorage.setItem('navType', navType);
@@ -2755,7 +2773,7 @@
                         parseInt(eX), parseInt(eY), parseFloat(eScale), moveE,
                         parseInt(width), parseInt(height), showClose,
                         dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragC,
-                        showHistoryButton, navType
+                        showHistoryButton, navType, keepService
                     );
                 } else if (Android.updateFloatingSettings) {
                     // 互換性のため古いメソッドも呼ぶ（必要なら）
@@ -2817,6 +2835,7 @@
             document.getElementById('floatExpandedX').value = defaultX;
             document.getElementById('floatExpandedY').value = defaultY;
             document.getElementById('showCloseButtonExpanded').checked = false;
+            document.getElementById('keepServiceOnClose').checked = false;
             document.getElementById('showCheckedToggle').checked = false;
             document.getElementById('showHistoryButton').checked = false;
             document.getElementById('navType').value = 'button';
@@ -2907,6 +2926,9 @@
 
         function updateInterval() {
             const interval = document.getElementById('intervalSelect').value;
+            if (typeof Android !== 'undefined' && Android.logToAppLog) {
+                Android.logToAppLog("JS: updateInterval called. value=" + interval);
+            }
             localStorage.setItem('recheckInterval', interval);
             if (typeof Android !== 'undefined' && Android.setIntervalAlarm) {
                 Android.setIntervalAlarm(parseInt(interval));
@@ -3053,6 +3075,7 @@
                 floatExpandedX: localStorage.getItem('floatExpandedX'),
                 floatExpandedY: localStorage.getItem('floatExpandedY'),
                 showCloseButtonExpanded: localStorage.getItem('showCloseButtonExpanded') === 'true',
+                keepServiceOnClose: localStorage.getItem('keepServiceOnClose') === 'true',
                 showCheckedToggle: localStorage.getItem('showCheckedToggle') === 'true',
                 showHistoryButton: localStorage.getItem('showHistoryButton') === 'true',
                 allowDrag: localStorage.getItem('allowDrag') !== 'false',
@@ -3291,7 +3314,7 @@
                             'displayTaskCount', 'scrollTaskCount', 'recheckInterval', 'scrollButtonType', 'navType'
                         ];
                         const boolKeys = [
-                            'showWhenEmpty', 'alwaysMoveCollapsed', 'alwaysMoveExpanded', 'showCloseButtonExpanded', 'showCheckedToggle', 'allowDrag', 'allowDragCollapsed', 'showHistoryButton'
+                            'showWhenEmpty', 'alwaysMoveCollapsed', 'alwaysMoveExpanded', 'showCloseButtonExpanded', 'keepServiceOnClose', 'showCheckedToggle', 'allowDrag', 'allowDragCollapsed', 'showHistoryButton'
                         ];
                         if (data.showAllInFloating !== undefined) {
                             localStorage.setItem('showAllInFloating', data.showAllInFloating);
@@ -3437,6 +3460,33 @@
                 showModal(getTranslation('msg_log_comment_success'), { hideCancel: true });
                 updateLogSize();
             }
+        }
+
+        function viewAppLog() {
+            if (typeof Android === 'undefined' || !Android.getLogContent) {
+                showModal("Logging interface not available.", { hideCancel: true });
+                return;
+            }
+
+            // 最新のシステム状態も記録
+            if (Android.logSystemStatus) Android.logSystemStatus();
+            if (typeof updateLogSize === 'function') updateLogSize();
+
+            const logContent = Android.getLogContent();
+            showModal(getTranslation('developer_title'), {
+                showTextarea: true,
+                inputValue: logContent,
+                confirmText: getTranslation('btn_copy_log'),
+                onConfirm: (val) => {
+                    const ta = document.getElementById('modalTextarea');
+                    if (ta) {
+                        ta.select();
+                        ta.setSelectionRange(0, 99999);
+                        document.execCommand("copy");
+                        showModal("Copied to clipboard", { hideCancel: true });
+                    }
+                }
+            });
         }
 
         function clearAppLog() {

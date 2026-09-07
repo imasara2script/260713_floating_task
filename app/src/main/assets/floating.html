@@ -129,7 +129,7 @@
             isDragging = dragging;
         }
 
-        function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragCollapsed, showHistoryButton, navType, widthPx, heightPx, showCloseButtonExpanded) {
+        function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragCollapsed, showHistoryButton, navType, widthPx, heightPx, showCloseButtonExpanded, keepServiceOnClose) {
             updateScale(scale);
             if (isFloatingExpanded !== expanded) {
                 toggleFloatingExpand(expanded, true);
@@ -165,6 +165,9 @@
             }
             if (showCloseButtonExpanded !== undefined) {
                 localStorage.setItem('showCloseButtonExpanded', showCloseButtonExpanded);
+            }
+            if (keepServiceOnClose !== undefined) {
+                localStorage.setItem('keepServiceOnClose', keepServiceOnClose);
             }
             if (heightPx !== undefined) {
                 originalHeightPx = heightPx;
