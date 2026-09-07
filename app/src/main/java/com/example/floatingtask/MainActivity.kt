@@ -202,6 +202,8 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
+        val permissionHandler = WebPermissionHandler(this)
+
         val webView: WebView = findViewById(R.id.webView)
         WebView.setWebContentsDebuggingEnabled(true)
         
@@ -237,7 +239,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (allEssentialPermissionsGranted()) {
+        if (permissionHandler.allEssentialPermissionsGranted()) {
             webView.loadUrl("file:///android_asset/index.html")
         } else {
             webView.loadUrl("file:///android_asset/permissions.html")
@@ -318,25 +320,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun allEssentialPermissionsGranted(): Boolean {
-        val overlay = Settings.canDrawOverlays(this)
-        val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
-        }
-        val alarm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarmManager.canScheduleExactAlarms()
-        } else {
-            true
-        }
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        val battery = powerManager.isIgnoringBatteryOptimizations(packageName)
-
-        return overlay && notification && alarm && battery
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(dataChangeReceiver)
@@ -345,6 +328,7 @@ class MainActivity : AppCompatActivity() {
     @Suppress("unused")
     inner class WebAppInterface(private val mContext: Context) {
         private val logHandler = WebLogHandler(mContext)
+        private val permissionHandler = WebPermissionHandler(mContext)
 
         @JavascriptInterface
         fun isLoggingEnabled(): Boolean = logHandler.isLoggingEnabled()
@@ -390,7 +374,7 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun startFloatingWindow() {
-            if (!Settings.canDrawOverlays(mContext)) {
+            if (!permissionHandler.checkOverlayPermissionGranted()) {
                 runOnUiThread {
                     launchOverlayPermissionSettings()
                 }
@@ -400,9 +384,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun checkOverlayPermissionGranted(): Boolean {
-            return Settings.canDrawOverlays(mContext)
-        }
+        fun checkOverlayPermissionGranted(): Boolean = permissionHandler.checkOverlayPermissionGranted()
 
         @JavascriptInterface
         fun requestOverlayPermission() {
@@ -414,11 +396,7 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun launchOverlayPermissionSettings() {
             runOnUiThread {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    "package:$packageName".toUri(),
-                )
-                overlayPermissionLauncher.launch(intent)
+                overlayPermissionLauncher.launch(permissionHandler.getOverlayPermissionIntent())
             }
         }
 
@@ -528,7 +506,7 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun toggleExpand(expanded: Boolean) {
-            if (Settings.canDrawOverlays(mContext)) {
+            if (permissionHandler.checkOverlayPermissionGranted()) {
                 val intent = Intent(mContext, FloatingWindowService::class.java)
                 intent.action = if (expanded) "ACTION_EXPAND" else "ACTION_COLLAPSE"
                 mContext.startService(intent)
@@ -540,33 +518,19 @@ class MainActivity : AppCompatActivity() {
             pendingTaskCount = count
             // 背景アラーム等から参照できるように保存
             val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
-            prefs.edit().putInt("pendingTaskCount", count).apply()
+            prefs.edit { putInt("pendingTaskCount", count) }
         }
 
         @JavascriptInterface
-        fun checkBatteryOptimizationExempt(): Boolean {
-            val powerManager = mContext.getSystemService(PowerManager::class.java)
-            return powerManager.isIgnoringBatteryOptimizations(mContext.packageName)
-        }
+        fun checkBatteryOptimizationExempt(): Boolean = permissionHandler.checkBatteryOptimizationExempt()
 
         @JavascriptInterface
         fun requestBatteryOptimizationExemption() {
-            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-            intent.data = "package:${mContext.packageName}".toUri()
-            mContext.startActivity(intent)
+            mContext.startActivity(permissionHandler.getBatteryOptimizationIntent())
         }
 
         @JavascriptInterface
-        fun checkNotificationPermissionGranted(): Boolean {
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(
-                    mContext,
-                    android.Manifest.permission.POST_NOTIFICATIONS
-                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-            } else {
-                true
-            }
-        }
+        fun checkNotificationPermissionGranted(): Boolean = permissionHandler.checkNotificationPermissionGranted()
 
         @JavascriptInterface
         fun requestNotificationPermission() {
@@ -582,7 +546,7 @@ class MainActivity : AppCompatActivity() {
                         val requested = prefs.getBoolean("notif_permission_requested", false)
                         
                         if (!requested) {
-                            prefs.edit().putBoolean("notif_permission_requested", true).apply()
+                            prefs.edit { putBoolean("notif_permission_requested", true) }
                             requestPermissionLauncher.launch(permission)
                         } else {
                             // 以前リクエストしたがRationaleがfalse -> 設定画面へ誘導
@@ -600,46 +564,26 @@ class MainActivity : AppCompatActivity() {
         fun launchNotificationSettings() {
             runOnUiThread {
                 try {
-                    val intent = Intent().apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
-                            putExtra(Settings.EXTRA_APP_PACKAGE, mContext.packageName)
-                        } else {
-                            action = "android.settings.APP_NOTIFICATION_SETTINGS"
-                            putExtra("app_package", mContext.packageName)
-                            putExtra("app_uid", mContext.applicationInfo.uid)
-                        }
-                    }
+                    val intent = permissionHandler.getNotificationSettingsIntent()
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     mContext.startActivity(intent)
                 } catch (e: Exception) {
                     AppLogger.log(mContext, "Error launching notification settings: ${e.message}")
                     // アプリ詳細設定画面をフォールバックとして開く
-                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.fromParts("package", mContext.packageName, null)
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
+                    val intent = permissionHandler.getAppDetailsSettingsIntent()
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     mContext.startActivity(intent)
                 }
             }
         }
 
         @JavascriptInterface
-        fun checkExactAlarmPermission(): Boolean {
-            val alarmManager = mContext.getSystemService(AlarmManager::class.java)
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                alarmManager.canScheduleExactAlarms()
-            } else {
-                true
-            }
-        }
+        fun checkExactAlarmPermission(): Boolean = permissionHandler.checkExactAlarmPermission()
 
         @JavascriptInterface
         fun openExactAlarmSettings() {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                intent.data = "package:${mContext.packageName}".toUri()
-                mContext.startActivity(intent)
+            permissionHandler.getExactAlarmSettingsIntent()?.let {
+                mContext.startActivity(it)
             }
         }
 
@@ -1032,8 +976,9 @@ class MainActivity : AppCompatActivity() {
             val webView: WebView = findViewById(R.id.webView)
             webView.requestLayout() // 再描画を強制
 
+            val permissionHandler = WebPermissionHandler(this)
             if (webView.url?.contains("permissions.html") == true) {
-                if (allEssentialPermissionsGranted()) {
+                if (permissionHandler.allEssentialPermissionsGranted()) {
                     webView.loadUrl("file:///android_asset/index.html")
                 } else {
                     webView.evaluateJavascript("updateAllStatus();", null)
