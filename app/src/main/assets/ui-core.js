@@ -28,6 +28,8 @@ var tempVisibilityFlags = {
     note: false
 };
 var isDurationPickerRequested = false;
+var adRetryCount = 0;
+var adRetryTimeoutId = null;
 var selectedCustomUri = null;
 var selectedCustomName = null;
 var isFloatingExpanded = (urlParams.get('expanded') === 'true');

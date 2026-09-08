@@ -52,8 +52,12 @@ function showModal(title, options = {}) {
         const val = options.showTextarea ? textareaEl.value : inputEl.value;
         const onConfirm = options.onConfirm;
         const previousContent = titleEl.innerHTML;
-        if (onConfirm) onConfirm(val);
-        if (titleEl.innerHTML === previousContent) closeModal();
+        const result = onConfirm ? onConfirm(val) : undefined;
+        // コールバックが明示的に false を返した場合は、モーダルを閉じない
+        // また、コールバック実行中に showModal が呼ばれて innerHTML が変わった場合も閉じない
+        if (result !== false && titleEl.innerHTML === previousContent) {
+            closeModal();
+        }
     };
 
     const handleCancel = () => {
@@ -123,7 +127,14 @@ function openTaskModal(taskId = null) {
     if (typeof checkAdFree === 'function') checkAdFree();
     if (!isAdFree && !taskId && tasks.length >= 3) {
         showModal(getTranslation('msg_ad_confirm'), {
-            onConfirm: () => { if (typeof Android !== 'undefined' && Android.showRewardedAd) Android.showRewardedAd(); }
+            onConfirm: () => {
+                if (typeof Android !== 'undefined' && Android.showRewardedAd) {
+                    const isReady = Android.isRewardedAdReady ? Android.isRewardedAdReady() : false;
+                    Android.showRewardedAd();
+                    // 広告が準備できていない場合は、自動クローズを防止して「読み込み中」メッセージの表示を待つ
+                    return isReady;
+                }
+            }
         });
         return;
     }

@@ -22,6 +22,7 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
     var isLimitUnlockedByReward: Boolean = false
         private set
     private var lastRewardType: String? = null
+    private var pendingShowType: String? = null
 
     init {
         val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
@@ -38,10 +39,19 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
             object : RewardedAdLoadCallback() {
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     rewardedAd = null
+                    pendingShowType?.let { type ->
+                        val escapedMsg = adError.message.replace("'", "\\'")
+                        webView.post { webView.evaluateJavascript("onAdFailed('$type', ${adError.code}, '$escapedMsg');", null) }
+                        pendingShowType = null
+                    }
                 }
 
                 override fun onAdLoaded(ad: RewardedAd) {
                     rewardedAd = ad
+                    pendingShowType?.let { type ->
+                        showRewardedAdWithType(type)
+                        pendingShowType = null
+                    }
                 }
             },
         )
@@ -62,7 +72,8 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
 
                     override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                         AppLogger.log(context, "Rewarded ad failed to show: ${adError.message}")
-                        webView.evaluateJavascript("onAdFailed('$lastRewardType');", null)
+                        val escapedMsg = adError.message.replace("'", "\\'")
+                        webView.evaluateJavascript("onAdFailed('$lastRewardType', ${adError.code}, '$escapedMsg');", null)
                         loadRewardedAd()
                     }
                 }
@@ -79,8 +90,9 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
                 }
             } else {
                 // 広告がロードされていない場合
-                AppLogger.log(context, "Rewarded ad NOT loaded: type=$type")
-                webView.evaluateJavascript("onAdFailed('$type');", null)
+                AppLogger.log(context, "Rewarded ad NOT loaded: type=$type. Setting pendingShowType.")
+                pendingShowType = type
+                webView.evaluateJavascript("onAdLoading('$type');", null)
                 loadRewardedAd()
             }
         }

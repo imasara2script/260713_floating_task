@@ -486,10 +486,124 @@ function earnCoinReward() {
         onConfirm: () => {
             console.log("earnCoinReward confirmed");
             if (typeof Android !== 'undefined' && Android.showRewardedAdForCoin) {
+                const isReady = Android.isRewardedAdReady ? Android.isRewardedAdReady() : false;
                 Android.showRewardedAdForCoin();
+                return isReady;
             } else {
                 console.error("Android.showRewardedAdForCoin is undefined");
             }
         }
+    });
+}
+
+function onRewardEarned(type, remaining) {
+    if (typeof checkAdFree === 'function') checkAdFree();
+    if (typeof updateCoinDisplay === 'function') updateCoinDisplay();
+    if (typeof render === 'function') render();
+
+    adRetryCount = 0;
+    if (adRetryTimeoutId) {
+        clearTimeout(adRetryTimeoutId);
+        adRetryTimeoutId = null;
+    }
+
+    if (type === 'coin') {
+        history.unshift({
+            id: Date.now(),
+            type: 'coin_ad',
+            text: getTranslation('history_coin_ad'),
+            memo: "",
+            completedAt: new Date().toISOString()
+        });
+        if (history.length > 500) history.pop();
+        saveTasks();
+        showModal(getTranslation('msg_coin_earned', remaining), { hideCancel: true });
+        return;
+    }
+
+    showModal(getTranslation('msg_reward_earned'), { hideCancel: true });
+}
+
+function onAdFailed(type, errorCode, errorMessage) {
+    if (adRetryTimeoutId) {
+        clearTimeout(adRetryTimeoutId);
+        adRetryTimeoutId = null;
+    }
+
+    // 在庫切れ (No Fill: Code 3) の場合のみリトライを検討
+    if (errorCode === 3 && adRetryCount < 5) {
+        adRetryCount++;
+        const waitSec = Math.pow(2, adRetryCount); // 2, 4, 8, 16, 32
+        let remaining = waitSec;
+
+        const updateRetryModal = () => {
+            const msg = getTranslation('msg_ad_retrying', remaining, adRetryCount);
+            showModal(msg, {
+                useHTML: true,
+                confirmText: getTranslation('btn_stop_retry'),
+                onConfirm: () => {
+                    if (adRetryTimeoutId) clearTimeout(adRetryTimeoutId);
+                    adRetryTimeoutId = null;
+                    adRetryCount = 0;
+                    showNormalAdError(type, errorCode, errorMessage);
+                }
+            });
+        };
+
+        const tick = () => {
+            remaining--;
+            if (remaining <= 0) {
+                adRetryTimeoutId = null;
+                console.log("Retrying ad for type: " + type + " (Attempt " + adRetryCount + ")");
+                if (type === 'coin') {
+                    if (typeof Android !== 'undefined' && Android.showRewardedAdForCoin) {
+                        Android.showRewardedAdForCoin();
+                    }
+                } else {
+                    if (typeof Android !== 'undefined' && Android.showRewardedAd) {
+                        Android.showRewardedAd();
+                    }
+                }
+            } else {
+                updateRetryModal();
+                adRetryTimeoutId = setTimeout(tick, 1000);
+            }
+        };
+
+        updateRetryModal();
+        adRetryTimeoutId = setTimeout(tick, 1000);
+        return;
+    }
+
+    showNormalAdError(type, errorCode, errorMessage);
+    adRetryCount = 0;
+}
+
+function showNormalAdError(type, errorCode, errorMessage) {
+    let detail = "";
+    if (errorCode !== undefined) {
+        detail = getTranslation('ad_error_' + errorCode);
+        if (detail === 'ad_error_' + errorCode) {
+            detail = errorMessage || ("Error Code: " + errorCode);
+        }
+    }
+
+    const msg = getTranslation('msg_ad_fail') + (detail ? "\n\n理由: " + detail : "");
+
+    showModal(msg, {
+        hideCancel: true,
+        onConfirm: () => {
+            if (type === 'limit') {
+                if (pendingAction === 'restore' && pendingRestoreData) requestPaymentAndRestore(pendingRestoreData, pendingRestoreOptions);
+                else if (pendingAction === 'backup') exportData();
+            } else if (type === 'coin') earnCoinReward();
+        }
+    });
+}
+
+function onAdLoading(type) {
+    showModal(getTranslation('msg_ad_loading'), {
+        hideCancel: true,
+        confirmText: getTranslation('btn_close')
     });
 }
