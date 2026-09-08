@@ -1,0 +1,497 @@
+/**
+ * Settings and Configuration Management Logic
+ */
+
+function openFloatingSettings() {
+    const mainView = document.getElementById('settings-main-view');
+    const detailView = document.getElementById('settings-floating-detail');
+    if (mainView) mainView.style.display = 'none';
+    if (detailView) detailView.style.display = 'block';
+    if (typeof renderColorRules === 'function') {
+        try {
+            renderColorRules();
+        } catch (e) {
+            console.error("renderColorRules failed:", e);
+        }
+    }
+}
+
+function closeFloatingSettings() {
+    const mainView = document.getElementById('settings-main-view');
+    const detailView = document.getElementById('settings-floating-detail');
+    if (mainView) mainView.style.display = 'block';
+    if (detailView) detailView.style.display = 'none';
+    if (typeof Android !== 'undefined' && Android.stopFloatingWindow) {
+        Android.stopFloatingWindow();
+    }
+}
+
+function openNewTaskSettings() {
+    const mainView = document.getElementById('settings-main-view');
+    const detailView = document.getElementById('settings-new-task-detail');
+    if (mainView) mainView.style.display = 'none';
+    if (detailView) detailView.style.display = 'block';
+    if (typeof loadNewTaskSettings === 'function') loadNewTaskSettings();
+}
+
+function closeNewTaskSettings() {
+    const mainView = document.getElementById('settings-main-view');
+    const detailView = document.getElementById('settings-new-task-detail');
+    if (mainView) mainView.style.display = 'block';
+    if (detailView) detailView.style.display = 'none';
+}
+
+function loadNewTaskSettings() {
+    const showTimer = localStorage.getItem('showTimerOnCreate') === 'true';
+    const showRemind = localStorage.getItem('showRemindOnCreate') === 'true';
+    const showDays = localStorage.getItem('showDaysOnCreate') === 'true';
+    const showComment = localStorage.getItem('showCommentOnCreate') === 'true';
+    const showNote = localStorage.getItem('showNoteOnCreate') === 'true';
+
+    const chkTimer = document.getElementById('showTimerOnCreate');
+    const chkRemind = document.getElementById('showRemindOnCreate');
+    const chkDays = document.getElementById('showDaysOnCreate');
+    const chkComment = document.getElementById('showCommentOnCreate');
+    const chkNote = document.getElementById('showNoteOnCreate');
+
+    if (chkTimer) chkTimer.checked = showTimer;
+    if (chkRemind) chkRemind.checked = showRemind;
+    if (chkDays) chkDays.checked = showDays;
+    if (chkComment) chkComment.checked = showComment;
+    if (chkNote) chkNote.checked = showNote;
+}
+
+function updateNewTaskSettings() {
+    const chkTimer = document.getElementById('showTimerOnCreate');
+    const chkRemind = document.getElementById('showRemindOnCreate');
+    const chkDays = document.getElementById('showDaysOnCreate');
+    const chkComment = document.getElementById('showCommentOnCreate');
+    const chkNote = document.getElementById('showNoteOnCreate');
+
+    const showTimer = chkTimer ? chkTimer.checked : false;
+    const showRemind = chkRemind ? chkRemind.checked : false;
+    const showDays = chkDays ? chkDays.checked : false;
+    const showComment = chkComment ? chkComment.checked : false;
+    const showNote = chkNote ? chkNote.checked : false;
+
+    localStorage.setItem('showTimerOnCreate', showTimer);
+    localStorage.setItem('showRemindOnCreate', showRemind);
+    localStorage.setItem('showDaysOnCreate', showDays);
+    localStorage.setItem('showCommentOnCreate', showComment);
+    localStorage.setItem('showNoteOnCreate', showNote);
+}
+
+function loadFloatingSettings() {
+    const cScale = localStorage.getItem('floatCollapsedScale') || '1.0';
+    const showEmpty = localStorage.getItem('showWhenEmpty') === 'true';
+    const moveC = localStorage.getItem('alwaysMoveCollapsed') === 'true';
+    const allowDragC = localStorage.getItem('allowDragCollapsed') !== 'false';
+    const cX = localStorage.getItem('floatCollapsedX') || '100';
+    const cY = localStorage.getItem('floatCollapsedY') || '100';
+
+    const elCScale = document.getElementById('floatCollapsedScale');
+    const elCScaleVal = document.getElementById('collapsedScaleVal');
+    const elShowEmpty = document.getElementById('showWhenEmpty');
+    const elMoveC = document.getElementById('alwaysMoveCollapsed');
+    const elAllowDragC = document.getElementById('allowDragCollapsed');
+    const elCX = document.getElementById('floatCollapsedX');
+    const elCY = document.getElementById('floatCollapsedY');
+
+    if (elCScale) elCScale.value = cScale;
+    if (elCScaleVal) elCScaleVal.innerText = cScale;
+    if (elShowEmpty) elShowEmpty.checked = showEmpty;
+    if (elMoveC) elMoveC.checked = moveC;
+    if (elAllowDragC) elAllowDragC.checked = allowDragC;
+    if (elCX) elCX.value = cX;
+    if (elCY) elCY.value = cY;
+    toggleFixedPositionInputs('collapsed');
+
+    const eWidth = localStorage.getItem('floatWidth') || '300';
+    const eHeight = localStorage.getItem('floatHeight') || '44';
+    const eScale = localStorage.getItem('floatExpandedScale') || '1.0';
+    const moveE = localStorage.getItem('alwaysMoveExpanded') === 'true';
+    const eX = localStorage.getItem('floatExpandedX') || '100';
+    const eY = localStorage.getItem('floatExpandedY') || '100';
+    const showClose = localStorage.getItem('showCloseButtonExpanded') === 'true';
+    const keepService = localStorage.getItem('keepServiceOnClose') === 'true';
+    const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
+    const showHistoryButton = localStorage.getItem('showHistoryButton') === 'true';
+    const navType = localStorage.getItem('navType') || 'button';
+    const menuActionDelay = localStorage.getItem('menuActionDelay') || '0';
+    const allowDrag = localStorage.getItem('allowDrag') !== 'false';
+    const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
+    const dCount = localStorage.getItem('displayTaskCount') || '1';
+    const sCount = localStorage.getItem('scrollTaskCount') || '1';
+    const hDelay = localStorage.getItem('checkedHideDelay') || '2';
+
+    const elEWidth = document.getElementById('floatWidth');
+    const elEHeight = document.getElementById('floatHeight');
+    const elEScale = document.getElementById('floatExpandedScale');
+    const elEScaleVal = document.getElementById('expandedScaleVal');
+    const elMoveE = document.getElementById('alwaysMoveExpanded');
+    const elEX = document.getElementById('floatExpandedX');
+    const elEY = document.getElementById('floatExpandedY');
+    const elShowClose = document.getElementById('showCloseButtonExpanded');
+    const elKeepService = document.getElementById('keepServiceOnClose');
+    const elShowCheckedToggle = document.getElementById('showCheckedToggle');
+    const elShowHistoryButton = document.getElementById('showHistoryButton');
+    const elNavType = document.getElementById('navType');
+    const elMenuDelay = document.getElementById('menuActionDelay');
+    const elAllowDrag = document.getElementById('allowDrag');
+    const elScrollBtnType = document.getElementById('scrollButtonType');
+    const elDCount = document.getElementById('displayTaskCount');
+    const elSCount = document.getElementById('scrollTaskCount');
+    const elHDelay = document.getElementById('checkedHideDelay');
+
+    if (elEWidth) elEWidth.value = eWidth;
+    if (elEHeight) elEHeight.value = eHeight;
+    if (elEScale) elEScale.value = eScale;
+    if (elEScaleVal) elEScaleVal.innerText = eScale;
+    if (elMoveE) elMoveE.checked = moveE;
+    if (elEX) elEX.value = eX;
+    if (elEY) elEY.value = eY;
+    if (elShowClose) elShowClose.checked = showClose;
+    if (elKeepService) elKeepService.checked = keepService;
+    if (elShowCheckedToggle) elShowCheckedToggle.checked = showCheckedToggle;
+    if (elShowHistoryButton) elShowHistoryButton.checked = showHistoryButton;
+    if (elNavType) elNavType.value = navType;
+    if (elMenuDelay) elMenuDelay.value = menuActionDelay;
+    if (elAllowDrag) elAllowDrag.checked = allowDrag;
+    if (elScrollBtnType) elScrollBtnType.value = scrollButtonType;
+    if (elDCount) elDCount.value = dCount;
+    if (elSCount) elSCount.value = sCount;
+    if (elHDelay) elHDelay.value = hDelay;
+    toggleFixedPositionInputs('expanded');
+
+    setupDraggableLabel('labelFloatCollapsedX', 'floatCollapsedX', 'collapsed');
+    setupDraggableLabel('labelFloatCollapsedY', 'floatCollapsedY', 'collapsed');
+    setupDraggableLabel('labelFloatWidth', 'floatWidth', 'expanded');
+    setupDraggableLabel('labelFloatHeight', 'floatHeight', 'expanded');
+    setupDraggableLabel('labelFloatExpandedX', 'floatExpandedX', 'expanded');
+    setupDraggableLabel('labelFloatExpandedY', 'floatExpandedY', 'expanded');
+
+    updateFloatingSettingsVisibility();
+}
+
+function updateFloatingSettingsVisibility() {
+    const scrollButtonType = document.getElementById('scrollButtonType')?.value;
+    const navType = document.getElementById('navType')?.value;
+    const displayTaskCountContainer = document.getElementById('displayTaskCountContainer');
+    const scrollTaskCountContainer = document.getElementById('scrollTaskCountContainer');
+    const menuActionDelayContainer = document.getElementById('menuActionDelayContainer');
+
+    if (scrollButtonType === 'scroll') {
+        if (displayTaskCountContainer) displayTaskCountContainer.style.display = 'none';
+        if (scrollTaskCountContainer) scrollTaskCountContainer.style.display = 'none';
+    } else {
+        if (displayTaskCountContainer) displayTaskCountContainer.style.display = 'block';
+        if (scrollTaskCountContainer) scrollTaskCountContainer.style.display = 'block';
+    }
+
+    if (menuActionDelayContainer) {
+        menuActionDelayContainer.style.display = (navType === 'menu') ? 'block' : 'none';
+    }
+}
+
+function setupDraggableLabel(labelId, inputId, mode) {
+    const label = document.getElementById(labelId);
+    const input = document.getElementById(inputId);
+    if (!label || !input) return;
+    let startY, startVal;
+
+    const onMove = (e) => {
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const delta = startY - clientY;
+        input.value = Math.max(0, startVal + delta);
+        saveFloatingSettings(mode);
+    };
+
+    const onEnd = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onEnd);
+        document.removeEventListener('touchmove', onMove);
+        document.removeEventListener('touchend', onEnd);
+    };
+
+    label.onmousedown = label.ontouchstart = (e) => {
+        startY = e.touches ? e.touches[0].clientY : e.clientY;
+        startVal = parseInt(input.value) || 0;
+
+        if (typeof Android !== 'undefined' && Android.startFloatingWindow) {
+            Android.startFloatingWindow();
+            if (typeof toggleFloatingExpand === 'function') toggleFloatingExpand(mode === 'expanded');
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onEnd);
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('touchend', onEnd);
+        if (e.cancelable) e.preventDefault();
+    };
+}
+
+function adjustDisplayTaskCount(delta) {
+    const input = document.getElementById('displayTaskCount');
+    if (!input) return;
+    let val = parseInt(input.value) || 1;
+    val = Math.max(1, Math.min(10, val + delta));
+    input.value = val;
+
+    const scrollInput = document.getElementById('scrollTaskCount');
+    if (scrollInput) {
+        scrollInput.max = val;
+        if (parseInt(scrollInput.value) > val) scrollInput.value = val;
+    }
+    saveFloatingSettings('expanded');
+}
+
+function adjustScrollTaskCount(delta) {
+    const input = document.getElementById('scrollTaskCount');
+    const displayInput = document.getElementById('displayTaskCount');
+    if (!input || !displayInput) return;
+    let dVal = parseInt(displayInput.value) || 1;
+    let val = parseInt(input.value) || 1;
+    val = Math.max(1, Math.min(dVal, val + delta));
+    input.value = val;
+    saveFloatingSettings('expanded');
+}
+
+function adjustMenuActionDelay(delta) {
+    const input = document.getElementById('menuActionDelay');
+    if (!input) return;
+    let val = parseInt(input.value) || 0;
+    val = Math.max(0, Math.min(10, val + delta));
+    input.value = val;
+    saveFloatingSettings('expanded');
+}
+
+function adjustCheckedHideDelay(delta) {
+    const input = document.getElementById('checkedHideDelay');
+    if (!input) return;
+    let val = parseInt(input.value) || 0;
+    val = Math.max(0, Math.min(60, val + delta));
+    input.value = val;
+    saveFloatingSettings('expanded');
+}
+
+function saveFloatingSettings(targetMode) {
+    const cScale = document.getElementById('floatCollapsedScale')?.value || "1.0";
+    const showEmpty = document.getElementById('showWhenEmpty')?.checked || false;
+    const moveC = document.getElementById('alwaysMoveCollapsed')?.checked || false;
+    const allowDragC = document.getElementById('allowDragCollapsed')?.checked || false;
+    const cX = document.getElementById('floatCollapsedX')?.value || "100";
+    const cY = document.getElementById('floatCollapsedY')?.value || "100";
+
+    localStorage.setItem('floatCollapsedScale', cScale);
+    localStorage.setItem('showWhenEmpty', showEmpty);
+    localStorage.setItem('alwaysMoveCollapsed', moveC);
+    localStorage.setItem('allowDragCollapsed', allowDragC);
+    localStorage.setItem('floatCollapsedX', cX);
+    localStorage.setItem('floatCollapsedY', cY);
+
+    const width = document.getElementById('floatWidth')?.value || "300";
+    const height = document.getElementById('floatHeight')?.value || "44";
+    const eScale = document.getElementById('floatExpandedScale')?.value || "1.0";
+    const moveE = document.getElementById('alwaysMoveExpanded')?.checked || false;
+    const eX = document.getElementById('floatExpandedX')?.value || "100";
+    const eY = document.getElementById('floatExpandedY')?.value || "100";
+    const showClose = document.getElementById('showCloseButtonExpanded')?.checked || false;
+    const keepService = document.getElementById('keepServiceOnClose')?.checked || false;
+    const showCheckedToggle = document.getElementById('showCheckedToggle')?.checked || false;
+    const showHistoryButton = document.getElementById('showHistoryButton')?.checked || false;
+    const navType = document.getElementById('navType')?.value || "button";
+    const menuActionDelayStr = document.getElementById('menuActionDelay')?.value || "0";
+    const menuActionDelay = parseInt(menuActionDelayStr) || 0;
+    const allowDrag = document.getElementById('allowDrag')?.checked || false;
+    const scrollButtonType = document.getElementById('scrollButtonType')?.value || "both";
+
+    const dInput = document.getElementById('displayTaskCount');
+    const sInput = document.getElementById('scrollTaskCount');
+    const hInput = document.getElementById('checkedHideDelay');
+    let dCount = Math.max(1, Math.min(10, parseInt(dInput?.value) || 1));
+    let sCount = Math.max(1, Math.min(dCount, parseInt(sInput?.value) || 1));
+    let hDelay = Math.max(0, Math.min(60, parseInt(hInput?.value) || 0));
+
+    if (dInput) dInput.value = dCount;
+    if (sInput) { sInput.value = sCount; sInput.max = dCount; }
+    if (hInput) hInput.value = hDelay;
+
+    localStorage.setItem('floatWidth', width);
+    localStorage.setItem('floatHeight', height);
+    localStorage.setItem('floatExpandedScale', eScale);
+    localStorage.setItem('alwaysMoveExpanded', moveE);
+    localStorage.setItem('floatExpandedX', eX);
+    localStorage.setItem('floatExpandedY', eY);
+    localStorage.setItem('showCloseButtonExpanded', showClose);
+    localStorage.setItem('keepServiceOnClose', keepService);
+    localStorage.setItem('showCheckedToggle', showCheckedToggle);
+    localStorage.setItem('showHistoryButton', showHistoryButton);
+    localStorage.setItem('navType', navType);
+    localStorage.setItem('menuActionDelay', menuActionDelay.toString());
+    localStorage.setItem('allowDrag', allowDrag);
+    localStorage.setItem('scrollButtonType', scrollButtonType);
+    localStorage.setItem('displayTaskCount', dCount.toString());
+    localStorage.setItem('scrollTaskCount', sCount.toString());
+    localStorage.setItem('checkedHideDelay', hDelay.toString());
+
+    if (typeof updateFloatingSettingsVisibility === 'function') updateFloatingSettingsVisibility();
+
+    if (typeof Android !== 'undefined') {
+        if (Android.updateFloatingSettingsExtended) {
+            Android.updateFloatingSettingsExtended(
+                parseInt(cX), parseInt(cY), parseFloat(cScale), showEmpty, moveC,
+                parseInt(eX), parseInt(eY), parseFloat(eScale), moveE,
+                parseInt(width), parseInt(height), showClose,
+                dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragC,
+                showHistoryButton, navType, keepService, menuActionDelay
+            );
+        } else if (Android.updateFloatingSettings) {
+            Android.updateFloatingSettings(parseInt(eX), parseInt(eY), parseInt(width), parseInt(height), parseFloat(eScale));
+        }
+
+        if (Android.startFloatingWindow) Android.startFloatingWindow();
+
+        if (targetMode === 'collapsed') {
+            if (typeof toggleFloatingExpand === 'function') toggleFloatingExpand(false);
+        } else if (targetMode === 'expanded') {
+            if (typeof toggleFloatingExpand === 'function') toggleFloatingExpand(true);
+        }
+    }
+}
+
+function resetFloatingSettings() {
+    let defaultX = 100;
+    let defaultY = 100;
+    let defaultWidth = 300;
+    let defaultHeight = 44;
+
+    if (typeof Android !== 'undefined' && Android.getDisplayMetrics) {
+        try {
+            const metrics = JSON.parse(Android.getDisplayMetrics());
+            const density = metrics.density || 1;
+            const widthPx = metrics.widthPixels;
+            defaultWidth = Math.floor(widthPx * 0.9);
+            defaultX = Math.floor((widthPx - defaultWidth) / 2);
+            defaultY = Math.floor(100 * density);
+            defaultHeight = Math.floor(44 * density);
+        } catch(e) { console.error("Failed to get display metrics", e); }
+    }
+
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    const setChecked = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+
+    setVal('floatCollapsedScale', 1.0); setText('collapsedScaleVal', "1.0");
+    setChecked('showWhenEmpty', false); setChecked('alwaysMoveCollapsed', false); setChecked('allowDragCollapsed', true);
+    setVal('floatCollapsedX', defaultX); setVal('floatCollapsedY', defaultY);
+
+    setVal('floatWidth', defaultWidth); setVal('floatHeight', defaultHeight);
+    setVal('floatExpandedScale', 1.0); setText('expandedScaleVal', "1.0");
+    setChecked('alwaysMoveExpanded', false);
+    setVal('floatExpandedX', defaultX); setVal('floatExpandedY', defaultY);
+    setChecked('showCloseButtonExpanded', false); setChecked('keepServiceOnClose', false);
+    setChecked('showCheckedToggle', false); setChecked('showHistoryButton', false);
+    setVal('navType', 'button'); setVal('menuActionDelay', 0); setChecked('allowDrag', true);
+    setVal('scrollButtonType', 'both'); setVal('displayTaskCount', 1); setVal('scrollTaskCount', 1); setVal('checkedHideDelay', 2);
+
+    updateFloatingSettingsVisibility();
+    saveFloatingSettings();
+}
+
+function updateInterval() {
+    const select = document.getElementById('intervalSelect');
+    if (!select) return;
+    const interval = select.value;
+    if (typeof Android !== 'undefined' && Android.logToAppLog) {
+        Android.logToAppLog("JS: updateInterval called. value=" + interval);
+    }
+    localStorage.setItem('recheckInterval', interval);
+    if (typeof Android !== 'undefined' && Android.setIntervalAlarm) {
+        Android.setIntervalAlarm(parseInt(interval));
+    }
+}
+
+function updateCalendarMark() {
+    const input = document.getElementById('calendarMarkInput');
+    const mark = (input ? input.value : "") || '⭕';
+    calendarMark = mark;
+    localStorage.setItem('calendarMark', mark);
+}
+
+function addColorRule() {
+    if (typeof bgThresholds !== 'undefined') {
+        bgThresholds.push({ threshold: 300, bgColor: '#ffffff', textColor: '#333333' });
+        saveColorRules();
+    }
+}
+
+function removeColorRule(index) {
+    showModal(getTranslation('msg_rule_delete_confirm'), {
+        onConfirm: () => {
+            if (typeof bgThresholds !== 'undefined') {
+                bgThresholds.splice(index, 1);
+                saveColorRules();
+            }
+        }
+    });
+}
+
+function saveColorRules() {
+    if (typeof bgThresholds !== 'undefined') {
+        bgThresholds.sort((a, b) => a.threshold - b.threshold);
+        localStorage.setItem('bgThresholds', JSON.stringify(bgThresholds));
+    }
+    if (typeof render === 'function') render();
+    renderColorRules();
+}
+
+function updateColorRule(index, field, value) {
+    if (typeof bgThresholds !== 'undefined') {
+        if (field === 'threshold') bgThresholds[index][field] = parseInt(value) || 0;
+        else bgThresholds[index][field] = value;
+        localStorage.setItem('bgThresholds', JSON.stringify(bgThresholds));
+    }
+    if (typeof render === 'function') render();
+    const previews = document.querySelectorAll('.color-preview-hex');
+    if (previews[index] && typeof bgThresholds !== 'undefined') {
+        previews[index].style.backgroundColor = bgThresholds[index].bgColor;
+        previews[index].style.color = bgThresholds[index].textColor;
+        previews[index].innerHTML = `<div>${bgThresholds[index].bgColor.toUpperCase()}</div><div>${bgThresholds[index].textColor.toUpperCase()}</div>`;
+    }
+}
+
+function renderColorRules() {
+    const list = document.getElementById('colorRulesList');
+    if (!list || typeof bgThresholds === 'undefined') return;
+    list.innerHTML = bgThresholds.map((rule, index) => `
+        <div class="color-rule-item">
+            <div class="color-input-wrapper">
+                <span class="color-input-label">${getTranslation('label_bg_color')}</span>
+                <input type="color" value="${rule.bgColor}" onchange="updateColorRule(${index}, 'bgColor', this.value)">
+            </div>
+            <div class="color-input-wrapper">
+                <span class="color-input-label">${getTranslation('label_text_color')}</span>
+                <input type="color" value="${rule.textColor}" onchange="updateColorRule(${index}, 'textColor', this.value)">
+            </div>
+            <div class="threshold-input-group">
+                <input type="number" class="threshold-input" value="${Math.floor(rule.threshold / 60)}"
+                    onchange="updateColorRule(${index}, 'threshold', this.value * 60)"
+                    onblur="saveColorRules()">
+                <span style="font-size: 12px;">${getTranslation('label_threshold')}</span>
+            </div>
+            <div class="color-preview-hex" style="background-color: ${rule.bgColor}; color: ${rule.textColor}; border: 1px solid #ddd;">
+                <div>${rule.bgColor.toUpperCase()}</div>
+                <div>${rule.textColor.toUpperCase()}</div>
+            </div>
+            <button class="btn-icon" onclick="removeColorRule(${index})">🗑️</button>
+        </div>
+    `).join('');
+}
+
+function toggleFixedPositionInputs(mode) {
+    const checkbox = document.getElementById(mode === 'collapsed' ? 'alwaysMoveCollapsed' : 'alwaysMoveExpanded');
+    const container = document.getElementById(mode === 'collapsed' ? 'collapsedPositionInputs' : 'expandedPositionInputs');
+    if (checkbox && container) {
+        container.style.display = checkbox.checked ? 'flex' : 'none';
+    }
+}

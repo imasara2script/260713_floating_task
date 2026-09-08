@@ -79,6 +79,7 @@
         let floatingViewMode = 'tasks'; // 'tasks' or 'history'
         let isNavMenuOpen = false;
         let originalHeightPx = 44;
+        let currentMenuActionDelay = parseInt(localStorage.getItem('menuActionDelay') || '0');
 
         function initializeV2() {
             console.log("Floating V2 Initialized");
@@ -176,7 +177,13 @@
                 localStorage.setItem('keepServiceOnClose', keepServiceOnClose);
             }
             if (menuActionDelay !== undefined) {
-                localStorage.setItem('menuActionDelay', menuActionDelay);
+                console.log("applyFloatingSettings: menuActionDelay received=" + menuActionDelay);
+                currentMenuActionDelay = parseInt(menuActionDelay);
+                localStorage.setItem('menuActionDelay', currentMenuActionDelay.toString());
+            } else {
+                console.warn("applyFloatingSettings: menuActionDelay is undefined!");
+                // Fallback to localStorage
+                currentMenuActionDelay = parseInt(localStorage.getItem('menuActionDelay') || '0');
             }
             if (heightPx !== undefined) {
                 originalHeightPx = heightPx;
@@ -266,14 +273,33 @@
             // 内部アクションの場合は即座に再描画してフィードバック
             if (isInternalAction) render();
 
-            // 2. メニューを閉じる処理と外部アクションを（設定があれば）ディレイ
-            const delaySec = parseInt(localStorage.getItem('menuActionDelay') || '0');
+            // 2. メニューを閉じる処理と外部アクションの実行
+            const delaySec = currentMenuActionDelay;
+            console.log("handleNavAction: delaySec=" + delaySec + ", action=" + val);
+
+            // 外部アクション (ホーム / 閉じる) は常に即座に（または設定秒数後に）クローズ処理を行う
+            if (val === 'home' || val === 'close') {
+                if (delaySec > 0) {
+                    setTimeout(() => {
+                        console.log("Executing delayed external action: " + val);
+                        finalizeNavAction(val);
+                    }, delaySec * 1000);
+                } else {
+                    finalizeNavAction(val);
+                }
+                return;
+            }
+
+            // 内部アクション (フィルター切り替えなど)
             if (delaySec > 0) {
+                // 秒数が設定されている場合は指定秒数後にメニューを閉じる
                 setTimeout(() => {
+                    console.log("Executing delayed internal menu close (delay=" + delaySec + "s)");
                     finalizeNavAction(val);
                 }, delaySec * 1000);
             } else {
-                finalizeNavAction(val);
+                // 0 の場合はメニューを閉じない（表示したままにする）
+                console.log("menuActionDelay is 0: staying open as requested. User must tap outside to close.");
             }
         }
 
@@ -554,8 +580,8 @@
                                 <div class="nav-menu-item ${(floatingViewMode === 'tasks' && taskTypeFilter === 'all') ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('type-all')">${(floatingViewMode === 'tasks' && taskTypeFilter === 'all') ? '✓ ' : ''}${getTranslation('nav_menu_type_all')}</div>
                                 <div class="nav-menu-item ${(floatingViewMode === 'tasks' && taskTypeFilter === 'task') ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('type-task')">${(floatingViewMode === 'tasks' && taskTypeFilter === 'task') ? '✓ ' : ''}${getTranslation('nav_menu_type_task')}</div>
                                 <div class="nav-menu-item ${(floatingViewMode === 'tasks' && taskTypeFilter === 'timer') ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('type-timer')">${(floatingViewMode === 'tasks' && taskTypeFilter === 'timer') ? '✓ ' : ''}${getTranslation('nav_menu_type_timer')}</div>
-                                ${showCheckedToggle ? `<div class="nav-menu-item ${(floatingViewMode === 'tasks' && !showAllInFloating) ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('pending')">${(floatingViewMode === 'tasks' && !showAllInFloating) ? '✓ ' : ''}${getTranslation('nav_menu_show_pending')}</div>` : ''}
-                                ${showCheckedToggle ? `<div class="nav-menu-item ${(floatingViewMode === 'tasks' && showAllInFloating) ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('all')">${(floatingViewMode === 'tasks' && showAllInFloating) ? '✓ ' : ''}${getTranslation('nav_menu_show_all')}</div>` : ''}
+                                <div class="nav-menu-item ${(floatingViewMode === 'tasks' && !showAllInFloating) ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('pending')">${(floatingViewMode === 'tasks' && !showAllInFloating) ? '✓ ' : ''}${getTranslation('nav_menu_show_pending')}</div>
+                                <div class="nav-menu-item ${(floatingViewMode === 'tasks' && showAllInFloating) ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('all')">${(floatingViewMode === 'tasks' && showAllInFloating) ? '✓ ' : ''}${getTranslation('nav_menu_show_all')}</div>
                                 ${(!isScrollMode && (scrollButtonType === 'both' || scrollButtonType === 'up')) ? `<div class="nav-menu-item" onclick="event.stopPropagation(); handleNavAction('prev')">${getTranslation('nav_menu_prev')}</div>` : ''}
                                 ${(!isScrollMode && (scrollButtonType === 'both' || scrollButtonType === 'down')) ? `<div class="nav-menu-item" onclick="event.stopPropagation(); handleNavAction('next')">${getTranslation('nav_menu_next')}</div>` : ''}
                                 <div class="nav-menu-item" onclick="event.stopPropagation(); handleNavAction('home')">${getTranslation('nav_menu_home')}</div>

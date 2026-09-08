@@ -11,6 +11,7 @@ object MelodyPlayer {
     private var mediaPlayer: MediaPlayer? = null
 
     fun play(context: Context, melody: String) {
+        Log.d("MelodyPlayer", "play: $melody")
         stop() // 既に再生中の場合は停止
 
         try {

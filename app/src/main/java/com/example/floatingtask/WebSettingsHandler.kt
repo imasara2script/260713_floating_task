@@ -27,6 +27,7 @@ class WebSettingsHandler(
         showHistoryButton: Boolean, navType: String, keepService: Boolean,
         menuActionDelay: Int
     ) {
+        android.util.Log.d("WebSettingsHandler", "updateFloatingSettingsExtended: menuActionDelay=$menuActionDelay")
         val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         prefs.edit {
             putInt("floatCollapsedX", cX)
@@ -58,6 +59,10 @@ class WebSettingsHandler(
             putInt("floatX", eX)
             putInt("floatY", eY)
             putFloat("floatScale", eScale)
+        }.let { 
+            // KTX edit has no commit parameter in this version? 
+            // Let's use the standard API for a guaranteed sync save.
+            prefs.edit().putInt("menuActionDelay", menuActionDelay).commit()
         }
         // サービスが実行中なら更新を通知
         val intent = Intent(context, FloatingWindowService::class.java)
