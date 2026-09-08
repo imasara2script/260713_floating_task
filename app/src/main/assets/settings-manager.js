@@ -15,6 +15,20 @@ function openFloatingSettings() {
         }
     }
 }
+window.openFloatingSettings = openFloatingSettings;
+
+function openAdRetryInfo() {
+    const title = getTranslation('label_ad_retry_interval');
+    const desc = getTranslation('desc_ad_retry_interval');
+    const fullHtml = `<div style="font-size: 16px; font-weight: bold; margin-bottom: 12px;">${title}</div><div style="font-size: 14px; line-height: 1.6; font-weight: normal; color: #333; white-space: normal;">${desc}</div>`;
+    if (typeof showModal === 'function') {
+        showModal(fullHtml, {
+            useHTML: true,
+            hideCancel: true
+        });
+    }
+}
+window.openAdRetryInfo = openAdRetryInfo;
 
 function closeFloatingSettings() {
     const mainView = document.getElementById('settings-main-view');
@@ -25,6 +39,7 @@ function closeFloatingSettings() {
         Android.stopFloatingWindow();
     }
 }
+window.closeFloatingSettings = closeFloatingSettings;
 
 function openNewTaskSettings() {
     const mainView = document.getElementById('settings-main-view');
@@ -33,6 +48,7 @@ function openNewTaskSettings() {
     if (detailView) detailView.style.display = 'block';
     if (typeof loadNewTaskSettings === 'function') loadNewTaskSettings();
 }
+window.openNewTaskSettings = openNewTaskSettings;
 
 function closeNewTaskSettings() {
     const mainView = document.getElementById('settings-main-view');
@@ -40,6 +56,7 @@ function closeNewTaskSettings() {
     if (mainView) mainView.style.display = 'block';
     if (detailView) detailView.style.display = 'none';
 }
+window.closeNewTaskSettings = closeNewTaskSettings;
 
 function loadNewTaskSettings() {
     const showTimer = localStorage.getItem('showTimerOnCreate') === 'true';
@@ -60,6 +77,7 @@ function loadNewTaskSettings() {
     if (chkComment) chkComment.checked = showComment;
     if (chkNote) chkNote.checked = showNote;
 }
+window.loadNewTaskSettings = loadNewTaskSettings;
 
 function updateNewTaskSettings() {
     const chkTimer = document.getElementById('showTimerOnCreate');
@@ -80,6 +98,7 @@ function updateNewTaskSettings() {
     localStorage.setItem('showCommentOnCreate', showComment);
     localStorage.setItem('showNoteOnCreate', showNote);
 }
+window.updateNewTaskSettings = updateNewTaskSettings;
 
 function loadFloatingSettings() {
     const cScale = localStorage.getItem('floatCollapsedScale') || '1.0';
@@ -123,6 +142,7 @@ function loadFloatingSettings() {
     const dCount = localStorage.getItem('displayTaskCount') || '1';
     const sCount = localStorage.getItem('scrollTaskCount') || '1';
     const hDelay = localStorage.getItem('checkedHideDelay') || '2';
+    const retryInterval = localStorage.getItem('adRetryBaseInterval') || '2';
 
     const elEWidth = document.getElementById('floatWidth');
     const elEHeight = document.getElementById('floatHeight');
@@ -142,6 +162,7 @@ function loadFloatingSettings() {
     const elDCount = document.getElementById('displayTaskCount');
     const elSCount = document.getElementById('scrollTaskCount');
     const elHDelay = document.getElementById('checkedHideDelay');
+    const elRetryInterval = document.getElementById('adRetryBaseInterval');
 
     if (elEWidth) elEWidth.value = eWidth;
     if (elEHeight) elEHeight.value = eHeight;
@@ -161,6 +182,7 @@ function loadFloatingSettings() {
     if (elDCount) elDCount.value = dCount;
     if (elSCount) elSCount.value = sCount;
     if (elHDelay) elHDelay.value = hDelay;
+    if (elRetryInterval) elRetryInterval.value = retryInterval;
     toggleFixedPositionInputs('expanded');
 
     setupDraggableLabel('labelFloatCollapsedX', 'floatCollapsedX', 'collapsed');
@@ -172,6 +194,7 @@ function loadFloatingSettings() {
 
     updateFloatingSettingsVisibility();
 }
+window.loadFloatingSettings = loadFloatingSettings;
 
 function updateFloatingSettingsVisibility() {
     const scrollButtonType = document.getElementById('scrollButtonType')?.value;
@@ -192,6 +215,7 @@ function updateFloatingSettingsVisibility() {
         menuActionDelayContainer.style.display = (navType === 'menu') ? 'block' : 'none';
     }
 }
+window.updateFloatingSettingsVisibility = updateFloatingSettingsVisibility;
 
 function setupDraggableLabel(labelId, inputId, mode) {
     const label = document.getElementById(labelId);
@@ -244,6 +268,7 @@ function adjustDisplayTaskCount(delta) {
     }
     saveFloatingSettings('expanded');
 }
+window.adjustDisplayTaskCount = adjustDisplayTaskCount;
 
 function adjustScrollTaskCount(delta) {
     const input = document.getElementById('scrollTaskCount');
@@ -255,6 +280,7 @@ function adjustScrollTaskCount(delta) {
     input.value = val;
     saveFloatingSettings('expanded');
 }
+window.adjustScrollTaskCount = adjustScrollTaskCount;
 
 function adjustMenuActionDelay(delta) {
     const input = document.getElementById('menuActionDelay');
@@ -264,6 +290,7 @@ function adjustMenuActionDelay(delta) {
     input.value = val;
     saveFloatingSettings('expanded');
 }
+window.adjustMenuActionDelay = adjustMenuActionDelay;
 
 function adjustCheckedHideDelay(delta) {
     const input = document.getElementById('checkedHideDelay');
@@ -273,8 +300,20 @@ function adjustCheckedHideDelay(delta) {
     input.value = val;
     saveFloatingSettings('expanded');
 }
+window.adjustCheckedHideDelay = adjustCheckedHideDelay;
 
-function saveFloatingSettings(targetMode) {
+function adjustAdRetryInterval(delta) {
+    const input = document.getElementById('adRetryBaseInterval');
+    if (!input) return;
+    let val = parseInt(input.value) || 2;
+    val = Math.max(2, Math.min(60, val + delta));
+    input.value = val;
+    // 第2引数に true を渡してフローティングウィンドウの起動をスキップする
+    saveFloatingSettings(undefined, true);
+}
+window.adjustAdRetryInterval = adjustAdRetryInterval;
+
+function saveFloatingSettings(targetMode, skipStartWindow = false) {
     const cScale = document.getElementById('floatCollapsedScale')?.value || "1.0";
     const showEmpty = document.getElementById('showWhenEmpty')?.checked || false;
     const moveC = document.getElementById('alwaysMoveCollapsed')?.checked || false;
@@ -308,13 +347,16 @@ function saveFloatingSettings(targetMode) {
     const dInput = document.getElementById('displayTaskCount');
     const sInput = document.getElementById('scrollTaskCount');
     const hInput = document.getElementById('checkedHideDelay');
+    const retryInput = document.getElementById('adRetryBaseInterval');
     let dCount = Math.max(1, Math.min(10, parseInt(dInput?.value) || 1));
     let sCount = Math.max(1, Math.min(dCount, parseInt(sInput?.value) || 1));
     let hDelay = Math.max(0, Math.min(60, parseInt(hInput?.value) || 0));
+    let retryInterval = Math.max(2, Math.min(60, parseInt(retryInput?.value) || 2));
 
     if (dInput) dInput.value = dCount;
     if (sInput) { sInput.value = sCount; sInput.max = dCount; }
     if (hInput) hInput.value = hDelay;
+    if (retryInput) retryInput.value = retryInterval;
 
     localStorage.setItem('floatWidth', width);
     localStorage.setItem('floatHeight', height);
@@ -333,8 +375,14 @@ function saveFloatingSettings(targetMode) {
     localStorage.setItem('displayTaskCount', dCount.toString());
     localStorage.setItem('scrollTaskCount', sCount.toString());
     localStorage.setItem('checkedHideDelay', hDelay.toString());
+    localStorage.setItem('adRetryBaseInterval', retryInterval.toString());
 
-    if (typeof updateFloatingSettingsVisibility === 'function') updateFloatingSettingsVisibility();
+    if (typeof displayTaskCount !== 'undefined') displayTaskCount = dCount;
+    if (typeof scrollTaskCount !== 'undefined') scrollTaskCount = sCount;
+    if (typeof checkedHideDelay !== 'undefined') checkedHideDelay = hDelay;
+    if (typeof adRetryBaseInterval !== 'undefined') adRetryBaseInterval = retryInterval;
+
+    updateFloatingSettingsVisibility();
 
     if (typeof Android !== 'undefined') {
         if (Android.updateFloatingSettingsExtended) {
@@ -349,7 +397,7 @@ function saveFloatingSettings(targetMode) {
             Android.updateFloatingSettings(parseInt(eX), parseInt(eY), parseInt(width), parseInt(height), parseFloat(eScale));
         }
 
-        if (Android.startFloatingWindow) Android.startFloatingWindow();
+        if (!skipStartWindow && Android.startFloatingWindow) Android.startFloatingWindow();
 
         if (targetMode === 'collapsed') {
             if (typeof toggleFloatingExpand === 'function') toggleFloatingExpand(false);
@@ -358,6 +406,7 @@ function saveFloatingSettings(targetMode) {
         }
     }
 }
+window.saveFloatingSettings = saveFloatingSettings;
 
 function resetFloatingSettings() {
     let defaultX = 100;
@@ -397,6 +446,7 @@ function resetFloatingSettings() {
     updateFloatingSettingsVisibility();
     saveFloatingSettings();
 }
+window.resetFloatingSettings = resetFloatingSettings;
 
 function updateInterval() {
     const select = document.getElementById('intervalSelect');
@@ -410,6 +460,7 @@ function updateInterval() {
         Android.setIntervalAlarm(parseInt(interval));
     }
 }
+window.updateInterval = updateInterval;
 
 function updateCalendarMark() {
     const input = document.getElementById('calendarMarkInput');
@@ -417,6 +468,7 @@ function updateCalendarMark() {
     calendarMark = mark;
     localStorage.setItem('calendarMark', mark);
 }
+window.updateCalendarMark = updateCalendarMark;
 
 function addColorRule() {
     if (typeof bgThresholds !== 'undefined') {
@@ -424,6 +476,7 @@ function addColorRule() {
         saveColorRules();
     }
 }
+window.addColorRule = addColorRule;
 
 function removeColorRule(index) {
     showModal(getTranslation('msg_rule_delete_confirm'), {
@@ -435,6 +488,7 @@ function removeColorRule(index) {
         }
     });
 }
+window.removeColorRule = removeColorRule;
 
 function saveColorRules() {
     if (typeof bgThresholds !== 'undefined') {
@@ -444,6 +498,7 @@ function saveColorRules() {
     if (typeof render === 'function') render();
     renderColorRules();
 }
+window.saveColorRules = saveColorRules;
 
 function updateColorRule(index, field, value) {
     if (typeof bgThresholds !== 'undefined') {
@@ -459,6 +514,7 @@ function updateColorRule(index, field, value) {
         previews[index].innerHTML = `<div>${bgThresholds[index].bgColor.toUpperCase()}</div><div>${bgThresholds[index].textColor.toUpperCase()}</div>`;
     }
 }
+window.updateColorRule = updateColorRule;
 
 function renderColorRules() {
     const list = document.getElementById('colorRulesList');
@@ -487,6 +543,7 @@ function renderColorRules() {
         </div>
     `).join('');
 }
+window.renderColorRules = renderColorRules;
 
 function toggleFixedPositionInputs(mode) {
     const checkbox = document.getElementById(mode === 'collapsed' ? 'alwaysMoveCollapsed' : 'alwaysMoveExpanded');
@@ -495,3 +552,4 @@ function toggleFixedPositionInputs(mode) {
         container.style.display = checkbox.checked ? 'flex' : 'none';
     }
 }
+window.toggleFixedPositionInputs = toggleFixedPositionInputs;

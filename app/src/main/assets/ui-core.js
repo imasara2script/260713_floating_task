@@ -30,6 +30,7 @@ var tempVisibilityFlags = {
 var isDurationPickerRequested = false;
 var adRetryCount = 0;
 var adRetryTimeoutId = null;
+var adRetryBaseInterval = parseInt(localStorage.getItem('adRetryBaseInterval') || '2');
 var selectedCustomUri = null;
 var selectedCustomName = null;
 var isFloatingExpanded = (urlParams.get('expanded') === 'true');

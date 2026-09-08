@@ -148,7 +148,20 @@
                         </div>
                     </div>
 
-                    <!-- 5. データ管理 -->
+                    <!-- 5. 広告リトライ設定 -->
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <label for="adRetryBaseInterval" style="margin: 0;" data-i18n="label_ad_retry_interval">広告読み込みリトライの基本待機時間(秒):</label>
+                            <span onclick="openAdRetryInfo()" style="cursor: pointer; color: #007bff; font-size: 18px; padding: 0 4px;" title="詳細">ⓘ</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button class="btn btn-secondary" onclick="adjustAdRetryInterval(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
+                            <input type="number" id="adRetryBaseInterval" min="2" max="60" onchange="saveFloatingSettings(undefined, true)" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center;">
+                            <button class="btn btn-secondary" onclick="adjustAdRetryInterval(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
+                        </div>
+                    </div>
+
+                    <!-- 6. データ管理 -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
                         <div style="font-size: 13px; margin-bottom: 8px;" data-i18n="label_data_management">💾 データ管理</div>
                         <div style="display: flex; gap: 8px;">

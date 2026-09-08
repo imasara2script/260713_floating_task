@@ -548,7 +548,8 @@ function onAdFailed(type, errorCode, errorMessage) {
     // 在庫切れ (No Fill: Code 3) の場合のみリトライを検討
     if (errorCode === 3 && adRetryCount < 5) {
         adRetryCount++;
-        const waitSec = Math.pow(2, adRetryCount); // 2, 4, 8, 16, 32
+        // 指数バックオフ: 基本時間 * 2^(リトライ回数 - 1)
+        const waitSec = adRetryBaseInterval * Math.pow(2, adRetryCount - 1);
         let remaining = waitSec;
 
         const updateRetryModal = () => {
