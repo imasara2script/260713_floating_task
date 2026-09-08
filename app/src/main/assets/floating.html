@@ -275,16 +275,17 @@
 
             // 2. メニューを閉じる処理と外部アクションの実行
             const delaySec = currentMenuActionDelay;
-            console.log("handleNavAction: delaySec=" + delaySec + ", action=" + val);
+            console.log("handleNavAction: delaySec(variable)=" + delaySec + ", action=" + val);
 
             // 外部アクション (ホーム / 閉じる) は常に即座に（または設定秒数後に）クローズ処理を行う
             if (val === 'home' || val === 'close') {
                 if (delaySec > 0) {
                     setTimeout(() => {
-                        console.log("Executing delayed external action: " + val);
+                        console.log("Executing delayed external action: " + val + " after " + delaySec + "s");
                         finalizeNavAction(val);
                     }, delaySec * 1000);
                 } else {
+                    console.log("Executing immediate external action: " + val);
                     finalizeNavAction(val);
                 }
                 return;
@@ -298,7 +299,7 @@
                     finalizeNavAction(val);
                 }, delaySec * 1000);
             } else {
-                // 0 の場合はメニューを閉じない（表示したままにする）
+                // 0 の場合はメニューを閉じない（そのままにする）
                 console.log("menuActionDelay is 0: staying open as requested. User must tap outside to close.");
             }
         }

@@ -521,6 +521,21 @@ function onRewardEarned(type, remaining) {
         return;
     }
 
+    if (pendingAction === 'backup') {
+        pendingAction = null;
+        if (typeof closeModal === 'function') closeModal();
+        performBackup();
+        return;
+    }
+    if (pendingAction === 'restore') {
+        pendingAction = null;
+        if (typeof closeModal === 'function') closeModal();
+        if (pendingRestoreData && pendingRestoreOptions) {
+            performRestore(pendingRestoreData, pendingRestoreOptions);
+        }
+        return;
+    }
+
     showModal(getTranslation('msg_reward_earned'), { hideCancel: true });
 }
 
