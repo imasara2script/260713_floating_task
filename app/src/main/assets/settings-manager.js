@@ -2,6 +2,49 @@
  * Settings and Configuration Management Logic
  */
 
+function updateStorageUsage() {
+    console.log("updateStorageUsage execution started");
+    const infoEl = document.getElementById('storage-usage-info');
+    const barEl = document.getElementById('storage-usage-bar');
+    if (!infoEl) {
+        console.warn("updateStorageUsage: infoEl not found");
+        return;
+    }
+
+    let total = 0;
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key) {
+                const value = localStorage.getItem(key) || "";
+                total += (key.length + value.length) * 2;
+            }
+        }
+    } catch (e) {
+        console.error("Error calculating storage usage:", e);
+    }
+
+    const usedKB = (total / 1024).toFixed(2);
+    const quotaKB = 5120; // 5MB limit approximation
+    const percent = Math.min(100, (parseFloat(usedKB) / quotaKB * 100)).toFixed(1);
+
+    console.log(`Storage usage: ${usedKB} KB / ${quotaKB} KB (${percent}%)`);
+
+    try {
+        infoEl.textContent = getTranslation('storage_info', usedKB, quotaKB, percent);
+    } catch (e) {
+        infoEl.textContent = `${usedKB} KB / ${quotaKB} KB (${percent}%)`;
+    }
+
+    if (barEl) {
+        barEl.style.width = percent + '%';
+        if (parseFloat(percent) > 90) barEl.style.backgroundColor = '#dc3545';
+        else if (parseFloat(percent) > 70) barEl.style.backgroundColor = '#ffc107';
+        else barEl.style.backgroundColor = '#007bff';
+    }
+}
+window.updateStorageUsage = updateStorageUsage;
+
 function openFloatingSettings() {
     const mainView = document.getElementById('settings-main-view');
     const detailView = document.getElementById('settings-floating-detail');
@@ -147,7 +190,7 @@ function loadFloatingSettings() {
     const dCount = localStorage.getItem('displayTaskCount') || '1';
     const sCount = localStorage.getItem('scrollTaskCount') || '1';
     const hDelay = localStorage.getItem('checkedHideDelay') || '2';
-    const retryInterval = localStorage.getItem('adRetryBaseInterval') || '2';
+    const retryInterval = localStorage.getItem('adRetryBaseInterval') || '5';
 
     const elEWidth = document.getElementById('floatWidth');
     const elEHeight = document.getElementById('floatHeight');
@@ -192,14 +235,8 @@ function loadFloatingSettings() {
     if (elRecheckInterval) elRecheckInterval.value = localStorage.getItem('recheckInterval') || '0';
     toggleFixedPositionInputs('expanded');
 
-    setupDraggableLabel('labelFloatCollapsedX', 'floatCollapsedX', 'collapsed');
-    setupDraggableLabel('labelFloatCollapsedY', 'floatCollapsedY', 'collapsed');
-    setupDraggableLabel('labelFloatWidth', 'floatWidth', 'expanded');
-    setupDraggableLabel('labelFloatHeight', 'floatHeight', 'expanded');
-    setupDraggableLabel('labelFloatExpandedX', 'floatExpandedX', 'expanded');
-    setupDraggableLabel('labelFloatExpandedY', 'floatExpandedY', 'expanded');
-
     updateFloatingSettingsVisibility();
+    updateStorageUsage();
 }
 window.loadFloatingSettings = loadFloatingSettings;
 
@@ -402,12 +439,14 @@ function saveFloatingSettings(targetMode, skipStartWindow = false) {
     if (typeof scrollTaskCount !== 'undefined') scrollTaskCount = sCount;
     if (typeof checkedHideDelay !== 'undefined') checkedHideDelay = hDelay;
     if (typeof adRetryBaseInterval !== 'undefined') adRetryBaseInterval = retryInterval;
+
     // Android 側への通知 (アラーム再設定)
     if (typeof Android !== 'undefined' && Android.setIntervalAlarm) {
         Android.setIntervalAlarm(recheckIntervalVal);
     }
 
     updateFloatingSettingsVisibility();
+    updateStorageUsage();
 
     if (typeof Android !== 'undefined') {
         if (Android.updateFloatingSettingsExtended) {
@@ -467,9 +506,11 @@ function resetFloatingSettings() {
     setChecked('showCheckedToggle', false); setChecked('showHistoryButton', false);
     setVal('navType', 'button'); setVal('menuActionDelay', 0); setChecked('allowDrag', true);
     setVal('scrollButtonType', 'both'); setVal('displayTaskCount', 1); setVal('scrollTaskCount', 1); setVal('checkedHideDelay', 2);
+    setVal('adRetryBaseInterval', 5);
     setVal('recheckInterval', 0);
 
     updateFloatingSettingsVisibility();
+    updateStorageUsage();
     saveFloatingSettings();
 }
 window.resetFloatingSettings = resetFloatingSettings;

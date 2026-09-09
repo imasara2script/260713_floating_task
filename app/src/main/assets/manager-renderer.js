@@ -102,6 +102,10 @@ function render() {
     if (historyContent && historyContent.style.display === 'block' && currentCalendarTaskId === null) {
         if (typeof renderHistory === 'function') renderHistory();
     }
+
+    if (typeof updateStorageUsage === 'function') {
+        updateStorageUsage();
+    }
 }
 
 function updateTimersOnly() {

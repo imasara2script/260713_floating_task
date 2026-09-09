@@ -107,25 +107,11 @@
                         </select>
                     </div>
 
-                    <!-- 2. システム権限関係 -->
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                    <!-- 2. システム権限・各種設定 -->
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
                         <button class="btn btn-primary" style="width: 100%;" onclick="openPermissionsScreen()" data-i18n="label_system_permissions">⚙️ システム権限関係</button>
-                    </div>
-
-                    <!-- 3. フローティングウィンドウの設定 -->
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <button class="btn btn-primary" style="width: 100%; margin-bottom: 8px;" onclick="openFloatingSettings()" data-i18n="btn_floating_settings">フローティングウィンドウの設定</button>
-                        <button class="btn btn-primary" style="width: 100%;" onclick="openNewTaskSettings()" data-i18n="btn_new_task_settings">新規タスク作成時の設定</button>
-                    </div>
-
-                    <!-- 4. チェック後のリスト更新ディレイ -->
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
-                        <label for="checkedHideDelay" style="display: block; margin-bottom: 8px;" data-i18n="label_checked_hide_delay">チェック後にリストを更新するまでの秒数:</label>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
-                            <input type="number" id="checkedHideDelay" min="0" max="60" onchange="saveFloatingSettings()" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center;">
-                            <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
-                        </div>
+                        <button class="btn btn-primary" style="width: 100%;" onclick="openFloatingSettings()" data-i18n="btn_floating_settings">フローティングウィンドウの設定</button>
+                        <button class="btn btn-primary" style="width: 100%;" onclick="openNewTaskSettings()" data-i18n="btn_new_task_settings">タスク</button>
                     </div>
 
                     <!-- 5. 広告リトライ設定 -->
@@ -163,16 +149,27 @@
                         <input type="text" id="calendarMarkInput" placeholder="例: ⭕, ✔, ⭐" onchange="updateCalendarMark()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
                     </div>
 
-                    <!-- 8. 開発者用 -->
+                    <!-- 8. ストレージ使用状況 -->
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span data-i18n="label_storage_usage">ストレージ使用量 (localStorage)</span>
+                        </div>
+                        <div id="storage-usage-info" style="font-size: 13px; color: #666; background: #f0f0f0; padding: 8px; border-radius: 6px; text-align: center;">--- KB / --- KB (---%)</div>
+                        <div style="width: 100%; height: 6px; background: #eee; border-radius: 3px; margin-top: 8px; overflow: hidden;">
+                            <div id="storage-usage-bar" style="width: 0%; height: 100%; background: #007bff; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 9. 開発者用 -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
                         <button class="btn btn-secondary" onclick="openDeveloperModal()" style="width: 100%; font-size: 14px;" data-i18n="btn_developer">開発者用</button>
                     </div>
                 </div>
 
-                <!-- 新規タスク作成時の設定詳細画面 -->
+                <!-- タスクの設定詳細画面 -->
                 <div id="settings-new-task-detail" style="display: none; font-size: 14px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h3 style="font-size: 15px; margin: 0;" data-i18n="new_task_settings_title">新規タスク作成時の設定</h3>
+                        <h3 style="font-size: 15px; margin: 0;" data-i18n="new_task_settings_title">タスク</h3>
                         <button class="btn btn-secondary" style="padding: 4px 12px; font-size: 12px;" onclick="closeNewTaskSettings()" data-i18n="btn_done">完了</button>
                     </div>
 
@@ -207,11 +204,21 @@
                             </label>
                         </div>
 
-                        <div>
+                        <div style="margin-bottom: 12px;">
                             <label style="display: flex; align-items: center; cursor: pointer;">
                                 <input type="checkbox" id="showNoteOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
                                 <span data-i18n="label_note">補足文章</span>
                             </label>
+                        </div>
+
+                        <!-- チェック後のリスト更新ディレイ -->
+                        <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                            <label for="checkedHideDelay" style="display: block; margin-bottom: 8px; font-weight: bold;" data-i18n="label_checked_hide_delay">チェック後にリストを更新するまでの秒数:</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
+                                <input type="number" id="checkedHideDelay" min="0" max="60" onchange="saveFloatingSettings()" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center; background: #fff;">
+                                <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -641,9 +648,15 @@
          * Core Initialization Call
          */
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeApp);
+            document.addEventListener('DOMContentLoaded', () => {
+                initializeApp();
+                if (typeof updateStorageUsage === 'function') updateStorageUsage();
+            });
         } else {
-            setTimeout(initializeApp, 50);
+            setTimeout(() => {
+                initializeApp();
+                if (typeof updateStorageUsage === 'function') updateStorageUsage();
+            }, 50);
         }
     </script>
 </body>

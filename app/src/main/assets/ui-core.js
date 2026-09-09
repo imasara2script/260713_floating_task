@@ -30,7 +30,7 @@ var tempVisibilityFlags = {
 var isDurationPickerRequested = false;
 var adRetryCount = 0;
 var adRetryTimeoutId = null;
-var adRetryBaseInterval = parseInt(localStorage.getItem('adRetryBaseInterval') || '2');
+var adRetryBaseInterval = parseInt(localStorage.getItem('adRetryBaseInterval') || '5');
 var selectedCustomUri = null;
 var selectedCustomName = null;
 var isFloatingExpanded = (urlParams.get('expanded') === 'true');
@@ -98,6 +98,12 @@ function handleBack() {
         return true;
     }
 
+    const taskDetail = document.getElementById('settings-new-task-detail');
+    if (taskDetail && taskDetail.style.display === 'block') {
+        closeNewTaskSettings();
+        return true;
+    }
+
     if (currentCalendarTaskId !== null) {
         if (typeof renderHistory === 'function') renderHistory();
         return true;
@@ -136,6 +142,7 @@ function switchTab(tab, options = {}) {
         if (typeof updateAlarmStatus === 'function') updateAlarmStatus();
         if (typeof updateNotificationStatus === 'function') updateNotificationStatus();
         if (typeof updateOverlayStatus === 'function') updateOverlayStatus();
+        if (typeof updateStorageUsage === 'function') updateStorageUsage();
     }
     if (tab === 'history' && !options.skipRenderHistory) {
         if (typeof renderHistory === 'function') renderHistory();
