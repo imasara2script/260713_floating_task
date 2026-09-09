@@ -8,13 +8,18 @@
     <script src="translations.js"></script>
     <script src="app.js"></script>
     <style>
+        html, body {
+            overflow: auto !important;
+            height: auto !important;
+        }
         body {
             background-color: #f8f9fa;
-            padding: 20px;
+            padding: 20px 20px 40px 20px;
             font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
             color: #333;
             margin: 0;
             overflow-x: hidden;
+            display: block; /* style.css の flex を上書き */
         }
         .container {
             max-width: 500px;
@@ -89,6 +94,21 @@
         .btn-start:active {
             transform: translateY(2px);
             box-shadow: 0 2px 0 #218838;
+        }
+        .btn-skip {
+            display: block;
+            width: 100%;
+            margin-top: 16px;
+            background: none;
+            border: none;
+            color: #007bff;
+            font-size: 14px;
+            text-decoration: underline;
+            cursor: pointer;
+            padding: 8px;
+        }
+        .btn-skip:active {
+            color: #0056b3;
         }
 
         /* 詳細説明レイヤー */
@@ -301,6 +321,7 @@
 
         <div class="start-container">
             <button id="btn-start-app" class="btn-start" onclick="location.href='index.html'" data-i18n="btn_start_app">アプリを始める</button>
+            <button id="btn-skip-setup" class="btn-skip" onclick="location.href='index.html'" data-i18n="btn_setup_later">後で設定する</button>
         </div>
     </div>
 
@@ -443,6 +464,11 @@
                 hideDetail();
                 return true; // バックイベントを消費
             }
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('from') === 'settings') {
+                location.href = 'index.html?tab=settings';
+                return true;
+            }
             return false; // デフォルトの挙動（終了確認）へ
         }
 
@@ -463,8 +489,11 @@
             updateItemStatus('battery', battery);
 
             const startBtn = document.getElementById('btn-start-app');
+            const skipBtn = document.getElementById('btn-skip-setup');
+
             if (overlay && notification && alarm && battery) {
                 startBtn.style.display = 'block';
+                if (skipBtn) skipBtn.style.display = 'none';
                 if (isFromSettings) {
                     startBtn.textContent = getTranslation('btn_back_to_settings');
                     startBtn.onclick = () => { location.href = 'index.html?tab=settings'; };
@@ -472,6 +501,7 @@
                 if (currentDetailType) hideDetail();
             } else {
                 startBtn.style.display = 'none';
+                if (skipBtn) skipBtn.style.display = 'block';
                 // 現在表示中の詳細項目が許可されたら自動で閉じる
                 if (currentDetailType === 'overlay' && overlay) hideDetail();
                 if (currentDetailType === 'notification' && notification) hideDetail();
