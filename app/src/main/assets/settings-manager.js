@@ -183,6 +183,8 @@ function loadFloatingSettings() {
     if (elSCount) elSCount.value = sCount;
     if (elHDelay) elHDelay.value = hDelay;
     if (elRetryInterval) elRetryInterval.value = retryInterval;
+    const elRecheckInterval = document.getElementById('recheckInterval');
+    if (elRecheckInterval) elRecheckInterval.value = localStorage.getItem('recheckInterval') || '0';
     toggleFixedPositionInputs('expanded');
 
     setupDraggableLabel('labelFloatCollapsedX', 'floatCollapsedX', 'collapsed');
@@ -313,6 +315,16 @@ function adjustAdRetryInterval(delta) {
 }
 window.adjustAdRetryInterval = adjustAdRetryInterval;
 
+function adjustRecheckInterval(delta) {
+    const input = document.getElementById('recheckInterval');
+    if (!input) return;
+    let val = parseInt(input.value) || 0;
+    val = Math.max(0, Math.min(1440, val + delta));
+    input.value = val;
+    updateInterval();
+}
+window.adjustRecheckInterval = adjustRecheckInterval;
+
 function saveFloatingSettings(targetMode, skipStartWindow = false) {
     const cScale = document.getElementById('floatCollapsedScale')?.value || "1.0";
     const showEmpty = document.getElementById('showWhenEmpty')?.checked || false;
@@ -348,15 +360,18 @@ function saveFloatingSettings(targetMode, skipStartWindow = false) {
     const sInput = document.getElementById('scrollTaskCount');
     const hInput = document.getElementById('checkedHideDelay');
     const retryInput = document.getElementById('adRetryBaseInterval');
+    const recheckInput = document.getElementById('recheckInterval');
     let dCount = Math.max(1, Math.min(10, parseInt(dInput?.value) || 1));
     let sCount = Math.max(1, Math.min(dCount, parseInt(sInput?.value) || 1));
     let hDelay = Math.max(0, Math.min(60, parseInt(hInput?.value) || 0));
     let retryInterval = Math.max(2, Math.min(60, parseInt(retryInput?.value) || 2));
+    let recheckIntervalVal = Math.max(0, Math.min(1440, parseInt(recheckInput?.value) || 0));
 
     if (dInput) dInput.value = dCount;
     if (sInput) { sInput.value = sCount; sInput.max = dCount; }
     if (hInput) hInput.value = hDelay;
     if (retryInput) retryInput.value = retryInterval;
+    if (recheckInput) recheckInput.value = recheckIntervalVal;
 
     localStorage.setItem('floatWidth', width);
     localStorage.setItem('floatHeight', height);
@@ -376,11 +391,16 @@ function saveFloatingSettings(targetMode, skipStartWindow = false) {
     localStorage.setItem('scrollTaskCount', sCount.toString());
     localStorage.setItem('checkedHideDelay', hDelay.toString());
     localStorage.setItem('adRetryBaseInterval', retryInterval.toString());
+    localStorage.setItem('recheckInterval', recheckIntervalVal.toString());
 
     if (typeof displayTaskCount !== 'undefined') displayTaskCount = dCount;
     if (typeof scrollTaskCount !== 'undefined') scrollTaskCount = sCount;
     if (typeof checkedHideDelay !== 'undefined') checkedHideDelay = hDelay;
     if (typeof adRetryBaseInterval !== 'undefined') adRetryBaseInterval = retryInterval;
+    // Android 側への通知 (アラーム再設定)
+    if (typeof Android !== 'undefined' && Android.setIntervalAlarm) {
+        Android.setIntervalAlarm(recheckIntervalVal);
+    }
 
     updateFloatingSettingsVisibility();
 
@@ -442,6 +462,7 @@ function resetFloatingSettings() {
     setChecked('showCheckedToggle', false); setChecked('showHistoryButton', false);
     setVal('navType', 'button'); setVal('menuActionDelay', 0); setChecked('allowDrag', true);
     setVal('scrollButtonType', 'both'); setVal('displayTaskCount', 1); setVal('scrollTaskCount', 1); setVal('checkedHideDelay', 2);
+    setVal('recheckInterval', 0);
 
     updateFloatingSettingsVisibility();
     saveFloatingSettings();
@@ -449,9 +470,9 @@ function resetFloatingSettings() {
 window.resetFloatingSettings = resetFloatingSettings;
 
 function updateInterval() {
-    const select = document.getElementById('intervalSelect');
-    if (!select) return;
-    const interval = select.value;
+    const input = document.getElementById('recheckInterval');
+    if (!input) return;
+    const interval = input.value;
     if (typeof Android !== 'undefined' && Android.logToAppLog) {
         Android.logToAppLog("JS: updateInterval called. value=" + interval);
     }

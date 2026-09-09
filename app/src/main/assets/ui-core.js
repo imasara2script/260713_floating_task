@@ -157,8 +157,8 @@ function setViewMode(m) {
 
     if (typeof updateBatteryStatus === 'function') updateBatteryStatus();
     const savedInterval = localStorage.getItem('recheckInterval') || '0';
-    const intervalSelect = document.getElementById('intervalSelect');
-    if (intervalSelect) intervalSelect.value = savedInterval;
+    const intervalInput = document.getElementById('recheckInterval');
+    if (intervalInput) intervalInput.value = savedInterval;
     const markInput = document.getElementById('calendarMarkInput');
     if (markInput) markInput.value = calendarMark;
     if (typeof loadFloatingSettings === 'function') loadFloatingSettings();

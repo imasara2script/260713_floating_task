@@ -416,14 +416,13 @@
                     </div>
 
                     <div style="margin-bottom: 16px;">
-                        <label for="intervalSelect" style="display: block; margin-bottom: 8px;" data-i18n="label_interval">未完了タスクがある場合の再表示・通知間隔:</label>
-                        <select id="intervalSelect" onchange="updateInterval()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white;">
-                            <option value="0" data-i18n="interval_none">なし</option>
-                            <option value="1" data-i18n="interval_1min">1分ごと</option>
-                            <option value="10" data-i18n="interval_10min">10分ごと</option>
-                            <option value="30" data-i18n="interval_30min">30分ごと</option>
-                            <option value="60" data-i18n="interval_1hour">1時間ごと</option>
-                        </select>
+                        <label for="recheckInterval" style="display: block; margin-bottom: 8px;" data-i18n="label_interval">未完了タスクがある場合の再表示・通知間隔(分):</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button class="btn btn-secondary" onclick="adjustRecheckInterval(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
+                            <input type="number" id="recheckInterval" min="0" max="1440" onchange="updateInterval()" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center;">
+                            <button class="btn btn-secondary" onclick="adjustRecheckInterval(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
+                        </div>
+                        <div style="font-size: 11px; color: #666; margin-top: 4px;" data-i18n="label_interval_hint">0分で「なし」に設定されます。</div>
                     </div>
 
                     <!-- 配色ルールセクション -->
