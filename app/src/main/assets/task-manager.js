@@ -147,6 +147,7 @@ function addTask() {
     saveTasks();
     closeTaskModal();
 }
+window.addTask = addTask;
 
 function repeatTimer(id) {
     let historyIdToEdit = null;
@@ -165,13 +166,15 @@ function repeatTimer(id) {
         return t;
     });
     saveTasks();
-    if (historyIdToEdit) editHistoryMemo(historyIdToEdit, true);
+    if (historyIdToEdit && typeof editHistoryMemo === 'function') editHistoryMemo(historyIdToEdit, true);
 }
+window.repeatTimer = repeatTimer;
 
 function toggleTimerDisplayMode() {
     timerDisplayMode = (timerDisplayMode === 'countdown') ? 'endtime' : 'countdown';
     if (typeof render === 'function') render();
 }
+window.toggleTimerDisplayMode = toggleTimerDisplayMode;
 
 function toggleTask(id) {
     let taskIdToCompleteWithMemo = null;
@@ -207,8 +210,9 @@ function toggleTask(id) {
         return t;
     });
     saveTasks();
-    if (taskIdToCompleteWithMemo) editHistoryMemo(null, true, taskIdToCompleteWithMemo);
+    if (taskIdToCompleteWithMemo && typeof editHistoryMemo === 'function') editHistoryMemo(null, true, taskIdToCompleteWithMemo);
 }
+window.toggleTask = toggleTask;
 
 function editStreak(id) {
     const task = tasks.find(t => t.id === id);
@@ -233,6 +237,7 @@ function editStreak(id) {
         }
     });
 }
+window.editStreak = editStreak;
 
 function deleteTask(id) {
     const task = tasks.find(t => t.id === id);
@@ -249,17 +254,20 @@ function deleteTask(id) {
         });
     }
 }
+window.deleteTask = deleteTask;
 
 function deleteTaskFromModal() {
     if (editingTaskId) deleteTask(editingTaskId);
 }
+window.deleteTaskFromModal = deleteTaskFromModal;
 
 function editTask(id) {
-    openTaskModal(id);
+    if (typeof openTaskModal === 'function') openTaskModal(id);
 }
+window.editTask = editTask;
 
 function handleMelodyChange() {
-    if (isMelodyTesting) stopMelodyTest();
+    if (isMelodyTesting && typeof stopMelodyTest === 'function') stopMelodyTest();
     const select = document.getElementById('melodySelect');
     if (select && select.value === 'custom') {
         if (typeof Android !== 'undefined' && Android.pickRingtone) Android.pickRingtone();
@@ -270,9 +278,10 @@ function handleMelodyChange() {
         selectedCustomName = null;
     }
 }
+window.handleMelodyChange = handleMelodyChange;
 
 function onRingtoneSelected(uri, title) {
-    if (isMelodyTesting) stopMelodyTest();
+    if (isMelodyTesting && typeof stopMelodyTest === 'function') stopMelodyTest();
     selectedCustomUri = uri;
     selectedCustomName = title;
     const nameEl = document.getElementById('customMelodyName');
@@ -281,6 +290,7 @@ function onRingtoneSelected(uri, title) {
         nameEl.style.display = 'block';
     }
 }
+window.onRingtoneSelected = onRingtoneSelected;
 
 function openEditMenu() {
     if (isEditMode) { toggleEditMode(); return; }
@@ -292,16 +302,19 @@ function openEditMenu() {
         modal.onclick = (e) => { if (e.target === modal) closeEditMenu(); };
     }
 }
+window.openEditMenu = openEditMenu;
 
 function closeEditMenu() {
     const modal = document.getElementById('editMenuModal');
     if (modal) modal.style.display = 'none';
 }
+window.closeEditMenu = closeEditMenu;
 
 function startSortMode() {
     closeEditMenu();
     toggleEditMode();
 }
+window.startSortMode = startSortMode;
 
 function startExportMode() {
     closeEditMenu();
@@ -317,6 +330,7 @@ function startExportMode() {
     if (trigger) trigger.style.display = 'none';
     if (typeof render === 'function') render();
 }
+window.startExportMode = startExportMode;
 
 function cancelExportMode() {
     isExportMode = false;
@@ -327,11 +341,13 @@ function cancelExportMode() {
     if (trigger) trigger.style.display = 'block';
     if (typeof render === 'function') render();
 }
+window.cancelExportMode = cancelExportMode;
 
 function toggleExportSelection(id) {
     if (selectedExportIds.has(id)) selectedExportIds.delete(id);
     else selectedExportIds.add(id);
 }
+window.toggleExportSelection = toggleExportSelection;
 
 function executeExportTasks() {
     if (selectedExportIds.size === 0) {
@@ -343,6 +359,7 @@ function executeExportTasks() {
     if (typeof Android !== 'undefined' && Android.backupData) Android.backupData(JSON.stringify(data));
     cancelExportMode();
 }
+window.executeExportTasks = executeExportTasks;
 
 function startDeleteMode() {
     closeEditMenu();
@@ -366,6 +383,7 @@ function startDeleteMode() {
     if (trigger) trigger.style.display = 'none';
     if (typeof render === 'function') render();
 }
+window.startDeleteMode = startDeleteMode;
 
 function cancelDeleteMode() {
     isDeleteMode = false;
@@ -384,11 +402,13 @@ function cancelDeleteMode() {
     }
     if (typeof render === 'function') render();
 }
+window.cancelDeleteMode = cancelDeleteMode;
 
 function toggleDeleteSelection(id) {
     if (selectedDeleteIds.has(id)) selectedDeleteIds.delete(id);
     else selectedDeleteIds.add(id);
 }
+window.toggleDeleteSelection = toggleDeleteSelection;
 
 function executeDeleteTasks() {
     if (selectedDeleteIds.size === 0) {
@@ -410,6 +430,7 @@ function executeDeleteTasks() {
         }
     });
 }
+window.executeDeleteTasks = executeDeleteTasks;
 
 function completeTaskWithMemo(taskId, memo) {
     tasks = tasks.map(t => {
@@ -433,6 +454,7 @@ function completeTaskWithMemo(taskId, memo) {
     });
     saveTasks();
 }
+window.completeTaskWithMemo = completeTaskWithMemo;
 
 function saveHistoryMemo(historyId, memo) {
     history = history.map(h => { if (h.id === historyId) return { ...h, memo: memo }; return h; });
@@ -440,6 +462,7 @@ function saveHistoryMemo(historyId, memo) {
     if (currentCalendarTaskId) { if (typeof renderTaskHistory === 'function') renderTaskHistory(currentCalendarTaskId); }
     else { if (typeof renderHistory === 'function') renderHistory(); }
 }
+window.saveHistoryMemo = saveHistoryMemo;
 
 function testReminder(id) {
     const r = currentTaskReminders.find(x => x.id == id);
@@ -448,17 +471,20 @@ function testReminder(id) {
     const taskText = (taskInput ? taskInput.value : "") || "Test Task";
     if (typeof Android !== 'undefined' && Android.testReminderNotification) Android.testReminderNotification(taskText, r.message);
 }
+window.testReminder = testReminder;
 
 function addReminderItem(time = "", message = "") {
     const id = Date.now() + Math.random();
     currentTaskReminders.push({ id, time, message });
     renderReminderList();
 }
+window.addReminderItem = addReminderItem;
 
 function removeReminderItem(id) {
     currentTaskReminders = currentTaskReminders.filter(r => r.id !== id);
     renderReminderList();
 }
+window.removeReminderItem = removeReminderItem;
 
 function renderReminderList() {
     const list = document.getElementById('reminderList');
@@ -474,11 +500,13 @@ function renderReminderList() {
         </div>
     `).join('');
 }
+window.renderReminderList = renderReminderList;
 
 function updateReminderData(id, field, value) {
     const r = currentTaskReminders.find(x => x.id == id);
     if (r) r[field] = value;
 }
+window.updateReminderData = updateReminderData;
 
 function viewHistoryFromModal() {
     if (editingTaskId) {
@@ -487,141 +515,20 @@ function viewHistoryFromModal() {
         if (typeof renderTaskHistory === 'function') renderTaskHistory(id);
     }
 }
-
-    if (typeof render === 'function') render();
-    adRetryCount = 0;
-    if (adRetryTimeoutId) {
-        clearTimeout(adRetryTimeoutId);
-        adRetryTimeoutId = null;
-    }
-    if (type === 'coin') {
-        history.unshift({ id: Date.now(), type: 'coin_ad', text: getTranslation('history_coin_ad'), memo: "", completedAt: new Date().toISOString() });
-        if (history.length > 500) history.pop();
-        saveTasks();
-        showModal(getTranslation('msg_coin_earned', remaining), { hideCancel: true });
-        return;
-    }
-    if (pendingAction === 'backup') {
-        pendingAction = null;
-        if (typeof performBackup === 'function') performBackup();
-        return;
-    }
-    if (pendingAction === 'restore') {
-        pendingAction = null;
-        if (pendingRestoreData && pendingRestoreOptions) { if (typeof performRestore === 'function') performRestore(pendingRestoreData, pendingRestoreOptions); }
-        return;
-    }
-    showModal(getTranslation('msg_reward_earned'), { hideCancel: true });
-}
-
-function onAdFailed(type, errorCode, errorMessage) {
-    if (adRetryTimeoutId) {
-        clearTimeout(adRetryTimeoutId);
-        adRetryTimeoutId = null;
-    }
-
-    // 在庫切れ (No Fill: Code 3) の場合のみリトライを検討
-    if (errorCode === 3 && adRetryCount < 5) {
-        adRetryCount++;
-        const waitSec = Math.pow(2, adRetryCount); // 2, 4, 8, 16, 32
-        let remaining = waitSec;
-
-        const updateRetryModal = () => {
-            const msg = getTranslation('msg_ad_retrying', remaining, adRetryCount);
-            showModal(msg, {
-                useHTML: true,
-                confirmText: getTranslation('btn_stop_retry'),
-                onConfirm: () => {
-                    if (adRetryTimeoutId) clearTimeout(adRetryTimeoutId);
-                    adRetryTimeoutId = null;
-                    adRetryCount = 0;
-                    // 通常の失敗表示へ
-                    showNormalAdError(type, errorCode, errorMessage);
-                }
-            });
-        };
-
-        const tick = () => {
-            remaining--;
-            if (remaining <= 0) {
-                adRetryTimeoutId = null;
-                console.log("Retrying ad for type: " + type + " (Attempt " + adRetryCount + ")");
-                // 元のアクションを再実行
-                if (type === 'coin') {
-                    if (typeof Android !== 'undefined' && Android.showRewardedAdForCoin) {
-                        Android.showRewardedAdForCoin();
-                    }
-                } else {
-                    if (typeof Android !== 'undefined' && Android.showRewardedAd) {
-                        Android.showRewardedAd();
-                    }
-                }
-            } else {
-                updateRetryModal();
-                adRetryTimeoutId = setTimeout(tick, 1000);
-            }
-        };
-
-        updateRetryModal();
-        adRetryTimeoutId = setTimeout(tick, 1000);
-        return;
-    }
-
-    // 通常の失敗表示
-    showNormalAdError(type, errorCode, errorMessage);
-    adRetryCount = 0; // 他のエラー時はリセット
-}
-
-function showNormalAdError(type, errorCode, errorMessage) {
-    let detail = "";
-    if (errorCode !== undefined) {
-        detail = getTranslation('ad_error_' + errorCode);
-        if (detail === 'ad_error_' + errorCode) {
-            detail = errorMessage || ("Error Code: " + errorCode);
-        }
-    }
-
-    const msg = getTranslation('msg_ad_fail') + (detail ? "\n\n理由: " + detail : "");
-
-    showModal(msg, {
-        hideCancel: true,
-        onConfirm: () => {
-            if (type === 'limit') {
-                if (pendingAction === 'restore' && pendingRestoreData) requestPaymentAndRestore(pendingRestoreData, pendingRestoreOptions);
-                else if (pendingAction === 'backup') exportData();
-            } else if (type === 'coin') earnCoinReward();
-        }
-    });
-}
-
-function onAdLoading(type) {
-    showModal(getTranslation('msg_ad_loading'), {
-        hideCancel: true,
-        confirmText: getTranslation('btn_close')
-    });
-}
-
-function unlockPremium() {
-    showModal(getTranslation('msg_input_code'), {
-        showInput: true,
-        onConfirm: (code) => {
-            if (typeof Android !== 'undefined' && Android.submitUnlockCode) {
-                if (!Android.submitUnlockCode(code)) showModal(getTranslation('msg_invalid_code'), { hideCancel: true });
-            }
-        }
-    });
-}
+window.viewHistoryFromModal = viewHistoryFromModal;
 
 function toggleEditMode() {
     isEditMode = !isEditMode;
     if (typeof render === 'function') render();
 }
+window.toggleEditMode = toggleEditMode;
 
 function handleTouchStart(e) {
     if (!isEditMode || !e.target.classList.contains('drag-handle')) return;
     draggingElement = e.target.closest('.task-item');
     if (draggingElement) { draggingElement.classList.add('dragging'); if (e.cancelable) e.preventDefault(); }
 }
+window.handleTouchStart = handleTouchStart;
 
 function handleTouchMove(e) {
     if (!draggingElement) return;
@@ -639,6 +546,7 @@ function handleTouchMove(e) {
     else list.insertBefore(draggingElement, nextElement);
     if (e.cancelable) e.preventDefault();
 }
+window.handleTouchMove = handleTouchMove;
 
 function handleTouchEnd(e) {
     if (draggingElement) {
@@ -656,12 +564,14 @@ function handleTouchEnd(e) {
     }
     draggingElement = null;
 }
+window.handleTouchEnd = handleTouchEnd;
 
 function toggleMelodyTest() {
     console.log("toggleMelodyTest: isMelodyTesting=" + isMelodyTesting);
     if (isMelodyTesting) stopMelodyTest();
     else playMelodyTest();
 }
+window.toggleMelodyTest = toggleMelodyTest;
 
 function playMelodyTest() {
     const melodySelect = document.getElementById('melodySelect');
@@ -683,6 +593,7 @@ function playMelodyTest() {
         btn.classList.replace('btn-secondary', 'btn-danger');
     }
 }
+window.playMelodyTest = playMelodyTest;
 
 function stopMelodyTest() {
     console.log("stopMelodyTest");
@@ -694,3 +605,4 @@ function stopMelodyTest() {
         btn.classList.replace('btn-danger', 'btn-secondary');
     }
 }
+window.stopMelodyTest = stopMelodyTest;

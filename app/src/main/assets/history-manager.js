@@ -262,6 +262,7 @@ function editHistoryMemo(historyId, isInitial = false, taskId = null) {
         });
     }
 }
+window.editHistoryMemo = editHistoryMemo;
 
 function clearHistory() {
     if (typeof showModal === 'function') {
