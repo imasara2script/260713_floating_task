@@ -109,27 +109,7 @@
 
                     <!-- 2. システム権限関係 -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <div style="font-size: 13px; font-weight: bold; margin-bottom: 12px;" data-i18n="label_system_permissions">⚙️ システム権限関係</div>
-
-                        <div style="margin-bottom: 12px;">
-                            <div id="battery-status-text" style="font-size: 13px; margin-bottom: 8px;" data-i18n="battery_status_checking">🔋 バッテリー最適化の状態を確認中...</div>
-                            <button id="btn-request-battery" class="btn btn-secondary" onclick="requestBatteryExemption()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_battery">バッテリー最適化を解除する</button>
-                        </div>
-
-                        <div style="border-top: 1px solid #f9f9f9; padding-top: 8px; margin-bottom: 12px;">
-                            <div id="overlay-status-text" style="font-size: 13px; margin-bottom: 8px;" data-i18n="overlay_status_checking">🔲 重ねて表示権限の状態を確認中...</div>
-                            <button id="btn-request-overlay" class="btn btn-secondary" onclick="requestOverlayPermission()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_overlay">重ねて表示を許可する</button>
-                        </div>
-
-                        <div style="border-top: 1px solid #f9f9f9; padding-top: 8px; margin-bottom: 12px;">
-                            <div id="notification-status-text" style="font-size: 13px; margin-bottom: 8px;" data-i18n="notification_status_checking">🔔 通知権限の状態を確認中...</div>
-                            <button id="btn-request-notification" class="btn btn-secondary" onclick="requestNotificationPermission()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_notification">通知を許可する</button>
-                        </div>
-
-                        <div style="border-top: 1px solid #f9f9f9; padding-top: 8px;">
-                            <div id="alarmStatus" style="font-size: 13px; margin-bottom: 8px;" data-i18n="alarm_status_checking">⏰ アラーム権限の状態を確認中...</div>
-                            <button id="btn-request-alarm" class="btn btn-secondary" onclick="Android.openExactAlarmSettings()" style="width: 100%; font-size: 14px; display: none;" data-i18n="btn_request_alarm">アラーム権限を許可する</button>
-                        </div>
+                        <button class="btn btn-primary" style="width: 100%;" onclick="openPermissionsScreen()" data-i18n="label_system_permissions">⚙️ システム権限関係</button>
                     </div>
 
                     <!-- 3. フローティングウィンドウの設定 -->

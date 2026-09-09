@@ -246,12 +246,18 @@ function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggl
 
 function initializeApp() {
     try {
-        if (localStorage.getItem('floatX') === null) {
-            if (typeof resetFloatingSettings === 'function') resetFloatingSettings();
+        if (typeof resetFloatingSettings === 'function') {
+            if (localStorage.getItem('floatX') === null) resetFloatingSettings();
         }
 
         setViewMode(mode);
         applyLanguage();
+
+        // URLパラメータによる初期タブの指定
+        const initialTab = urlParams.get('tab');
+        if (initialTab === 'settings') {
+            switchTab('settings');
+        }
 
         if (localStorage.getItem('appLanguage') === null) {
             const langModal = document.getElementById('languageModal');

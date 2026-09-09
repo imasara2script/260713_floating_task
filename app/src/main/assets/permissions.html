@@ -242,7 +242,10 @@
 </head>
 <body>
     <div id="main-container" class="container">
-        <h1 data-i18n="permissions_title">アプリの利用準備</h1>
+        <div id="main-header" style="display: flex; align-items: center; margin-bottom: 12px; justify-content: center; position: relative;">
+            <button id="btn-main-back" onclick="location.href='index.html?tab=settings'" style="display: none; position: absolute; left: 0; background: none; border: none; font-size: 20px; cursor: pointer;">←</button>
+            <h1 id="main-title" style="margin: 0;" data-i18n="permissions_title">アプリの利用準備</h1>
+        </div>
         <p class="desc" data-i18n="permissions_desc">このアプリを正常に動作させるために、以下の設定が必要です。</p>
 
         <!-- 言語選択 -->
@@ -446,6 +449,9 @@
         function updateAllStatus() {
             if (typeof Android === 'undefined') return;
 
+            const urlParams = new URLSearchParams(window.location.search);
+            const isFromSettings = urlParams.get('from') === 'settings';
+
             const overlay = Android.checkOverlayPermissionGranted();
             const notification = Android.checkNotificationPermissionGranted();
             const alarm = Android.checkExactAlarmPermission();
@@ -456,11 +462,16 @@
             updateItemStatus('alarm', alarm);
             updateItemStatus('battery', battery);
 
+            const startBtn = document.getElementById('btn-start-app');
             if (overlay && notification && alarm && battery) {
-                document.getElementById('btn-start-app').style.display = 'block';
+                startBtn.style.display = 'block';
+                if (isFromSettings) {
+                    startBtn.textContent = getTranslation('btn_back_to_settings');
+                    startBtn.onclick = () => { location.href = 'index.html?tab=settings'; };
+                }
                 if (currentDetailType) hideDetail();
             } else {
-                document.getElementById('btn-start-app').style.display = 'none';
+                startBtn.style.display = 'none';
                 // 現在表示中の詳細項目が許可されたら自動で閉じる
                 if (currentDetailType === 'overlay' && overlay) hideDetail();
                 if (currentDetailType === 'notification' && notification) hideDetail();
@@ -493,6 +504,11 @@
             applyLanguage();
             updateAllStatus();
             updateLangButtons();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('from') === 'settings') {
+                document.getElementById('btn-main-back').style.display = 'block';
+            }
         });
 
         function refreshData() {

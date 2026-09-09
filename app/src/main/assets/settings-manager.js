@@ -50,6 +50,11 @@ function openNewTaskSettings() {
 }
 window.openNewTaskSettings = openNewTaskSettings;
 
+function openPermissionsScreen() {
+    location.href = 'permissions.html?from=settings';
+}
+window.openPermissionsScreen = openPermissionsScreen;
+
 function closeNewTaskSettings() {
     const mainView = document.getElementById('settings-main-view');
     const detailView = document.getElementById('settings-new-task-detail');

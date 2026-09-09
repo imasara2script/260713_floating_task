@@ -365,6 +365,11 @@ class FloatingWindowService : Service() {
 
         if (floatingView != null) {
             floatingView?.visibility = View.VISIBLE
+            // 表示切替時に最新のサイズ設定を適用し、内部状態(JS)も同期させる
+            updateWindowSize(isExpanded)
+            val webView: WebView = floatingView!!.findViewById(R.id.floatingWebView)
+            webView.evaluateJavascript("toggleFloatingExpand($isExpanded, true);", null)
+            
             getSharedPreferences("prefs", MODE_PRIVATE).edit().putBoolean("isFloatingVisible", true).apply()
             return
         }
@@ -659,6 +664,14 @@ class FloatingWindowService : Service() {
             val handler = Handler(Looper.getMainLooper())
             handler.post {
                 try {
+                    // ホームへ戻る際は、次回表示のために縮小状態にリセットする
+                    isExpanded = false
+                    updateWindowSize(false)
+                    floatingView?.let { v ->
+                        val webView: WebView = v.findViewById(R.id.floatingWebView)
+                        webView.evaluateJavascript("toggleFloatingExpand(false, true);", null)
+                    }
+
                     // ランチャーから起動した際と同じ挙動にするため、getLaunchIntentForPackage を使用
                     val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -766,6 +779,9 @@ class FloatingWindowService : Service() {
         fun closeService() {
             val handler = Handler(Looper.getMainLooper())
             handler.post {
+                // 閉じる際も、次回表示のために縮小状態にリセットする
+                isExpanded = false
+                
                 val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
                 val intervalMinutes = prefs.getInt("recheckInterval", 0)
                 AppLogger.log(this@FloatingWindowService, "FloatingWindowService: JS closeService called. intervalMinutes=$intervalMinutes")
