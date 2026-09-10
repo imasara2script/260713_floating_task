@@ -283,6 +283,7 @@ function checkDailyReset() {
     const today = new Date().toDateString();
 
     if (lastReset !== today) {
+        const keepDuration = (localStorage.getItem('keepDurationTaskOnReset') !== 'false');
         const todayObj = new Date();
         const todayDay = todayObj.getDay(); // 0 (Sun) to 6 (Sat)
         tasks = tasks.map(t => {
@@ -305,6 +306,11 @@ function checkDailyReset() {
             } else {
                 // 既存の曜日指定ロジック
                 shouldReset = !t.selectedDays || t.selectedDays.length === 0 || t.selectedDays.includes(todayDay);
+
+                // 経過時間タイプのリセット除外設定
+                if (shouldReset && t.type === 'duration' && keepDuration) {
+                    shouldReset = false;
+                }
             }
 
             if (!shouldReset) return t;

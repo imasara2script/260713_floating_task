@@ -211,10 +211,17 @@
                             </label>
                         </div>
 
-                        <div>
+                        <div style="margin-bottom: 8px;">
                             <label style="display: flex; align-items: center; cursor: pointer;">
                                 <input type="checkbox" id="showHyperlinkOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
                                 <span data-i18n="label_hyperlinks">ハイパーリンク</span>
+                            </label>
+                        </div>
+
+                        <div>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="keepDurationTaskOnReset" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
+                                <span data-i18n="label_keep_duration_on_reset">経過時間タイプはAM0時にチェックを解除しない</span>
                             </label>
                         </div>
 

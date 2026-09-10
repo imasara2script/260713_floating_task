@@ -113,6 +113,7 @@ function loadNewTaskSettings() {
     const showComment = localStorage.getItem('showCommentOnCreate') === 'true';
     const showNote = localStorage.getItem('showNoteOnCreate') === 'true';
     const showHyperlink = localStorage.getItem('showHyperlinkOnCreate') === 'true';
+    const keepDuration = (localStorage.getItem('keepDurationTaskOnReset') !== 'false');
 
     const chkTimer = document.getElementById('showTimerOnCreate');
     const chkRemind = document.getElementById('showRemindOnCreate');
@@ -120,6 +121,7 @@ function loadNewTaskSettings() {
     const chkComment = document.getElementById('showCommentOnCreate');
     const chkNote = document.getElementById('showNoteOnCreate');
     const chkHyperlink = document.getElementById('showHyperlinkOnCreate');
+    const chkKeepDuration = document.getElementById('keepDurationTaskOnReset');
 
     if (chkTimer) chkTimer.checked = showTimer;
     if (chkRemind) chkRemind.checked = showRemind;
@@ -127,6 +129,7 @@ function loadNewTaskSettings() {
     if (chkComment) chkComment.checked = showComment;
     if (chkNote) chkNote.checked = showNote;
     if (chkHyperlink) chkHyperlink.checked = showHyperlink;
+    if (chkKeepDuration) chkKeepDuration.checked = keepDuration;
 }
 window.loadNewTaskSettings = loadNewTaskSettings;
 
@@ -137,6 +140,7 @@ function updateNewTaskSettings() {
     const chkComment = document.getElementById('showCommentOnCreate');
     const chkNote = document.getElementById('showNoteOnCreate');
     const chkHyperlink = document.getElementById('showHyperlinkOnCreate');
+    const chkKeepDuration = document.getElementById('keepDurationTaskOnReset');
 
     const showTimer = chkTimer ? chkTimer.checked : false;
     const showRemind = chkRemind ? chkRemind.checked : false;
@@ -144,6 +148,7 @@ function updateNewTaskSettings() {
     const showComment = chkComment ? chkComment.checked : false;
     const showNote = chkNote ? chkNote.checked : false;
     const showHyperlink = chkHyperlink ? chkHyperlink.checked : false;
+    const keepDuration = chkKeepDuration ? chkKeepDuration.checked : true;
 
     localStorage.setItem('showTimerOnCreate', showTimer);
     localStorage.setItem('showRemindOnCreate', showRemind);
@@ -151,6 +156,7 @@ function updateNewTaskSettings() {
     localStorage.setItem('showCommentOnCreate', showComment);
     localStorage.setItem('showNoteOnCreate', showNote);
     localStorage.setItem('showHyperlinkOnCreate', showHyperlink);
+    localStorage.setItem('keepDurationTaskOnReset', keepDuration);
 }
 window.updateNewTaskSettings = updateNewTaskSettings;
 
