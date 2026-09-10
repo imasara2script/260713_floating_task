@@ -129,76 +129,7 @@
                     </div>
                 </div>
 
-                <!-- タスクの設定詳細画面 -->
-                <div id="settings-new-task-detail" style="display: none; font-size: 14px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h3 style="font-size: 15px; margin: 0;" data-i18n="new_task_settings_title">タスク</h3>
-                        <button class="btn btn-secondary" style="padding: 4px 12px; font-size: 12px;" onclick="closeNewTaskSettings()" data-i18n="btn_done">完了</button>
-                    </div>
-
-                    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #fff;">
-                        <div style="font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 4px;" data-i18n="label_new_task_items">新規タスク追加時に表示する項目</div>
-
-                        <div style="margin-bottom: 8px;">
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" id="showTimerOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
-                                <span data-i18n="label_timer_setting">タイマー</span>
-                            </label>
-                        </div>
-
-                        <div style="margin-bottom: 8px;">
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" id="showRemindOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
-                                <span data-i18n="label_remind_setting">リマインド通知</span>
-                            </label>
-                        </div>
-
-                        <div style="margin-bottom: 8px;">
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" id="showDaysOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
-                                <span data-i18n="label_reset_days">曜日</span>
-                            </label>
-                        </div>
-
-                        <div style="margin-bottom: 8px;">
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" id="showCommentOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
-                                <span data-i18n="label_show_comment_on_check">チェックを入れた時にコメント記入欄を表示</span>
-                            </label>
-                        </div>
-
-                        <div style="margin-bottom: 8px;">
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" id="showNoteOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
-                                <span data-i18n="label_note">補足文章</span>
-                            </label>
-                        </div>
-
-                        <div style="margin-bottom: 8px;">
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" id="showHyperlinkOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
-                                <span data-i18n="label_hyperlinks">ハイパーリンク</span>
-                            </label>
-                        </div>
-
-                        <div>
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" id="keepDurationTaskOnReset" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
-                                <span data-i18n="label_keep_duration_on_reset">経過時間タイプはAM0時にチェックを解除しない</span>
-                            </label>
-                        </div>
-
-                        <!-- チェック後のリスト更新ディレイ -->
-                        <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                            <label for="checkedHideDelay" style="display: block; margin-bottom: 8px; font-weight: bold;" data-i18n="label_checked_hide_delay">チェック後にリストを更新するまでの秒数:</label>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
-                                <input type="number" id="checkedHideDelay" min="0" max="60" onchange="saveFloatingSettings()" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center; background: #fff;">
-                                <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <!-- 9. 開発者用 -->
 
                 <!-- フローティングウィンドウ詳細設定画面 -->
                 <div id="settings-floating-detail" style="display: none; font-size: 14px;">

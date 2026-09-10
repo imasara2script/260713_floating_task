@@ -25,9 +25,9 @@ class WebSettingsHandler(
         showCheckedToggle: Boolean, scrollButtonType: String,
         allowDrag: Boolean, allowDragCollapsed: Boolean,
         showHistoryButton: Boolean, navType: String, keepService: Boolean,
-        menuActionDelay: Int
+        menuActionDelay: Int, checkedHideDelay: Int
     ) {
-        android.util.Log.d("WebSettingsHandler", "updateFloatingSettingsExtended: menuActionDelay=$menuActionDelay")
+        android.util.Log.d("WebSettingsHandler", "updateFloatingSettingsExtended: menuActionDelay=$menuActionDelay, checkedHideDelay=$checkedHideDelay")
         val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         prefs.edit {
             putInt("floatCollapsedX", cX)
@@ -50,6 +50,7 @@ class WebSettingsHandler(
             putBoolean("showHistoryButton", showHistoryButton)
             putString("navType", navType)
             putInt("menuActionDelay", menuActionDelay)
+            putInt("checkedHideDelay", checkedHideDelay)
             putBoolean("allowDrag", allowDrag)
             putString("scrollButtonType", scrollButtonType)
             putInt("displayTaskCount", displayTaskCount)
@@ -62,7 +63,10 @@ class WebSettingsHandler(
         }.let { 
             // KTX edit has no commit parameter in this version? 
             // Let's use the standard API for a guaranteed sync save.
-            prefs.edit().putInt("menuActionDelay", menuActionDelay).commit()
+            prefs.edit()
+                .putInt("menuActionDelay", menuActionDelay)
+                .putInt("checkedHideDelay", checkedHideDelay)
+                .commit()
         }
         // サービスが実行中なら更新を通知
         val intent = Intent(context, FloatingWindowService::class.java)

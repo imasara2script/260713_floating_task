@@ -556,7 +556,7 @@ class MainActivity : AppCompatActivity(),
             showCheckedToggle: Boolean, scrollButtonType: String,
             allowDrag: Boolean, allowDragCollapsed: Boolean,
             showHistoryButton: Boolean, navType: String, keepService: Boolean,
-            menuActionDelay: Int
+            menuActionDelay: Int, checkedHideDelay: Int
         ) = settingsHandler.updateFloatingSettingsExtended(
             cX, cY, cScale, showEmpty, moveC,
             eX, eY, eScale, moveE,
@@ -565,7 +565,7 @@ class MainActivity : AppCompatActivity(),
             showCheckedToggle, scrollButtonType,
             allowDrag, allowDragCollapsed,
             showHistoryButton, navType, keepService,
-            menuActionDelay
+            menuActionDelay, checkedHideDelay
         )
 
         @JavascriptInterface

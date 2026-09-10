@@ -227,7 +227,7 @@ function onFloatingPositionChanged(x, y, expanded) {
     localStorage.setItem('floatY', y);
 }
 
-function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragCollapsed, showHistoryButton, navType, widthPx, heightPx, showCloseButtonExpanded, keepServiceOnClose) {
+function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragCollapsed, showHistoryButton, navType, widthPx, heightPx, showCloseButtonExpanded, keepServiceOnClose, menuActionDelay, hDelay) {
     if (mode === 'floating') {
         updateScale(scale);
         if (isFloatingExpanded !== expanded) {
@@ -249,6 +249,12 @@ function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggl
         if (navType !== undefined) localStorage.setItem('navType', navType);
         if (showCloseButtonExpanded !== undefined) localStorage.setItem('showCloseButtonExpanded', showCloseButtonExpanded);
         if (keepServiceOnClose !== undefined) localStorage.setItem('keepServiceOnClose', keepServiceOnClose);
+
+        if (menuActionDelay !== undefined) localStorage.setItem('menuActionDelay', menuActionDelay);
+        if (hDelay !== undefined) {
+            checkedHideDelay = parseInt(hDelay);
+            localStorage.setItem('checkedHideDelay', hDelay);
+        }
 
         if (typeof refreshData === 'function') refreshData();
     }

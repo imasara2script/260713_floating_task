@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Task - Task Settings</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="translations.js"></script>
+    <script src="app.js"></script>
+    <script src="ui-core.js"></script>
+    <script src="modal-manager.js"></script>
+    <script src="system-handler.js"></script>
+    <script src="settings-manager.js"></script>
+    <style>
+        html, body {
+            overflow: auto !important;
+            height: auto !important;
+        }
+        body {
+            background-color: #f8f9fa;
+            padding: 20px 20px 40px 20px;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            color: #333;
+            margin: 0;
+            overflow-x: hidden;
+            display: block;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 20px;
+            margin: 0;
+            text-align: center;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+            justify-content: center;
+            position: relative;
+        }
+        .btn-back {
+            position: absolute;
+            left: 0;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 12px;
+            color: #555;
+            border-left: 4px solid #007bff;
+            padding-left: 8px;
+        }
+        .settings-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .setting-item {
+            margin-bottom: 12px;
+        }
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+        label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="btn-back" onclick="goBack()">←</button>
+            <h1 data-i18n="new_task_settings_title">タスク</h1>
+        </div>
+
+        <div class="section-title" data-i18n="label_new_task_items">追加・編集時に表示する項目</div>
+        <div class="settings-card">
+            <div class="setting-item">
+                <label>
+                    <input type="checkbox" id="showTimerOnCreate" onchange="updateNewTaskSettings()">
+                    <span data-i18n="label_timer_setting">タイマー</span>
+                </label>
+            </div>
+            <div class="setting-item">
+                <label>
+                    <input type="checkbox" id="showRemindOnCreate" onchange="updateNewTaskSettings()">
+                    <span data-i18n="label_remind_setting">リマインド通知</span>
+                </label>
+            </div>
+            <div class="setting-item">
+                <label>
+                    <input type="checkbox" id="showDaysOnCreate" onchange="updateNewTaskSettings()">
+                    <span data-i18n="label_reset_days">曜日</span>
+                </label>
+            </div>
+            <div class="setting-item">
+                <label>
+                    <input type="checkbox" id="showCommentOnCreate" onchange="updateNewTaskSettings()">
+                    <span data-i18n="label_show_comment_on_check">チェックを入れた時にコメント記入欄を表示</span>
+                </label>
+            </div>
+            <div class="setting-item">
+                <label>
+                    <input type="checkbox" id="showNoteOnCreate" onchange="updateNewTaskSettings()">
+                    <span data-i18n="label_note">補足文章</span>
+                </label>
+            </div>
+            <div class="setting-item">
+                <label>
+                    <input type="checkbox" id="showHyperlinkOnCreate" onchange="updateNewTaskSettings()">
+                    <span data-i18n="label_hyperlinks">ハイパーリンク</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="section-title">リセット・更新設定</div>
+        <div class="settings-card">
+            <div class="setting-item" style="margin-bottom: 20px;">
+                <label>
+                    <input type="checkbox" id="keepDurationTaskOnReset" onchange="updateNewTaskSettings()">
+                    <span data-i18n="label_keep_duration_on_reset">経過時間タイプはAM0時にチェックを解除しない</span>
+                </label>
+            </div>
+
+            <div style="border-top: 1px solid #eee; padding-top: 16px;">
+                <label for="checkedHideDelay" style="display: block; margin-bottom: 8px; font-weight: bold;" data-i18n="label_checked_hide_delay">チェック後にリストを更新するまでの秒数:</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(-1)" style="padding: 10px 16px; font-weight: bold;">-</button>
+                    <input type="number" id="checkedHideDelay" min="0" max="60" onchange="saveFloatingSettings()" style="flex-grow: 1; padding: 12px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center; font-size: 16px; font-weight: bold;">
+                    <button class="btn btn-secondary" onclick="adjustCheckedHideDelay(1)" style="padding: 10px 16px; font-weight: bold;">+</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function goBack() {
+            location.href = 'index.html?tab=settings';
+        }
+
+        // Android のバックボタン対応
+        function handleBack() {
+            goBack();
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applyLanguage();
+            if (typeof loadNewTaskSettings === 'function') loadNewTaskSettings();
+
+            // loadFloatingSettings を呼んで checkedHideDelay などの数値を反映させる
+            const hDelay = localStorage.getItem('checkedHideDelay') || '2';
+            const elHDelay = document.getElementById('checkedHideDelay');
+            if (elHDelay) elHDelay.value = hDelay;
+        });
+    </script>
+</body>
+</html>

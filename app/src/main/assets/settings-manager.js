@@ -85,11 +85,7 @@ function closeFloatingSettings() {
 window.closeFloatingSettings = closeFloatingSettings;
 
 function openNewTaskSettings() {
-    const mainView = document.getElementById('settings-main-view');
-    const detailView = document.getElementById('settings-new-task-detail');
-    if (mainView) mainView.style.display = 'none';
-    if (detailView) detailView.style.display = 'block';
-    if (typeof loadNewTaskSettings === 'function') loadNewTaskSettings();
+    location.href = 'task-settings.html';
 }
 window.openNewTaskSettings = openNewTaskSettings;
 
@@ -108,13 +104,6 @@ function openRewardsScreen() {
 }
 window.openRewardsScreen = openRewardsScreen;
 
-function closeNewTaskSettings() {
-    const mainView = document.getElementById('settings-main-view');
-    const detailView = document.getElementById('settings-new-task-detail');
-    if (mainView) mainView.style.display = 'block';
-    if (detailView) detailView.style.display = 'none';
-}
-window.closeNewTaskSettings = closeNewTaskSettings;
 
 function loadNewTaskSettings() {
     const showTimer = localStorage.getItem('showTimerOnCreate') === 'true';
@@ -371,7 +360,7 @@ function adjustCheckedHideDelay(delta) {
     let val = parseInt(input.value) || 0;
     val = Math.max(0, Math.min(60, val + delta));
     input.value = val;
-    saveFloatingSettings('expanded');
+    saveFloatingSettings('expanded', true);
 }
 window.adjustCheckedHideDelay = adjustCheckedHideDelay;
 
@@ -520,7 +509,7 @@ function saveFloatingSettings(targetMode, skipStartWindow = false) {
                 eX, eY, eScale, moveE,
                 width, height, showClose,
                 dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragC,
-                showHistoryButton, navType, keepService, menuActionDelay
+                showHistoryButton, navType, keepService, menuActionDelay, hDelay
             );
         } else if (Android.updateFloatingSettings) {
             const eX = parseInt(localStorage.getItem('floatExpandedX') || "100");

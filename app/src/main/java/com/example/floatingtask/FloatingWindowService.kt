@@ -162,13 +162,14 @@ class FloatingWindowService : Service() {
             val showCloseButtonExpanded = prefs.getBoolean("showCloseButtonExpanded", false)
             val keepServiceOnClose = prefs.getBoolean("keepServiceOnClose", false)
             val menuActionDelay = prefs.getInt("menuActionDelay", 0)
+            val checkedHideDelay = prefs.getInt("checkedHideDelay", 2)
             val navType = prefs.getString("navType", "button") ?: "button"
             val scrollButtonType = prefs.getString("scrollButtonType", "both") ?: "both"
             val allowDrag = prefs.getBoolean("allowDrag", true)
             val allowDragCollapsed = prefs.getBoolean("allowDragCollapsed", true)
             
             val webView: WebView = view.findViewById(R.id.floatingWebView)
-            webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount, $showCheckedToggle, '$scrollButtonType', $allowDrag, $allowDragCollapsed, $showHistoryButton, '$navType', $floatWidth, $floatHeight, $showCloseButtonExpanded, $keepServiceOnClose, $menuActionDelay);", null)
+            webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount, $showCheckedToggle, '$scrollButtonType', $allowDrag, $allowDragCollapsed, $showHistoryButton, '$navType', $floatWidth, $floatHeight, $showCloseButtonExpanded, $keepServiceOnClose, $menuActionDelay, $checkedHideDelay);", null)
         }
     }
 
@@ -295,6 +296,7 @@ class FloatingWindowService : Service() {
             val showCloseButtonExpanded = prefs.getBoolean("showCloseButtonExpanded", false)
             val keepServiceOnClose = prefs.getBoolean("keepServiceOnClose", false)
             val menuActionDelay = prefs.getInt("menuActionDelay", 0)
+            val checkedHideDelay = prefs.getInt("checkedHideDelay", 2)
             val navType = prefs.getString("navType", "button") ?: "button"
             
             // WebView側 (index.html) の計算と一致させる
