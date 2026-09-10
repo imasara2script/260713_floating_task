@@ -53,8 +53,6 @@ function showModal(title, options = {}) {
         const onConfirm = options.onConfirm;
         const previousContent = titleEl.innerHTML;
         const result = onConfirm ? onConfirm(val) : undefined;
-        // コールバックが明示的に false を返した場合は、モーダルを閉じない
-        // また、コールバック実行中に showModal が呼ばれて innerHTML が変わった場合も閉じない
         if (result !== false && titleEl.innerHTML === previousContent) {
             closeModal();
         }
@@ -131,7 +129,6 @@ function openTaskModal(taskId = null) {
                 if (typeof Android !== 'undefined' && Android.showRewardedAd) {
                     const isReady = Android.isRewardedAdReady ? Android.isRewardedAdReady() : false;
                     Android.showRewardedAd();
-                    // 広告が準備できていない場合は、自動クローズを防止して「読み込み中」メッセージの表示を待つ
                     return isReady;
                 }
             }
@@ -144,35 +141,54 @@ function openTaskModal(taskId = null) {
     const historyBtn = document.getElementById('modalHistoryBtn');
     const deleteBtn = document.getElementById('modalDeleteBtn');
     const editBtn = document.getElementById('modalEditBtn');
-    tempVisibilityFlags = { timer: false, remind: false, comment: false, days: false, note: false };
+
+    // 全てのリセット
+    tempVisibilityFlags = { timer: false, remind: false, comment: false, days: false, note: false, hyperlink: false };
+    currentTaskReminders = [];
+    currentTaskLinks = [];
+
     if (taskId) {
         const task = tasks.find(t => t.id === taskId);
         if (!task) return;
+
         if (historyBtn) historyBtn.style.display = task.durationMs ? 'none' : 'block';
         if (deleteBtn) deleteBtn.style.display = 'block';
         if (titleEl) titleEl.textContent = getTranslation('task_modal_detail');
         if (confirmBtn) confirmBtn.textContent = getTranslation('btn_save');
+
         const taskInput = document.getElementById('taskInput');
         const taskNote = document.getElementById('taskNote');
         const showCommentOnCheck = document.getElementById('showCommentOnCheck');
         if (taskInput) taskInput.value = task.text;
         if (taskNote) taskNote.value = task.note || '';
         if (showCommentOnCheck) showCommentOnCheck.checked = !!task.showCommentOnCheck;
+
         document.querySelectorAll('.reset-day-check').forEach(el => el.checked = false);
         if (task.selectedDays) task.selectedDays.forEach(day => {
             const cb = document.querySelector(`.reset-day-check[value="${day}"]`);
             if (cb) cb.checked = true;
         });
+
+        // データの読み込み
         currentTaskReminders = (task.reminders || []).map(r => ({ ...r, id: Math.random() }));
+        currentTaskLinks = (task.links || []).map(l => ({ ...l, id: Math.random() }));
+
+        // 表示の更新
         if (typeof renderReminderList === 'function') renderReminderList();
+        if (typeof renderHyperlinkList === 'function') renderHyperlinkList();
         updateTaskModalVisibility(task);
+
         const viewTaskText = document.getElementById('viewTaskText');
         const viewTaskNote = document.getElementById('viewTaskNote');
         const viewTaskReminders = document.getElementById('viewTaskReminders');
         const viewTaskDays = document.getElementById('viewTaskDays');
         const viewTaskTimer = document.getElementById('viewTaskTimer');
+        const viewTaskLinks = document.getElementById('viewTaskLinks');
+
         if (viewTaskText) viewTaskText.textContent = task.text;
         if (viewTaskNote) viewTaskNote.textContent = task.note || getTranslation('none');
+
+        // 詳細画面のリマインド表示
         if (viewTaskReminders) {
             if (task.reminders && task.reminders.length > 0) {
                 const reminderText = task.reminders.map(r => `⏰ ${r.time}${r.message ? ` (${r.message})` : ''}`).join('\n');
@@ -180,6 +196,8 @@ function openTaskModal(taskId = null) {
                 viewTaskReminders.style.display = 'block';
             } else viewTaskReminders.style.display = 'none';
         }
+
+        // 詳細画面の曜日表示
         if (viewTaskDays) {
             if (task.selectedDays && task.selectedDays.length > 0) {
                 const daysText = (typeof getTaskDaysText === 'function') ? getTaskDaysText(task) : '';
@@ -187,6 +205,8 @@ function openTaskModal(taskId = null) {
                 viewTaskDays.style.display = 'block';
             } else viewTaskDays.style.display = 'none';
         }
+
+        // 詳細画面のタイマー表示
         if (task.durationMs) {
             const timerUnit = document.getElementById('timerUnit');
             const timeValue = document.getElementById('timeValue');
@@ -214,7 +234,7 @@ function openTaskModal(taskId = null) {
                 if (select) select.value = 'custom';
                 selectedCustomUri = melody;
                 selectedCustomName = task.melodyName || getTranslation('none');
-                if (nameEl) { nameEl.textContent = getTranslation('melody_selected', selectedCustomName); nameEl.style.display = 'block'; }
+                if (nameEl) { nameEl.textContent = '選択中: ' + selectedCustomName; nameEl.style.display = 'block'; }
             } else {
                 if (select) select.value = melody;
                 selectedCustomUri = null; selectedCustomName = null;
@@ -234,6 +254,16 @@ function openTaskModal(taskId = null) {
             if (melodySelect) melodySelect.value = 'default';
             if (viewTaskTimer) viewTaskTimer.style.display = 'none';
         }
+
+        // 詳細画面のリンク表示
+        if (viewTaskLinks) {
+            if (task.links && task.links.length > 0) {
+                const linksHtml = task.links.map(l => `<div style="margin-bottom: 8px;"><button onclick="openExternalUrl('${l.url}')" style="background: none; border: none; padding: 0; color: #007bff; text-decoration: underline; font-weight: bold; cursor: pointer; text-align: left; font-size: inherit; font-family: inherit; word-break: break-all;">${l.text || l.url}</button></div>`).join('');
+                viewTaskLinks.innerHTML = `<div style="font-weight:bold; margin-bottom:4px;">${getTranslation('label_hyperlinks')}</div>${linksHtml}`;
+                viewTaskLinks.style.display = 'block';
+            } else viewTaskLinks.style.display = 'none';
+        }
+
         switchToViewMode();
     } else {
         if (titleEl) titleEl.textContent = getTranslation('task_modal_add');
@@ -254,8 +284,10 @@ function openTaskModal(taskId = null) {
         document.querySelectorAll('.reset-day-check').forEach(el => el.checked = false);
         currentDuration = { h: "0", m: "0", s: "0" };
         if (durationBtn) durationBtn.textContent = getTranslation('btn_set_duration');
-        currentTaskReminders = [];
+
         if (typeof renderReminderList === 'function') renderReminderList();
+        if (typeof renderHyperlinkList === 'function') renderHyperlinkList();
+
         if (historyBtn) historyBtn.style.display = 'none';
         if (deleteBtn) deleteBtn.style.display = 'none';
         if (editBtn) editBtn.style.display = 'none';
@@ -269,6 +301,15 @@ function openTaskModal(taskId = null) {
         modal.onclick = (e) => { if (e.target === modal) closeTaskModal(); };
     }
 }
+
+function openExternalUrl(url) {
+    if (typeof Android !== 'undefined' && Android.openExternalUrl) {
+        Android.openExternalUrl(url);
+    } else {
+        window.open(url, '_blank');
+    }
+}
+window.openExternalUrl = openExternalUrl;
 
 function closeTaskModal() {
     if (isMelodyTesting) { if (typeof stopMelodyTest === 'function') stopMelodyTest(); }
@@ -289,25 +330,36 @@ function updateTaskModalVisibility(task = null) {
     const showDaysSetting = localStorage.getItem('showDaysOnCreate') === 'true';
     const showCommentSetting = localStorage.getItem('showCommentOnCreate') === 'true';
     const showNoteSetting = localStorage.getItem('showNoteOnCreate') === 'true';
+    const showHyperlinkSetting = localStorage.getItem('showHyperlinkOnCreate') === 'true';
+
     const hasTimer = task ? !!task.durationMs : false;
     const hasReminders = task ? (task.reminders && task.reminders.length > 0) : false;
     const hasDays = task ? (task.selectedDays && task.selectedDays.length > 0) : false;
     const hasCommentConfig = task ? !!task.showCommentOnCheck : false;
     const hasNote = task ? !!task.note : false;
+    const hasLinks = task ? (task.links && task.links.length > 0) : false;
+
     const timerGroup = document.getElementById('timerGroup');
     const reminderGroup = document.getElementById('reminderGroup');
     const daysGroup = document.getElementById('daysGroup');
     const commentConfigGroup = document.getElementById('commentConfigGroup');
     const noteGroup = document.getElementById('noteGroup');
+    const hyperlinkGroup = document.getElementById('hyperlinkGroup');
+
     const viewDays = document.getElementById('viewTaskDays');
     const viewNoteGroup = document.getElementById('viewNoteGroup');
+    const viewLinks = document.getElementById('viewTaskLinks');
+
     if (timerGroup) timerGroup.style.display = (showTimerSetting || hasTimer || tempVisibilityFlags.timer) ? 'block' : 'none';
     if (reminderGroup) reminderGroup.style.display = (showRemindSetting || hasReminders || tempVisibilityFlags.remind) ? 'block' : 'none';
     if (daysGroup) daysGroup.style.display = (showDaysSetting || hasDays || tempVisibilityFlags.days) ? 'block' : 'none';
     if (commentConfigGroup) commentConfigGroup.style.display = (showCommentSetting || hasCommentConfig || tempVisibilityFlags.comment) ? 'block' : 'none';
     if (noteGroup) noteGroup.style.display = (showNoteSetting || hasNote || tempVisibilityFlags.note) ? 'block' : 'none';
+    if (hyperlinkGroup) hyperlinkGroup.style.display = (showHyperlinkSetting || hasLinks || tempVisibilityFlags.hyperlink) ? 'block' : 'none';
+
     if (viewDays) viewDays.style.display = (showDaysSetting || hasDays || tempVisibilityFlags.days) ? 'block' : 'none';
     if (viewNoteGroup) viewNoteGroup.style.display = (showNoteSetting || hasNote || tempVisibilityFlags.note) ? 'block' : 'none';
+    if (viewLinks) viewLinks.style.display = hasLinks ? 'block' : 'none';
 }
 
 function toggleTimerInput(isManualChange = false) {
@@ -389,6 +441,8 @@ function openTemporaryVisibilityModal() {
     if (tempShowDays) tempShowDays.checked = daysGroup && daysGroup.style.display === 'block';
     if (tempShowComment) tempShowComment.checked = commentConfigGroup && commentConfigGroup.style.display === 'block';
     if (tempShowNote) tempShowNote.checked = noteGroup && noteGroup.style.display === 'block';
+    const tempShowLinks = document.getElementById('tempShowLinks');
+    if (tempShowLinks) tempShowLinks.checked = document.getElementById('hyperlinkGroup')?.style.display === 'block';
     const modal = document.getElementById('tempVisibilityModal');
     if (modal) { modal.style.display = 'flex'; modal.onclick = (e) => { if (e.target === modal) closeTemporaryVisibilityModal(); }; }
 }
@@ -409,6 +463,41 @@ function applyTemporaryVisibility() {
     tempVisibilityFlags.days = tempShowDays ? tempShowDays.checked : false;
     tempVisibilityFlags.comment = tempShowComment ? tempShowComment.checked : false;
     tempVisibilityFlags.note = tempShowNote ? tempShowNote.checked : false;
+    tempVisibilityFlags.hyperlink = document.getElementById('tempShowLinks')?.checked || false;
     updateTaskModalVisibility();
     closeTemporaryVisibilityModal();
 }
+
+function addHyperlinkItem(url = "", text = "") {
+    const id = Date.now() + Math.random();
+    currentTaskLinks.push({ id, url, text });
+    renderHyperlinkList();
+}
+window.addHyperlinkItem = addHyperlinkItem;
+
+function removeHyperlinkItem(id) {
+    currentTaskLinks = currentTaskLinks.filter(l => l.id !== id);
+    renderHyperlinkList();
+}
+window.removeHyperlinkItem = removeHyperlinkItem;
+
+function renderHyperlinkList() {
+    const list = document.getElementById('hyperlinkList');
+    if (!list) return;
+    list.innerHTML = currentTaskLinks.map(l => `
+        <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; padding: 8px; background: #f0f7ff; border-radius: 6px; border: 1px solid #cce5ff;">
+            <div style="display: flex; gap: 4px; align-items: center;">
+                <input type="text" value="${l.text}" placeholder="${getTranslation('placeholder_link_text')}" oninput="updateHyperlinkData('${l.id}', 'text', this.value)" style="flex: 1; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                <button class="btn-icon" onclick="removeHyperlinkItem('${l.id}')" style="margin-left: auto;">🗑️</button>
+            </div>
+            <input type="text" value="${l.url}" placeholder="${getTranslation('placeholder_link_url')}" oninput="updateHyperlinkData('${l.id}', 'url', this.value)" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; box-sizing: border-box;">
+        </div>
+    `).join('');
+}
+window.renderHyperlinkList = renderHyperlinkList;
+
+function updateHyperlinkData(id, field, value) {
+    const l = currentTaskLinks.find(x => x.id == id);
+    if (l) l[field] = value;
+}
+window.updateHyperlinkData = updateHyperlinkData;

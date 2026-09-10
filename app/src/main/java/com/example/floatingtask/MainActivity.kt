@@ -631,6 +631,17 @@ class MainActivity : AppCompatActivity(),
 
         @JavascriptInterface
         fun stopMelody() = mediaHandler.stopMelody()
+
+        @JavascriptInterface
+        fun openExternalUrl(url: String) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                mContext.startActivity(intent)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error opening URL: $url", e)
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

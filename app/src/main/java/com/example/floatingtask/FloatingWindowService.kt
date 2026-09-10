@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.PixelFormat
 import android.os.Handler
+import android.net.Uri
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
@@ -856,6 +857,17 @@ class FloatingWindowService : Service() {
         @JavascriptInterface
         fun stopMelody() {
             MelodyPlayer.stop()
+        }
+
+        @JavascriptInterface
+        fun openExternalUrl(url: String) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+            } catch (e: Exception) {
+                AppLogger.log(this@FloatingWindowService, "Error opening URL: $url")
+            }
         }
 
         @JavascriptInterface

@@ -43,6 +43,10 @@ function addTask() {
 
     if (!targetTask) return;
 
+    // ハイパーリンクの収集 (全タスク共通)
+    const validLinks = (currentTaskLinks || []).filter(l => l.url).map(l => ({ url: l.url, text: l.text }));
+    targetTask.links = validLinks;
+
     if (unitSelect && unitSelect.value !== 'none') {
         let durationMs = 0;
         let startTime = Date.now();

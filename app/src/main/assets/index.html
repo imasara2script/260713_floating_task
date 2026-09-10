@@ -204,10 +204,17 @@
                             </label>
                         </div>
 
-                        <div style="margin-bottom: 12px;">
+                        <div style="margin-bottom: 8px;">
                             <label style="display: flex; align-items: center; cursor: pointer;">
                                 <input type="checkbox" id="showNoteOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
                                 <span data-i18n="label_note">補足文章</span>
+                            </label>
+                        </div>
+
+                        <div>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="showHyperlinkOnCreate" onchange="updateNewTaskSettings()" style="margin-right: 8px;">
+                                <span data-i18n="label_hyperlinks">ハイパーリンク</span>
                             </label>
                         </div>
 
@@ -486,6 +493,7 @@
                 <div id="viewTaskTimer" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none;"></div>
                 <div id="viewTaskDays" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none; background: #f8f9fa; padding: 8px; border-radius: 6px; border: 1px solid #eee;"></div>
                 <div id="viewTaskReminders" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none; background: #f0f7ff; padding: 8px; border-radius: 6px;"></div>
+                <div id="viewTaskLinks" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none; background: #e7f3ff; padding: 8px; border-radius: 6px;"></div>
                 <div id="viewNoteGroup">
                     <div style="color: #666; font-size: 12px; margin-bottom: 4px;" data-i18n="label_note">補足文章：</div>
                     <div id="viewTaskNote" style="font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 6px; min-height: 40px; white-space: pre-wrap; margin-bottom: 20px; border: 1px solid #eee; word-break: break-all;"></div>
@@ -546,6 +554,11 @@
                         <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="6"> <span data-i18n="calendar_sat">土</span></label>
                     </div>
                 </div>
+                <div id="hyperlinkGroup" style="margin-bottom: 12px; border-top: 1px solid #eee; padding-top: 12px;">
+                    <label style="color: #666; font-size: 14px; display: block; margin-bottom: 8px;" data-i18n="label_hyperlinks">ハイパーリンク：</label>
+                    <div id="hyperlinkList"></div>
+                    <button class="btn btn-secondary" onclick="addHyperlinkItem()" style="width: 100%; font-size: 13px; margin-top: 4px;" data-i18n="btn_add_link">＋リンクを追加</button>
+                </div>
                 <div id="noteGroup" style="margin-bottom: 20px;">
                     <label for="taskNote" style="color: #666; font-size: 14px; display: block; margin-bottom: 4px;" data-i18n="label_note">補足文章：</label>
                     <textarea id="taskNote" placeholder="補足情報を入力..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; height: 120px; resize: none; box-sizing: border-box;" data-i18n-placeholder="placeholder_note"></textarea>
@@ -589,6 +602,10 @@
                 <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
                     <input type="checkbox" id="tempShowNote" style="margin-right: 8px;">
                     <span data-i18n="label_note">補足文章</span>
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
+                    <input type="checkbox" id="tempShowLinks" style="margin-right: 8px;">
+                    <span data-i18n="label_hyperlinks">ハイパーリンク</span>
                 </label>
             </div>
             <div class="modal-actions">

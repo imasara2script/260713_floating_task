@@ -112,18 +112,21 @@ function loadNewTaskSettings() {
     const showDays = localStorage.getItem('showDaysOnCreate') === 'true';
     const showComment = localStorage.getItem('showCommentOnCreate') === 'true';
     const showNote = localStorage.getItem('showNoteOnCreate') === 'true';
+    const showHyperlink = localStorage.getItem('showHyperlinkOnCreate') === 'true';
 
     const chkTimer = document.getElementById('showTimerOnCreate');
     const chkRemind = document.getElementById('showRemindOnCreate');
     const chkDays = document.getElementById('showDaysOnCreate');
     const chkComment = document.getElementById('showCommentOnCreate');
     const chkNote = document.getElementById('showNoteOnCreate');
+    const chkHyperlink = document.getElementById('showHyperlinkOnCreate');
 
     if (chkTimer) chkTimer.checked = showTimer;
     if (chkRemind) chkRemind.checked = showRemind;
     if (chkDays) chkDays.checked = showDays;
     if (chkComment) chkComment.checked = showComment;
     if (chkNote) chkNote.checked = showNote;
+    if (chkHyperlink) chkHyperlink.checked = showHyperlink;
 }
 window.loadNewTaskSettings = loadNewTaskSettings;
 
@@ -133,18 +136,21 @@ function updateNewTaskSettings() {
     const chkDays = document.getElementById('showDaysOnCreate');
     const chkComment = document.getElementById('showCommentOnCreate');
     const chkNote = document.getElementById('showNoteOnCreate');
+    const chkHyperlink = document.getElementById('showHyperlinkOnCreate');
 
     const showTimer = chkTimer ? chkTimer.checked : false;
     const showRemind = chkRemind ? chkRemind.checked : false;
     const showDays = chkDays ? chkDays.checked : false;
     const showComment = chkComment ? chkComment.checked : false;
     const showNote = chkNote ? chkNote.checked : false;
+    const showHyperlink = chkHyperlink ? chkHyperlink.checked : false;
 
     localStorage.setItem('showTimerOnCreate', showTimer);
     localStorage.setItem('showRemindOnCreate', showRemind);
     localStorage.setItem('showDaysOnCreate', showDays);
     localStorage.setItem('showCommentOnCreate', showComment);
     localStorage.setItem('showNoteOnCreate', showNote);
+    localStorage.setItem('showHyperlinkOnCreate', showHyperlink);
 }
 window.updateNewTaskSettings = updateNewTaskSettings;
 

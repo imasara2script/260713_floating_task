@@ -25,12 +25,15 @@ var tempVisibilityFlags = {
     remind: false,
     comment: false,
     days: false,
-    note: false
+    note: false,
+    hyperlink: false
 };
 var isDurationPickerRequested = false;
 var adRetryCount = 0;
 var adRetryTimeoutId = null;
 var adRetryBaseInterval = parseInt(localStorage.getItem('adRetryBaseInterval') || '5');
+var currentTaskReminders = [];
+var currentTaskLinks = [];
 var selectedCustomUri = null;
 var selectedCustomName = null;
 var isFloatingExpanded = (urlParams.get('expanded') === 'true');
