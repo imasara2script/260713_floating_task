@@ -91,6 +91,11 @@ function handleBack() {
         return true;
     }
 
+    if (isEditMode) {
+        finishSortMode();
+        return true;
+    }
+
     const floatingDetail = document.getElementById('settings-floating-detail');
     if (floatingDetail && floatingDetail.style.display === 'block') {
         closeFloatingSettings();
@@ -294,4 +299,56 @@ function initializeApp() {
     } catch (e) {
         console.error("Initialization error:", e);
     }
+}
+
+function handleTouchStart(e) {
+    if (!isEditMode) return;
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    draggingElement = e.target.closest('.task-item');
+    if (draggingElement) {
+        draggingElement.classList.add('dragging');
+        e.preventDefault();
+    }
+}
+
+function handleTouchMove(e) {
+    if (!draggingElement || !isEditMode) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const list = document.getElementById('managerTaskList');
+    const afterElement = getDragAfterElement(list, touch.clientY);
+    if (afterElement == null) {
+        list.appendChild(draggingElement);
+    } else {
+        list.insertBefore(draggingElement, afterElement);
+    }
+}
+
+function handleTouchEnd(e) {
+    if (!draggingElement || !isEditMode) return;
+    draggingElement.classList.remove('dragging');
+    const newTasks = [];
+    document.querySelectorAll('#managerTaskList .task-item').forEach(el => {
+        const id = parseInt(el.getAttribute('data-id'));
+        const task = tasks.find(t => t.id === id);
+        if (task) newTasks.push(task);
+    });
+    tasks = newTasks;
+    window.tasks = tasks;
+    saveTasks();
+    draggingElement = null;
+}
+
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.task-item:not(.dragging)')];
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
 }

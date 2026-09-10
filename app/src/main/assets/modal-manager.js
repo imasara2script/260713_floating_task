@@ -413,25 +413,6 @@ function onDurationSelected(h, m, s) {
     btn.textContent = text;
 }
 
-function openDeveloperModal() {
-    const modal = document.getElementById('developerModal');
-    if (!modal) return;
-    modal.style.display = 'flex';
-    if (typeof Android !== 'undefined' && Android.isLoggingEnabled) {
-        const isEnabled = Android.isLoggingEnabled();
-        const toggle = document.getElementById('loggingToggle');
-        const section = document.getElementById('logInfoSection');
-        if (toggle) toggle.checked = isEnabled;
-        if (section) section.style.display = isEnabled ? 'block' : 'none';
-        if (isEnabled && typeof updateLogSize === 'function') updateLogSize();
-    }
-    modal.onclick = (e) => { if (e.target === modal) closeDeveloperModal(); };
-}
-
-function closeDeveloperModal() {
-    const modal = document.getElementById('developerModal');
-    if (modal) modal.style.display = 'none';
-}
 
 function openTemporaryVisibilityModal() {
     const timerGroup = document.getElementById('timerGroup');

@@ -115,8 +115,6 @@
                         <button class="btn btn-primary" style="width: 100%;" onclick="openDataManagementScreen()" data-i18n="btn_data">データ</button>
                     </div>
 
-                    <!-- 6. コイン管理 (移動済み) -->
-
                     <!-- 7. カレンダーのマーク -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
                         <label for="calendarMarkInput" style="display: block; margin-bottom: 8px;" data-i18n="label_calendar_mark">カレンダーのマーク (記号や絵文字):</label>
@@ -125,7 +123,7 @@
 
                     <!-- 9. 開発者用 -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <button class="btn btn-secondary" onclick="openDeveloperModal()" style="width: 100%; font-size: 14px;" data-i18n="btn_developer">開発者用</button>
+                        <button class="btn btn-secondary" onclick="openDeveloperSettings()" style="width: 100%; font-size: 14px;" data-i18n="btn_developer">開発者用</button>
                     </div>
                 </div>
             </div>
@@ -313,51 +311,6 @@
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeTemporaryVisibilityModal()" data-i18n="btn_cancel">キャンセル</button>
                 <button class="btn btn-primary" onclick="applyTemporaryVisibility()" data-i18n="btn_ok">OK</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Developer Modal -->
-    <div id="developerModal" class="modal-overlay">
-        <div class="modal-content" style="max-width: 350px; width: 90%;">
-            <div class="modal-title" data-i18n="developer_title">開発者設定</div>
-
-            <div style="margin-bottom: 16px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
-                    <input type="checkbox" id="loggingToggle" onchange="toggleLogging()">
-                    <span data-i18n="label_logging">ログ出力を有効にする</span>
-                </label>
-            </div>
-
-            <div id="logInfoSection" style="display: none;">
-                <div style="font-size: 12px; color: #666; margin-bottom: 12px;">
-                    <span data-i18n="label_log_size">ログファイルサイズ: </span>
-                    <span id="logSizeText">0</span> KB
-                </div>
-
-                <div style="margin-bottom: 16px;">
-                    <label for="logCommentInput" style="display: block; font-size: 13px; margin-bottom: 4px;" data-i18n="label_custom_comment">カスタムコメントを記録:</label>
-                    <textarea id="logCommentInput" data-i18n-placeholder="placeholder_custom_comment" style="width: 100%; height: 60px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; resize: none; box-sizing: border-box;"></textarea>
-                    <button class="btn btn-secondary" onclick="addLogComment()" style="width: 100%; margin-top: 4px; font-size: 12px;" data-i18n="btn_log_comment">コメントを記録</button>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <button class="btn btn-secondary" onclick="viewAppLog()" style="width: 100%; font-size: 13px;" data-i18n="btn_view_log">ログを画面で確認</button>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn btn-primary" onclick="if(typeof Android !== 'undefined') Android.shareLog()" style="flex: 1; font-size: 13px;" data-i18n="btn_share_log">ログを出力 (共有)</button>
-                        <button class="btn btn-danger" onclick="clearAppLog()" style="flex: 1; font-size: 13px;" data-i18n="btn_clear_log">ログを消去</button>
-                    </div>
-                    <button class="btn btn-secondary" onclick="if(typeof Android !== 'undefined' && Android.testIntervalNotification) { console.log('Testing notification...'); Android.testIntervalNotification(); } else { alert('Interface not available'); }" style="width: 100%; font-size: 12px; margin-top: 8px;" data-i18n="btn_test_interval_notif">テスト通知を即座に実行</button>
-                </div>
-
-                <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                    <div style="font-size: 13px; margin-bottom: 8px;" data-i18n="label_premium">🔓 プレミアム機能</div>
-                    <button class="btn btn-primary" onclick="unlockPremium()" style="width: 100%; font-size: 14px;" data-i18n="btn_unlock_code">解除コードを入力</button>
-                </div>
-            </div>
-
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button class="btn" onclick="closeDeveloperModal()" style="width: 100%;" data-i18n="btn_close">閉じる</button>
             </div>
         </div>
     </div>

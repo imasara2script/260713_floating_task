@@ -205,6 +205,10 @@ function repeatTimer(id) {
 window.repeatTimer = repeatTimer;
 
 function openEditMenu() {
+    if (isEditMode) {
+        finishSortMode();
+        return;
+    }
     const modal = document.getElementById('editMenuModal');
     if (modal) modal.style.display = 'flex';
 }
@@ -222,6 +226,12 @@ function startSortMode() {
     if (typeof render === 'function') render();
 }
 window.startSortMode = startSortMode;
+
+function finishSortMode() {
+    isEditMode = false;
+    if (typeof render === 'function') render();
+}
+window.finishSortMode = finishSortMode;
 
 function startExportMode() {
     closeEditMenu();

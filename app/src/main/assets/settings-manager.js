@@ -84,6 +84,11 @@ function openRewardsScreen() {
 }
 window.openRewardsScreen = openRewardsScreen;
 
+function openDeveloperSettings() {
+    location.href = 'developer-settings.html';
+}
+window.openDeveloperSettings = openDeveloperSettings;
+
 
 function loadNewTaskSettings() {
     const showTimer = localStorage.getItem('showTimerOnCreate') === 'true';
