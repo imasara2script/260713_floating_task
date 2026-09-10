@@ -484,8 +484,12 @@ function addHyperlinkItem(url = "", text = "") {
 window.addHyperlinkItem = addHyperlinkItem;
 
 function removeHyperlinkItem(id) {
-    currentTaskLinks = currentTaskLinks.filter(l => l.id !== id);
-    renderHyperlinkList();
+    showModal(getTranslation('msg_confirm_delete_link'), {
+        onConfirm: () => {
+            currentTaskLinks = currentTaskLinks.filter(l => l.id != id);
+            renderHyperlinkList();
+        }
+    });
 }
 window.removeHyperlinkItem = removeHyperlinkItem;
 
