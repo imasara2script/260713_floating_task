@@ -86,12 +86,8 @@ function handleBack() {
         return true;
     }
 
-    if (isExportMode) {
-        cancelExportMode();
-        return true;
-    }
-    if (isDeleteMode) {
-        cancelDeleteMode();
+    if (isExportMode || isDeleteMode) {
+        cancelBulkMode();
         return true;
     }
 
