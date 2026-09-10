@@ -2,6 +2,8 @@ package com.example.floatingtask
 
 import android.app.Activity
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.webkit.WebView
 import androidx.core.content.edit
 import com.google.android.gms.ads.AdError
@@ -23,6 +25,12 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
         private set
     private var lastRewardType: String? = null
     private var pendingShowType: String? = null
+    
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val autoReloadRunnable = Runnable {
+        AppLogger.log(context, "Auto-reloading expired rewarded ad")
+        loadRewardedAd()
+    }
 
     init {
         val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
@@ -31,6 +39,10 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
 
     fun loadRewardedAd() {
         if (isAdFree) return
+        
+        // 既存のオートリロード予約をキャンセル
+        mainHandler.removeCallbacks(autoReloadRunnable)
+        
         val adRequest = AdRequest.Builder().build()
         RewardedAd.load(
             activity,
@@ -44,6 +56,8 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
                         webView.post { webView.evaluateJavascript("onAdFailed('$type', ${adError.code}, '$escapedMsg');", null) }
                         pendingShowType = null
                     }
+                    
+                    // 失敗した場合はリトライされるのでここでは何もしない (system-handler.js 側のリトライロジックに任せる)
                 }
 
                 override fun onAdLoaded(ad: RewardedAd) {
@@ -51,6 +65,11 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
                     pendingShowType?.let { type ->
                         showRewardedAdWithType(type)
                         pendingShowType = null
+                    }
+                    
+                    // 「アプリ起動時」設定の場合、30分後に自動リロードを予約
+                    if (getAdLoadTiming() == "startup") {
+                        mainHandler.postDelayed(autoReloadRunnable, 30 * 60 * 1000)
                     }
                 }
             },
@@ -63,18 +82,24 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
             if (rewardedAd != null) {
                 val ad = rewardedAd
                 rewardedAd = null // 早期にnullをセットして再ロード可能にする
+                mainHandler.removeCallbacks(autoReloadRunnable) // 再生開始したらリロード予約を解除
                 
                 ad?.fullScreenContentCallback = object : FullScreenContentCallback() {
                     override fun onAdDismissedFullScreenContent() {
                         AppLogger.log(context, "Rewarded ad dismissed: type=$lastRewardType")
-                        loadRewardedAd()
+                        // 設定が「startup」なら、即座に次の広告をロード
+                        if (getAdLoadTiming() == "startup") {
+                            loadRewardedAd()
+                        }
                     }
 
                     override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                         AppLogger.log(context, "Rewarded ad failed to show: ${adError.message}")
                         val escapedMsg = adError.message.replace("'", "\\'")
                         webView.evaluateJavascript("onAdFailed('$lastRewardType', ${adError.code}, '$escapedMsg');", null)
-                        loadRewardedAd()
+                        if (getAdLoadTiming() == "startup") {
+                            loadRewardedAd()
+                        }
                     }
                 }
                 
@@ -95,6 +120,23 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
                 webView.evaluateJavascript("onAdLoading('$type');", null)
                 loadRewardedAd()
             }
+        }
+    }
+
+    fun getAdLoadTiming(): String {
+        val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        return prefs.getString("adLoadTiming", "startup") ?: "startup"
+    }
+
+    fun setAdLoadTiming(timing: String) {
+        val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        prefs.edit { putString("adLoadTiming", timing) }
+        
+        if (timing == "startup") {
+            if (rewardedAd == null) loadRewardedAd()
+        } else {
+            // 予約キャンセル
+            mainHandler.removeCallbacks(autoReloadRunnable)
         }
     }
 

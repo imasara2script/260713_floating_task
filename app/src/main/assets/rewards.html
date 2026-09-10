@@ -154,6 +154,17 @@
             <button class="btn-reward" onclick="earnCoinReward()" data-i18n="btn_get_coin_reward">リワード広告を視聴して１コインをゲット</button>
         </div>
 
+        <div class="section-title" data-i18n="label_ad_load_timing">広告の読み込みタイミング</div>
+        <div class="reward-card">
+            <select id="adLoadTimingSelect" onchange="updateAdLoadTiming()" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; background: white; font-size: 15px; margin-bottom: 12px;">
+                <option value="startup" data-i18n="ad_load_startup">アプリ起動完了時</option>
+                <option value="button" data-i18n="ad_load_button">再生ボタン押下時</option>
+            </select>
+            <div id="adLoadTimingDesc" class="desc-box" style="font-size: 12px; background: #f8f9fa; border-color: #eee;">
+                <!-- Description populated by JS -->
+            </div>
+        </div>
+
         <div class="section-title" data-i18n="label_ad_retry_settings">広告読み込みリトライ設定</div>
         <div class="reward-card">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 14px;">
@@ -209,12 +220,41 @@
                 const coins = Android.getCoins();
                 document.getElementById('coin-count-val').textContent = coins;
             }
+
+            if (typeof Android !== 'undefined' && Android.getAdLoadTiming) {
+                const timing = Android.getAdLoadTiming();
+                const select = document.getElementById('adLoadTimingSelect');
+                if (select && select.value !== timing) {
+                    select.value = timing;
+                    updateAdLoadTimingDesc();
+                }
+            }
+        }
+
+        function updateAdLoadTiming() {
+            const select = document.getElementById('adLoadTimingSelect');
+            if (!select) return;
+            const timing = select.value;
+            if (typeof Android !== 'undefined' && Android.setAdLoadTiming) {
+                Android.setAdLoadTiming(timing);
+            }
+            updateAdLoadTimingDesc();
+        }
+
+        function updateAdLoadTimingDesc() {
+            const select = document.getElementById('adLoadTimingSelect');
+            const descEl = document.getElementById('adLoadTimingDesc');
+            if (!select || !descEl) return;
+
+            const key = 'desc_ad_load_' + select.value;
+            descEl.textContent = getTranslation(key);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             applyLanguage();
             if (typeof loadFloatingSettings === 'function') loadFloatingSettings();
             updateUI();
+            updateAdLoadTimingDesc();
         });
 
         // 定期的に更新

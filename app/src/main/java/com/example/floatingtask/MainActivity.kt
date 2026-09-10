@@ -225,7 +225,9 @@ class MainActivity : AppCompatActivity(),
         // AdMobの初期化
         MobileAds.initialize(this) {
             AppLogger.log(this, "AdMob initialized")
-            adCoinHandler.loadRewardedAd()
+            if (adCoinHandler.getAdLoadTiming() == "startup") {
+                adCoinHandler.loadRewardedAd()
+            }
         }
         
         val adView: AdView = findViewById(R.id.adView)
@@ -578,6 +580,12 @@ class MainActivity : AppCompatActivity(),
 
         @JavascriptInterface
         fun restoreData() = mediaHandler.restoreData()
+
+        @JavascriptInterface
+        fun setAdLoadTiming(timing: String) = adCoinHandler.setAdLoadTiming(timing)
+
+        @JavascriptInterface
+        fun getAdLoadTiming(): String = adCoinHandler.getAdLoadTiming()
 
         @JavascriptInterface
         fun showRewardedAd() {
