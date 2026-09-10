@@ -8,6 +8,8 @@ function addTask() {
     const text = input ? input.value.trim() : "";
     const noteInput = document.getElementById('taskNote');
     const note = noteInput ? noteInput.value.trim() : "";
+    const referenceDateInput = document.getElementById('referenceDate');
+    const referenceDate = referenceDateInput ? referenceDateInput.value : "";
     const timeInput = document.getElementById('timeValue');
     const unitSelect = document.getElementById('timerUnit');
     const melodySelect = document.getElementById('melodySelect');
@@ -26,6 +28,8 @@ function addTask() {
         if (targetTask) {
             targetTask.text = text;
             targetTask.note = note;
+            targetTask.type = unitSelect ? unitSelect.value : "none";
+            targetTask.referenceDate = referenceDate;
             targetTask.showCommentOnCheck = document.getElementById('showCommentOnCheck').checked;
             targetTask.selectedDays = Array.from(document.querySelectorAll('.reset-day-check:checked')).map(el => parseInt(el.value));
         }
@@ -35,6 +39,8 @@ function addTask() {
             id: id,
             text: text,
             note: note,
+            type: unitSelect ? unitSelect.value : "none",
+            referenceDate: referenceDate,
             completed: false,
             showCommentOnCheck: document.getElementById('showCommentOnCheck').checked,
             selectedDays: Array.from(document.querySelectorAll('.reset-day-check:checked')).map(el => parseInt(el.value))

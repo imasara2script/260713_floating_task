@@ -158,9 +158,11 @@ function openTaskModal(taskId = null) {
 
         const taskInput = document.getElementById('taskInput');
         const taskNote = document.getElementById('taskNote');
+        const referenceDateInput = document.getElementById('referenceDate');
         const showCommentOnCheck = document.getElementById('showCommentOnCheck');
         if (taskInput) taskInput.value = task.text;
         if (taskNote) taskNote.value = task.note || '';
+        if (referenceDateInput) referenceDateInput.value = task.referenceDate || '';
         if (showCommentOnCheck) showCommentOnCheck.checked = !!task.showCommentOnCheck;
 
         document.querySelectorAll('.reset-day-check').forEach(el => el.checked = false);
@@ -247,11 +249,13 @@ function openTaskModal(taskId = null) {
             }
         } else {
             const timerUnit = document.getElementById('timerUnit');
-            const timerValue = document.getElementById('timerValue');
-            const melodySelect = document.getElementById('melodySelect');
-            if (timerUnit) timerUnit.value = 'none';
-            if (timerValue) timerValue.value = '';
-            if (melodySelect) melodySelect.value = 'default';
+        const timerValue = document.getElementById('timerValue');
+        const referenceDateInput = document.getElementById('referenceDate');
+        const melodySelect = document.getElementById('melodySelect');
+        if (timerUnit) timerUnit.value = 'none';
+        if (timerValue) timerValue.value = '';
+        if (referenceDateInput) referenceDateInput.value = '';
+        if (melodySelect) melodySelect.value = 'default';
             if (viewTaskTimer) viewTaskTimer.style.display = 'none';
         }
 
@@ -338,6 +342,7 @@ function updateTaskModalVisibility(task = null) {
     const hasCommentConfig = task ? !!task.showCommentOnCheck : false;
     const hasNote = task ? !!task.note : false;
     const hasLinks = task ? (task.links && task.links.length > 0) : false;
+    const isBiweekly = task ? task.type === 'biweekly' : false;
 
     const timerGroup = document.getElementById('timerGroup');
     const reminderGroup = document.getElementById('reminderGroup');
@@ -345,12 +350,13 @@ function updateTaskModalVisibility(task = null) {
     const commentConfigGroup = document.getElementById('commentConfigGroup');
     const noteGroup = document.getElementById('noteGroup');
     const hyperlinkGroup = document.getElementById('hyperlinkGroup');
+    const biweeklyGroup = document.getElementById('biweeklyGroup');
 
     const viewDays = document.getElementById('viewTaskDays');
     const viewNoteGroup = document.getElementById('viewNoteGroup');
     const viewLinks = document.getElementById('viewTaskLinks');
 
-    if (timerGroup) timerGroup.style.display = (showTimerSetting || hasTimer || tempVisibilityFlags.timer) ? 'block' : 'none';
+    if (timerGroup) timerGroup.style.display = (showTimerSetting || hasTimer || isBiweekly || tempVisibilityFlags.timer) ? 'block' : 'none';
     if (reminderGroup) reminderGroup.style.display = (showRemindSetting || hasReminders || tempVisibilityFlags.remind) ? 'block' : 'none';
     if (daysGroup) daysGroup.style.display = (showDaysSetting || hasDays || tempVisibilityFlags.days) ? 'block' : 'none';
     if (commentConfigGroup) commentConfigGroup.style.display = (showCommentSetting || hasCommentConfig || tempVisibilityFlags.comment) ? 'block' : 'none';
@@ -369,12 +375,14 @@ function toggleTimerInput(isManualChange = false) {
     const input = document.getElementById('timerValue');
     const durationBtn = document.getElementById('durationBtn');
     const timeInput = document.getElementById('timeValue');
+    const biweeklyGroup = document.getElementById('biweeklyGroup');
     const melodyGroup = document.getElementById('melodyGroup');
     const isVisible = (unit !== 'none');
     if (input) input.style.display = 'none';
     if (durationBtn) durationBtn.style.display = (unit === 'duration') ? 'inline-block' : 'none';
     if (timeInput) timeInput.style.display = (unit === 'at') ? 'inline-block' : 'none';
-    if (melodyGroup) melodyGroup.style.display = isVisible ? 'block' : 'none';
+    if (biweeklyGroup) biweeklyGroup.style.display = (unit === 'biweekly') ? 'flex' : 'none';
+    if (melodyGroup) melodyGroup.style.display = (isVisible && unit !== 'biweekly') ? 'block' : 'none';
     if (!isManualChange) return;
     if (unit === 'at' && timeInput) setTimeout(() => timeInput.focus(), 50);
     else if (unit === 'duration') requestDurationPicker();

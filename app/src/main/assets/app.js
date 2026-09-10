@@ -283,10 +283,29 @@ function checkDailyReset() {
     const today = new Date().toDateString();
 
     if (lastReset !== today) {
-        const todayDay = new Date().getDay(); // 0 (Sun) to 6 (Sat)
+        const todayObj = new Date();
+        const todayDay = todayObj.getDay(); // 0 (Sun) to 6 (Sat)
         tasks = tasks.map(t => {
-            // 曜日指定がある場合、今日が含まれているかチェック
-            const shouldReset = !t.selectedDays || t.selectedDays.length === 0 || t.selectedDays.includes(todayDay);
+            let shouldReset = false;
+
+            if (t.type === 'biweekly' && t.referenceDate) {
+                // 隔週リセットロジック
+                const ref = new Date(t.referenceDate);
+                ref.setHours(0, 0, 0, 0);
+                const cur = new Date(todayObj);
+                cur.setHours(0, 0, 0, 0);
+
+                const diffTime = cur.getTime() - ref.getTime();
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                // 差分が正かつ14の倍数（2週間ごと）の場合にリセット
+                if (diffDays >= 0 && diffDays % 14 === 0) {
+                    shouldReset = true;
+                }
+            } else {
+                // 既存の曜日指定ロジック
+                shouldReset = !t.selectedDays || t.selectedDays.length === 0 || t.selectedDays.includes(todayDay);
+            }
 
             if (!shouldReset) return t;
 
