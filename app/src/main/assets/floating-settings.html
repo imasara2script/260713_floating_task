@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Task - Window Settings</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="translations.js"></script>
+    <script src="app.js"></script>
+    <script src="ui-core.js"></script>
+    <script src="modal-manager.js"></script>
+    <script src="system-handler.js"></script>
+    <script src="settings-manager.js"></script>
+    <style>
+        html, body {
+            overflow: auto !important;
+            height: auto !important;
+        }
+        body {
+            background-color: #f8f9fa;
+            padding: 20px 20px 40px 20px;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            color: #333;
+            margin: 0;
+            overflow-x: hidden;
+            display: block;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 20px;
+            margin: 0;
+            text-align: center;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+            justify-content: center;
+            position: relative;
+        }
+        .btn-back {
+            position: absolute;
+            left: 0;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 12px;
+            color: #555;
+            border-left: 4px solid #007bff;
+            padding-left: 8px;
+        }
+        .settings-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .setting-item {
+            margin-bottom: 16px;
+        }
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .col {
+            flex: 1;
+        }
+        input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        .hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="btn-back" onclick="goBack()">←</button>
+            <h1 data-i18n="floating_adj_title">ウィンドウ調整</h1>
+        </div>
+
+        <!-- 縮小表示モードセクション -->
+        <div class="section-title" data-i18n="section_collapsed">縮小表示モード</div>
+        <div class="settings-card">
+            <div class="setting-item">
+                <label data-i18n="label_scale">表示倍率:</label>
+                <div class="row">
+                    <input type="range" id="floatCollapsedScale" min="0.5" max="2.0" step="0.1" oninput="document.getElementById('collapsedScaleVal').innerText = this.value; saveFloatingSettings('collapsed')" style="flex: 1;">
+                    <span id="collapsedScaleVal" style="width: 30px; font-weight: bold;">1.0</span>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="showWhenEmpty" onchange="saveFloatingSettings('collapsed')">
+                    <span data-i18n="label_show_when_zero">未完のタスクがゼロでも表示する</span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="alwaysMoveCollapsed" onchange="toggleFixedPositionInputs('collapsed'); saveFloatingSettings('collapsed')">
+                    <span data-i18n="label_always_move_collapsed">縮小時は常に設定された位置に移動する</span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="allowDragCollapsed" onchange="saveFloatingSettings('collapsed')">
+                    <span data-i18n="label_allow_drag">ドラッグ移動を許可する</span>
+                </label>
+            </div>
+
+            <div id="collapsedPositionInputs" style="display: none;" class="row">
+                <div class="col">
+                    <label for="floatCollapsedX" id="labelFloatCollapsedX" style="cursor: ns-resize;" data-i18n="label_float_x">位置 (X):</label>
+                    <input type="number" id="floatCollapsedX" onchange="saveFloatingSettings('collapsed')">
+                </div>
+                <div class="col">
+                    <label for="floatCollapsedY" id="labelFloatCollapsedY" style="cursor: ns-resize;" data-i18n="label_float_y">位置 (Y):</label>
+                    <input type="number" id="floatCollapsedY" onchange="saveFloatingSettings('collapsed')">
+                </div>
+            </div>
+        </div>
+
+        <!-- 展開表示モードセクション -->
+        <div class="section-title" data-i18n="section_expanded">展開表示モード</div>
+        <div class="settings-card">
+            <div class="hint" style="background: #f0f7ff; padding: 10px; border-radius: 6px; margin-bottom: 16px; color: #0056b3;" data-i18n="floating_adj_hint">
+                ラベル部分を上下にドラッグすると数値を素早く調整できます。
+            </div>
+
+            <div class="row setting-item">
+                <div class="col">
+                    <label for="floatWidth" id="labelFloatWidth" style="cursor: ns-resize;" data-i18n="label_float_width">横幅 (px):</label>
+                    <input type="number" id="floatWidth" onchange="saveFloatingSettings('expanded')">
+                </div>
+                <div class="col">
+                    <label for="floatHeight" id="labelFloatHeight" style="cursor: ns-resize;" data-i18n="label_float_height">縦幅 (px):</label>
+                    <input type="number" id="floatHeight" onchange="saveFloatingSettings('expanded')">
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label data-i18n="label_scale">表示倍率:</label>
+                <div class="row">
+                    <input type="range" id="floatExpandedScale" min="0.5" max="2.0" step="0.1" oninput="document.getElementById('expandedScaleVal').innerText = this.value; saveFloatingSettings('expanded')" style="flex: 1;">
+                    <span id="expandedScaleVal" style="width: 30px; font-weight: bold;">1.0</span>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="alwaysMoveExpanded" onchange="toggleFixedPositionInputs('expanded'); saveFloatingSettings('expanded')">
+                    <span data-i18n="label_always_move_expanded">展開時は常に設定された位置に移動する</span>
+                </label>
+            </div>
+
+            <div id="expandedPositionInputs" style="display: none;" class="row">
+                <div class="col">
+                    <label for="floatExpandedX" id="labelFloatExpandedX" style="cursor: ns-resize;" data-i18n="label_float_x">位置 (X):</label>
+                    <input type="number" id="floatExpandedX" onchange="saveFloatingSettings('expanded')">
+                </div>
+                <div class="col">
+                    <label for="floatExpandedY" id="labelFloatExpandedY" style="cursor: ns-resize;" data-i18n="label_float_y">位置 (Y):</label>
+                    <input type="number" id="floatExpandedY" onchange="saveFloatingSettings('expanded')">
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="showCloseButtonExpanded" onchange="saveFloatingSettings('expanded')">
+                    <span data-i18n="label_show_close_button_expanded">一時的に閉じるボタンを表示</span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="keepServiceOnClose" onchange="saveFloatingSettings('expanded')">
+                    <span data-i18n="label_keep_service_on_close">ウィンドウを閉じてもサービス維持</span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="showCheckedToggle" onchange="saveFloatingSettings('expanded')">
+                    <span data-i18n="label_show_checked_toggle">チェック済みタスク切替ボタン表示</span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="showHistoryButton" onchange="saveFloatingSettings('expanded')">
+                    <span data-i18n="label_show_history_button">履歴表示ボタンを表示</span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <label for="scrollButtonType" data-i18n="label_scroll_button_type">スクロールボタンの種類:</label>
+                <select id="scrollButtonType" onchange="saveFloatingSettings('expanded')">
+                    <option value="both" data-i18n="scroll_btn_both">△▽</option>
+                    <option value="scroll" data-i18n="scroll_btn_scroll">スクロール</option>
+                    <option value="down" data-i18n="scroll_btn_down">▽</option>
+                    <option value="up" data-i18n="scroll_btn_up">△</option>
+                    <option value="hidden" data-i18n="scroll_btn_hidden">非表示</option>
+                </select>
+            </div>
+
+            <div class="setting-item">
+                <label for="navType" data-i18n="label_nav_type">ナビゲーションの種類:</label>
+                <select id="navType" onchange="saveFloatingSettings('expanded')">
+                    <option value="button" data-i18n="nav_type_button">ボタン</option>
+                    <option value="menu" data-i18n="nav_type_menu">メニュー</option>
+                </select>
+            </div>
+
+            <div id="menuActionDelayContainer" class="setting-item">
+                <label for="menuActionDelay" data-i18n="label_menu_action_delay">メニュー選択後の待機秒数:</label>
+                <div class="row">
+                    <button class="btn btn-secondary" onclick="adjustMenuActionDelay(-1)" style="padding: 6px 12px;">-</button>
+                    <input type="number" id="menuActionDelay" min="0" max="10" onchange="saveFloatingSettings('expanded')" style="text-align: center;">
+                    <button class="btn btn-secondary" onclick="adjustMenuActionDelay(1)" style="padding: 6px 12px;">+</button>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="allowDrag" onchange="saveFloatingSettings('expanded')">
+                    <span data-i18n="label_allow_drag">ドラッグ移動を許可する</span>
+                </label>
+            </div>
+
+            <div id="displayTaskCountContainer" class="setting-item">
+                <label for="displayTaskCount" data-i18n="label_display_task_count">表示するタスク数:</label>
+                <div class="row">
+                    <button class="btn btn-secondary" onclick="adjustDisplayTaskCount(-1)" style="padding: 6px 12px;">-</button>
+                    <input type="number" id="displayTaskCount" min="1" max="10" onchange="saveFloatingSettings('expanded')" style="text-align: center;">
+                    <button class="btn btn-secondary" onclick="adjustDisplayTaskCount(1)" style="padding: 6px 12px;">+</button>
+                </div>
+            </div>
+
+            <div id="scrollTaskCountContainer" class="setting-item">
+                <label for="scrollTaskCount" data-i18n="label_scroll_task_count">ボタン移動量:</label>
+                <div class="row">
+                    <button class="btn btn-secondary" onclick="adjustScrollTaskCount(-1)" style="padding: 6px 12px;">-</button>
+                    <input type="number" id="scrollTaskCount" min="1" max="10" onchange="saveFloatingSettings('expanded')" style="text-align: center;">
+                    <button class="btn btn-secondary" onclick="adjustScrollTaskCount(1)" style="padding: 6px 12px;">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title" data-i18n="label_interval">再表示・通知間隔</div>
+        <div class="settings-card">
+            <div class="row setting-item">
+                <button class="btn btn-secondary" onclick="adjustRecheckInterval(-1)" style="padding: 10px 16px;">-</button>
+                <input type="number" id="recheckInterval" min="0" max="1440" onchange="updateInterval()" style="text-align: center; font-weight: bold;">
+                <button class="btn btn-secondary" onclick="adjustRecheckInterval(1)" style="padding: 10px 16px;">+</button>
+            </div>
+            <div class="hint" data-i18n="label_interval_hint">0分で「なし」に設定されます。</div>
+        </div>
+
+        <div class="section-title" data-i18n="label_color_rules">🎨 配色ルール</div>
+        <div class="settings-card">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+                <button class="btn btn-primary" onclick="addColorRule()" style="padding: 6px 12px; font-size: 12px;" data-i18n="btn_add_rule">＋ ルール追加</button>
+            </div>
+            <div id="colorRulesList"></div>
+        </div>
+
+        <button class="btn btn-secondary" style="width: 100%; margin-bottom: 12px;" onclick="resetFloatingSettings()" data-i18n="btn_reset_default">設定をデフォルトに戻す</button>
+        <button class="btn btn-secondary" style="width: 100%;" onclick="goBack()" data-i18n="btn_close">閉じる</button>
+    </div>
+
+    <!-- Custom Modal -->
+    <div id="customModal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="modalTitle" class="modal-title"></div>
+            <label for="modalInput" style="display:none;">Input</label>
+            <input type="text" id="modalInput" class="modal-input" style="display: none;" aria-labelledby="modalTitle">
+            <label for="modalTextarea" style="display:none;">Textarea</label>
+            <textarea id="modalTextarea" class="modal-input" style="display: none; height: 150px; resize: vertical;" aria-labelledby="modalTitle"></textarea>
+            <div class="modal-actions">
+                <button id="modalNeutralBtn" class="btn btn-secondary" style="display: none;"></button>
+                <button id="modalCancelBtn" class="btn" onclick="closeModal()" data-i18n="btn_cancel">キャンセル</button>
+                <button id="modalConfirmBtn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function goBack() {
+            if (typeof Android !== 'undefined' && Android.stopFloatingWindow) {
+                Android.stopFloatingWindow();
+            }
+            location.href = 'index.html?tab=settings';
+        }
+
+        function handleBack() {
+            goBack();
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applyLanguage();
+            if (typeof loadFloatingSettings === 'function') loadFloatingSettings();
+        });
+    </script>
+</body>
+</html>

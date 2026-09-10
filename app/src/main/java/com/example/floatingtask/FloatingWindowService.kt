@@ -106,6 +106,7 @@ class FloatingWindowService : Service() {
         when (intent.action) {
             "ACTION_HIDE" -> {
                 isSettingsMode = false
+                isExpanded = false
                 hideFloatingWindow()
             }
             "ACTION_SHOW" -> {

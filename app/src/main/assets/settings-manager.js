@@ -46,17 +46,7 @@ function updateStorageUsage() {
 window.updateStorageUsage = updateStorageUsage;
 
 function openFloatingSettings() {
-    const mainView = document.getElementById('settings-main-view');
-    const detailView = document.getElementById('settings-floating-detail');
-    if (mainView) mainView.style.display = 'none';
-    if (detailView) detailView.style.display = 'block';
-    if (typeof renderColorRules === 'function') {
-        try {
-            renderColorRules();
-        } catch (e) {
-            console.error("renderColorRules failed:", e);
-        }
-    }
+    location.href = 'floating-settings.html';
 }
 window.openFloatingSettings = openFloatingSettings;
 
@@ -73,16 +63,6 @@ function openAdRetryInfo() {
 }
 window.openAdRetryInfo = openAdRetryInfo;
 
-function closeFloatingSettings() {
-    const mainView = document.getElementById('settings-main-view');
-    const detailView = document.getElementById('settings-floating-detail');
-    if (mainView) mainView.style.display = 'block';
-    if (detailView) detailView.style.display = 'none';
-    if (typeof Android !== 'undefined' && Android.stopFloatingWindow) {
-        Android.stopFloatingWindow();
-    }
-}
-window.closeFloatingSettings = closeFloatingSettings;
 
 function openNewTaskSettings() {
     location.href = 'task-settings.html';
@@ -255,6 +235,7 @@ function loadFloatingSettings() {
 
     updateFloatingSettingsVisibility();
     updateStorageUsage();
+    if (typeof renderColorRules === 'function') renderColorRules();
 }
 window.loadFloatingSettings = loadFloatingSettings;
 

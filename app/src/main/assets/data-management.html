@@ -219,6 +219,9 @@
 
     <script>
         function goBack() {
+            if (typeof Android !== 'undefined' && Android.stopFloatingWindow) {
+                Android.stopFloatingWindow();
+            }
             location.href = 'index.html?tab=settings';
         }
 

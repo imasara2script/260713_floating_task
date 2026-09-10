@@ -155,8 +155,27 @@
         </div>
     </div>
 
+    <!-- Custom Modal -->
+    <div id="customModal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="modalTitle" class="modal-title"></div>
+            <label for="modalInput" style="display:none;">Input</label>
+            <input type="text" id="modalInput" class="modal-input" style="display: none;" aria-labelledby="modalTitle">
+            <label for="modalTextarea" style="display:none;">Textarea</label>
+            <textarea id="modalTextarea" class="modal-input" style="display: none; height: 150px; resize: vertical;" aria-labelledby="modalTitle"></textarea>
+            <div class="modal-actions">
+                <button id="modalNeutralBtn" class="btn btn-secondary" style="display: none;"></button>
+                <button id="modalCancelBtn" class="btn" onclick="closeModal()" data-i18n="btn_cancel">キャンセル</button>
+                <button id="modalConfirmBtn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         function goBack() {
+            if (typeof Android !== 'undefined' && Android.stopFloatingWindow) {
+                Android.stopFloatingWindow();
+            }
             location.href = 'index.html?tab=settings';
         }
 
