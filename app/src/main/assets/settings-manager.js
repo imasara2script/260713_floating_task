@@ -98,6 +98,11 @@ function openPermissionsScreen() {
 }
 window.openPermissionsScreen = openPermissionsScreen;
 
+function openDataManagementScreen() {
+    location.href = 'data-management.html';
+}
+window.openDataManagementScreen = openDataManagementScreen;
+
 function closeNewTaskSettings() {
     const mainView = document.getElementById('settings-main-view');
     const detailView = document.getElementById('settings-new-task-detail');

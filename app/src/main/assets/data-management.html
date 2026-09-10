@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Task - Data Management</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="translations.js"></script>
+    <script src="app.js"></script>
+    <script src="ui-core.js"></script>
+    <script src="modal-manager.js"></script>
+    <script src="system-handler.js"></script>
+    <script src="settings-manager.js"></script>
+    <style>
+        html, body {
+            overflow: auto !important;
+            height: auto !important;
+        }
+        body {
+            background-color: #f8f9fa;
+            padding: 20px 20px 40px 20px;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            color: #333;
+            margin: 0;
+            overflow-x: hidden;
+            display: block;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 20px;
+            margin: 0;
+            text-align: center;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+            justify-content: center;
+            position: relative;
+        }
+        .btn-back {
+            position: absolute;
+            left: 0;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 12px;
+            color: #555;
+            border-left: 4px solid #007bff;
+            padding-left: 8px;
+        }
+        .data-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .btn-large {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.1s;
+        }
+        .btn-large:active {
+            transform: scale(0.98);
+        }
+        .btn-backup {
+            background-color: #007bff;
+            color: white;
+            margin-bottom: 12px;
+        }
+        .btn-restore {
+            background-color: #6c757d;
+            color: white;
+        }
+        .storage-info {
+            font-size: 14px;
+            color: #666;
+            background: #f0f0f0;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #007bff;
+            transition: width 0.5s ease-out;
+        }
+
+        /* Custom Modal Styles (shared) */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 450px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-title { font-weight: bold; margin-bottom: 12px; white-space: pre-wrap; }
+        .modal-input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+        .preview-section {
+            margin-bottom: 16px;
+            padding: 8px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .preview-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center; gap: 8px;
+        }
+        .preview-item { margin-left: 24px; color: #555; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="btn-back" onclick="goBack()">←</button>
+            <h1 data-i18n="data_management_title">データ管理</h1>
+        </div>
+
+        <div class="section-title" data-i18n="label_auto_backup">自動バックアップ</div>
+        <div class="data-card">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; margin-bottom: 12px;">
+                <input type="checkbox" id="autoBackupToggle" onchange="updateAutoBackupEnabled(this.checked)">
+                <span data-i18n="label_enable_auto_backup">自動バックアップを有効にする</span>
+            </label>
+
+            <div style="margin-bottom: 16px; padding: 12px; background: #fff; border: 1px solid #eee; border-radius: 8px;">
+                <div style="font-size: 13px; color: #666; margin-bottom: 8px;" data-i18n="label_auto_backup_count">自動バックアップの保持数</div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button class="btn btn-secondary" onclick="adjustAutoBackupCount(-1)" style="padding: 4px 12px; font-weight: bold;">-</button>
+                    <div id="autoBackupCountDisplay" style="font-size: 16px; font-weight: bold; min-width: 20px; text-align: center;">1</div>
+                    <button class="btn btn-secondary" onclick="adjustAutoBackupCount(1)" style="padding: 4px 12px; font-weight: bold;">+</button>
+                </div>
+            </div>
+
+            <div style="font-size: 13px; color: #666; margin-bottom: 8px;" data-i18n="label_last_auto_backup">最終自動バックアップ日時：</div>
+            <div id="autoBackupList" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- List of backups populated by JS -->
+            </div>
+        </div>
+
+        <div class="section-title" data-i18n="label_data_management">バックアップ・復元</div>
+        <div class="data-card">
+            <button class="btn-large btn-backup" onclick="exportData()" data-i18n="btn_backup">バックアップ</button>
+            <button class="btn-large btn-restore" onclick="startRestore(false)" data-i18n="btn_restore">復元</button>
+        </div>
+
+        <div class="section-title" data-i18n="label_storage_usage">ストレージ使用量 (localStorage)</div>
+        <div class="data-card">
+            <div id="storage-usage-info" class="storage-info">--- KB / --- KB (---%)</div>
+            <div class="progress-container">
+                <div id="storage-usage-bar" class="progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal (for confirmation dialogs) -->
+    <div id="customModal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="modalTitle" class="modal-title"></div>
+            <input type="text" id="modalInput" class="modal-input" style="display: none;">
+            <textarea id="modalTextarea" class="modal-input" style="display: none; height: 150px; resize: vertical;"></textarea>
+            <div class="modal-actions">
+                <button id="modalNeutralBtn" class="btn btn-secondary" style="display: none;"></button>
+                <button id="modalCancelBtn" class="btn" onclick="closeModal()" data-i18n="btn_cancel">キャンセル</button>
+                <button id="modalConfirmBtn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function goBack() {
+            location.href = 'index.html?tab=settings';
+        }
+
+        // Android のバックボタン対応
+        function handleBack() {
+            goBack();
+            return true;
+        }
+
+        function updateAutoBackupUI() {
+            if (typeof Android === 'undefined') return;
+
+            const enabled = Android.isAutoBackupEnabled ? Android.isAutoBackupEnabled() : true;
+            const count = Android.getAutoBackupCount ? Android.getAutoBackupCount() : 1;
+            const listStr = Android.getAutoBackupList ? Android.getAutoBackupList() : "[]";
+
+            let list = [];
+            try { list = JSON.parse(listStr); } catch(e) {}
+
+            const toggle = document.getElementById('autoBackupToggle');
+            const countEl = document.getElementById('autoBackupCountDisplay');
+            const listContainer = document.getElementById('autoBackupList');
+
+            if (toggle) toggle.checked = enabled;
+            if (countEl) countEl.textContent = count;
+
+            if (listContainer) {
+                if (list.length > 0) {
+                    listContainer.innerHTML = list.map(ts => {
+                        const dateStr = new Date(parseInt(ts)).toLocaleString();
+                        return `<div onclick="restoreFromAutoBackup('${ts}')" style="font-size: 14px; color: #007bff; text-decoration: underline; cursor: pointer; background: #f0f7ff; padding: 10px; border-radius: 6px; text-align: center; border: 1px dashed #007bff;">${dateStr}</div>`;
+                    }).join('');
+                } else {
+                    listContainer.innerHTML = '<div style="font-size: 14px; color: #999; text-align: center; padding: 10px;">---</div>';
+                }
+            }
+        }
+
+        function adjustAutoBackupCount(delta) {
+            if (typeof Android === 'undefined' || !Android.getAutoBackupCount || !Android.setAutoBackupCount) return;
+            let current = Android.getAutoBackupCount();
+            let next = Math.max(1, Math.min(5, current + delta));
+            Android.setAutoBackupCount(next);
+            updateAutoBackupUI();
+        }
+
+        function updateAutoBackupEnabled(enabled) {
+            if (typeof Android !== 'undefined' && Android.setAutoBackupEnabled) {
+                Android.setAutoBackupEnabled(enabled);
+                if (enabled) {
+                    // ONにした直後にバックアップを実行
+                    if (typeof checkAutoBackup === 'function') checkAutoBackup();
+                }
+                updateAutoBackupUI();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applyLanguage();
+            // データ更新
+            tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+            history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+            calendarMark = localStorage.getItem('calendarMark') || '⭕';
+            bgThresholds = JSON.parse(localStorage.getItem('bgThresholds') || '[]');
+            showAllInFloating = localStorage.getItem('showAllInFloating') === 'true';
+
+            updateAutoBackupUI();
+            if (typeof updateStorageUsage === 'function') {
+                updateStorageUsage();
+            }
+        });
+
+        // 定期的に容量と自動バックアップの状態をチェック
+        setInterval(() => {
+            if (typeof updateStorageUsage === 'function') updateStorageUsage();
+            updateAutoBackupUI();
+        }, 2000);
+    </script>
+</body>
+</html>

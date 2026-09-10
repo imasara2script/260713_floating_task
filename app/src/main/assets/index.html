@@ -112,6 +112,7 @@
                         <button class="btn btn-primary" style="width: 100%;" onclick="openPermissionsScreen()" data-i18n="label_system_permissions">⚙️ システム権限関係</button>
                         <button class="btn btn-primary" style="width: 100%;" onclick="openFloatingSettings()" data-i18n="btn_floating_settings">フローティングウィンドウの設定</button>
                         <button class="btn btn-primary" style="width: 100%;" onclick="openNewTaskSettings()" data-i18n="btn_new_task_settings">タスク</button>
+                        <button class="btn btn-primary" style="width: 100%;" onclick="openDataManagementScreen()" data-i18n="btn_data">データ</button>
                     </div>
 
                     <!-- 5. 広告リトライ設定 -->
@@ -127,15 +128,6 @@
                         </div>
                     </div>
 
-                    <!-- 6. データ管理 -->
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <div style="font-size: 13px; margin-bottom: 8px;" data-i18n="label_data_management">💾 データ管理</div>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-secondary" onclick="exportData()" style="flex: 1; font-size: 14px;" data-i18n="btn_backup">バックアップ</button>
-                            <button class="btn btn-secondary" onclick="startRestore(false)" style="flex: 1; font-size: 14px;" data-i18n="btn_restore">復元</button>
-                        </div>
-                    </div>
-
                     <!-- 6. コイン管理 -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
                         <div style="font-size: 13px; margin-bottom: 8px;" data-i18n="label_coin_management">🪙 コイン</div>
@@ -147,17 +139,6 @@
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
                         <label for="calendarMarkInput" style="display: block; margin-bottom: 8px;" data-i18n="label_calendar_mark">カレンダーのマーク (記号や絵文字):</label>
                         <input type="text" id="calendarMarkInput" placeholder="例: ⭕, ✔, ⭐" onchange="updateCalendarMark()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
-                    </div>
-
-                    <!-- 8. ストレージ使用状況 -->
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <span data-i18n="label_storage_usage">ストレージ使用量 (localStorage)</span>
-                        </div>
-                        <div id="storage-usage-info" style="font-size: 13px; color: #666; background: #f0f0f0; padding: 8px; border-radius: 6px; text-align: center;">--- KB / --- KB (---%)</div>
-                        <div style="width: 100%; height: 6px; background: #eee; border-radius: 3px; margin-top: 8px; overflow: hidden;">
-                            <div id="storage-usage-bar" style="width: 0%; height: 100%; background: #007bff; transition: width 0.3s;"></div>
-                        </div>
                     </div>
 
                     <!-- 9. 開発者用 -->

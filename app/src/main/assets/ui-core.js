@@ -275,6 +275,7 @@ function initializeApp() {
         }
 
         if (typeof checkDailyReset === 'function') checkDailyReset();
+        if (typeof checkAutoBackup === 'function') checkAutoBackup();
 
         if (typeof updateAlarmStatus === 'function') updateAlarmStatus();
         if (typeof updateBatteryStatus === 'function') updateBatteryStatus();

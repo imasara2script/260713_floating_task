@@ -860,6 +860,89 @@ class FloatingWindowService : Service() {
         }
 
         @JavascriptInterface
+        fun saveAutoBackup(jsonData: String) {
+            try {
+                val timestamp = System.currentTimeMillis()
+                val fileName = "auto_backup_$timestamp.json"
+                this@FloatingWindowService.openFileOutput(fileName, Context.MODE_PRIVATE).use {
+                    it.write(jsonData.toByteArray())
+                }
+                val prefs = this@FloatingWindowService.getSharedPreferences("auto_backup_prefs", Context.MODE_PRIVATE)
+                prefs.edit().putLong("last_backup_time", timestamp).apply()
+                
+                // クリーンアップ処理 (サービス内でも同様)
+                val maxCount = prefs.getInt("max_backup_count", 1)
+                val files = this@FloatingWindowService.fileList()
+                    .filter { it.startsWith("auto_backup_") && it.endsWith(".json") }
+                    .sortedDescending()
+                if (files.size > maxCount) {
+                    for (i in maxCount until files.size) {
+                        this@FloatingWindowService.deleteFile(files[i])
+                    }
+                }
+            } catch (e: Exception) {
+                AppLogger.log(this@FloatingWindowService, "Failed to save auto backup from service")
+            }
+        }
+
+        @JavascriptInterface
+        fun loadAutoBackup(timestamp: String?): String {
+            return try {
+                val fileName = if (timestamp != null && timestamp != "") {
+                    "auto_backup_$timestamp.json"
+                } else {
+                    val files = this@FloatingWindowService.fileList()
+                        .filter { it.startsWith("auto_backup_") && it.endsWith(".json") }
+                        .sortedDescending()
+                    if (files.isEmpty()) return ""
+                    files[0]
+                }
+                this@FloatingWindowService.openFileInput(fileName).use {
+                    it.bufferedReader().readText()
+                }
+            } catch (e: Exception) { "" }
+        }
+
+        @JavascriptInterface
+        fun getAutoBackupList(): String {
+            val files = this@FloatingWindowService.fileList()
+                .filter { it.startsWith("auto_backup_") && it.endsWith(".json") }
+                .map { it.removePrefix("auto_backup_").removeSuffix(".json") }
+                .sortedDescending()
+            return org.json.JSONArray(files).toString()
+        }
+
+        @JavascriptInterface
+        fun getAutoBackupCount(): Int {
+            return this@FloatingWindowService.getSharedPreferences("auto_backup_prefs", Context.MODE_PRIVATE)
+                .getInt("max_backup_count", 1)
+        }
+
+        @JavascriptInterface
+        fun setAutoBackupCount(count: Int) {
+            this@FloatingWindowService.getSharedPreferences("auto_backup_prefs", Context.MODE_PRIVATE)
+                .edit().putInt("max_backup_count", count.coerceIn(1, 5)).apply()
+        }
+
+        @JavascriptInterface
+        fun getLastAutoBackupTime(): Long {
+            return this@FloatingWindowService.getSharedPreferences("auto_backup_prefs", Context.MODE_PRIVATE)
+                .getLong("last_backup_time", 0)
+        }
+
+        @JavascriptInterface
+        fun isAutoBackupEnabled(): Boolean {
+            return this@FloatingWindowService.getSharedPreferences("auto_backup_prefs", Context.MODE_PRIVATE)
+                .getBoolean("enabled", true)
+        }
+
+        @JavascriptInterface
+        fun setAutoBackupEnabled(enabled: Boolean) {
+            this@FloatingWindowService.getSharedPreferences("auto_backup_prefs", Context.MODE_PRIVATE)
+                .edit().putBoolean("enabled", enabled).apply()
+        }
+
+        @JavascriptInterface
         fun openExternalUrl(url: String) {
             try {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))

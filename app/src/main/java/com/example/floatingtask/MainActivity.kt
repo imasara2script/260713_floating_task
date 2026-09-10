@@ -633,6 +633,30 @@ class MainActivity : AppCompatActivity(),
         fun stopMelody() = mediaHandler.stopMelody()
 
         @JavascriptInterface
+        fun saveAutoBackup(jsonData: String) = mediaHandler.saveAutoBackup(jsonData)
+
+        @JavascriptInterface
+        fun loadAutoBackup(timestamp: String?): String = mediaHandler.loadAutoBackup(if (timestamp == "") null else timestamp) ?: ""
+
+        @JavascriptInterface
+        fun getAutoBackupList(): String = mediaHandler.getAutoBackupList()
+
+        @JavascriptInterface
+        fun getAutoBackupCount(): Int = mediaHandler.getAutoBackupCount()
+
+        @JavascriptInterface
+        fun setAutoBackupCount(count: Int) = mediaHandler.setAutoBackupCount(count)
+
+        @JavascriptInterface
+        fun getLastAutoBackupTime(): Long = mediaHandler.getLastAutoBackupTime()
+
+        @JavascriptInterface
+        fun isAutoBackupEnabled(): Boolean = mediaHandler.isAutoBackupEnabled()
+
+        @JavascriptInterface
+        fun setAutoBackupEnabled(enabled: Boolean) = mediaHandler.setAutoBackupEnabled(enabled)
+
+        @JavascriptInterface
         fun openExternalUrl(url: String) {
             try {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))

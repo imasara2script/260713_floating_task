@@ -3,6 +3,7 @@
  */
 
 function exportData() {
+    console.log("exportData called");
     const isPremiumValue = (typeof Android !== 'undefined' && Android.isPremium && Android.isPremium());
     const coins = (typeof Android !== 'undefined' && Android.getCoins) ? Android.getCoins() : 0;
     const msg = getTranslation('msg_backup_confirm');
@@ -45,8 +46,8 @@ function exportData() {
     });
 }
 
-function performBackup() {
-    const data = {
+function getBackupData() {
+    return {
         tasks: tasks,
         taskHistory: history,
         calendarMark: calendarMark,
@@ -76,12 +77,53 @@ function performBackup() {
         displayTaskCount: localStorage.getItem('displayTaskCount'),
         scrollTaskCount: localStorage.getItem('scrollTaskCount'),
         recheckInterval: localStorage.getItem('recheckInterval'),
-        bgThresholds: bgThresholds
+        bgThresholds: bgThresholds,
+        keepDurationTaskOnReset: localStorage.getItem('keepDurationTaskOnReset') !== 'false'
     };
+}
+
+function performBackup() {
+    const data = getBackupData();
     if (typeof Android !== 'undefined' && Android.backupData) {
         Android.backupData(JSON.stringify(data));
     }
 }
+
+function checkAutoBackup() {
+    if (typeof Android === 'undefined' || !Android.isAutoBackupEnabled || !Android.isAutoBackupEnabled()) return;
+
+    const lastTime = Android.getLastAutoBackupTime ? Android.getLastAutoBackupTime() : 0;
+    const now = Date.now();
+    const interval = 24 * 60 * 60 * 1000; // 24 hours
+
+    // バックアップファイルの一覧を取得して、存在するか確認
+    const listStr = Android.getAutoBackupList ? Android.getAutoBackupList() : "[]";
+    let list = [];
+    try { list = JSON.parse(listStr); } catch(e) {}
+
+    // 条件：前回のバックアップから24時間経過している、またはバックアップが1つも存在しない
+    if (now - lastTime >= interval || list.length === 0) {
+        console.log("Triggering auto backup... (Condition met: time elapsed or no backups)");
+        const data = getBackupData();
+        if (Android.saveAutoBackup) {
+            Android.saveAutoBackup(JSON.stringify(data));
+        }
+    }
+}
+window.checkAutoBackup = checkAutoBackup;
+
+function restoreFromAutoBackup(timestamp = null) {
+    if (typeof Android === 'undefined' || !Android.loadAutoBackup) return;
+    const jsonData = Android.loadAutoBackup(timestamp || "");
+    if (jsonData) {
+        isImportMode = false;
+        const label = timestamp ? new Date(parseInt(timestamp)).toLocaleString() : "Latest Auto Backup";
+        applyRestoredData(jsonData, label);
+    } else {
+        showModal(getTranslation('msg_no_auto_backup'), { hideCancel: true });
+    }
+}
+window.restoreFromAutoBackup = restoreFromAutoBackup;
 
 function startRestore(isImport = false) {
     isImportMode = !!isImport;
