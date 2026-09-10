@@ -524,18 +524,12 @@ function earnCoinReward() {
         }
     }
 
-    showModal(getTranslation('msg_confirm_reward_ad'), {
-        onConfirm: () => {
-            console.log("earnCoinReward confirmed");
-            if (typeof Android !== 'undefined' && Android.showRewardedAdForCoin) {
-                const isReady = Android.isRewardedAdReady ? Android.isRewardedAdReady() : false;
-                Android.showRewardedAdForCoin();
-                return isReady;
-            } else {
-                console.error("Android.showRewardedAdForCoin is undefined");
-            }
-        }
-    });
+    // 確認ダイアログをスキップして直接実行
+    if (typeof Android !== 'undefined' && Android.showRewardedAdForCoin) {
+        Android.showRewardedAdForCoin();
+    } else {
+        console.error("Android.showRewardedAdForCoin is undefined");
+    }
 }
 
 function onRewardEarned(type, remaining) {

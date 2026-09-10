@@ -107,33 +107,15 @@
                         </select>
                     </div>
 
-                    <!-- 2. システム権限・各種設定 -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
                         <button class="btn btn-primary" style="width: 100%;" onclick="openPermissionsScreen()" data-i18n="label_system_permissions">⚙️ システム権限関係</button>
                         <button class="btn btn-primary" style="width: 100%;" onclick="openFloatingSettings()" data-i18n="btn_floating_settings">フローティングウィンドウの設定</button>
                         <button class="btn btn-primary" style="width: 100%;" onclick="openNewTaskSettings()" data-i18n="btn_new_task_settings">タスク</button>
+                        <button class="btn btn-primary" style="width: 100%;" onclick="openRewardsScreen()" data-i18n="btn_rewards">リワード</button>
                         <button class="btn btn-primary" style="width: 100%;" onclick="openDataManagementScreen()" data-i18n="btn_data">データ</button>
                     </div>
 
-                    <!-- 5. 広告リトライ設定 -->
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                            <label for="adRetryBaseInterval" style="margin: 0;" data-i18n="label_ad_retry_interval">広告読み込みリトライの基本待機時間(秒):</label>
-                            <span onclick="openAdRetryInfo()" style="cursor: pointer; color: #007bff; font-size: 18px; padding: 0 4px;" title="詳細">ⓘ</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <button class="btn btn-secondary" onclick="adjustAdRetryInterval(-1)" style="padding: 8px 12px; font-weight: bold;">-</button>
-                            <input type="number" id="adRetryBaseInterval" min="2" max="60" onchange="saveFloatingSettings(undefined, true)" style="flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-align: center;">
-                            <button class="btn btn-secondary" onclick="adjustAdRetryInterval(1)" style="padding: 8px 12px; font-weight: bold;">+</button>
-                        </div>
-                    </div>
-
-                    <!-- 6. コイン管理 -->
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <div style="font-size: 13px; margin-bottom: 8px;" data-i18n="label_coin_management">🪙 コイン</div>
-                        <button class="btn btn-primary" onclick="earnCoinReward()" style="width: 100%; font-size: 14px; margin-bottom: 8px;" data-i18n="btn_get_coin_reward">リワード広告を視聴して１コインをゲット</button>
-                        <div id="coin-display" style="font-size: 14px; text-align: center; color: #666;"></div>
-                    </div>
+                    <!-- 6. コイン管理 (移動済み) -->
 
                     <!-- 7. カレンダーのマーク -->
                     <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">

@@ -103,6 +103,11 @@ function openDataManagementScreen() {
 }
 window.openDataManagementScreen = openDataManagementScreen;
 
+function openRewardsScreen() {
+    location.href = 'rewards.html';
+}
+window.openRewardsScreen = openRewardsScreen;
+
 function closeNewTaskSettings() {
     const mainView = document.getElementById('settings-main-view');
     const detailView = document.getElementById('settings-new-task-detail');
@@ -155,13 +160,13 @@ function updateNewTaskSettings() {
     const showHyperlink = chkHyperlink ? chkHyperlink.checked : false;
     const keepDuration = chkKeepDuration ? chkKeepDuration.checked : true;
 
-    localStorage.setItem('showTimerOnCreate', showTimer);
-    localStorage.setItem('showRemindOnCreate', showRemind);
-    localStorage.setItem('showDaysOnCreate', showDays);
-    localStorage.setItem('showCommentOnCreate', showComment);
-    localStorage.setItem('showNoteOnCreate', showNote);
-    localStorage.setItem('showHyperlinkOnCreate', showHyperlink);
-    localStorage.setItem('keepDurationTaskOnReset', keepDuration);
+    if (chkTimer) localStorage.setItem('showTimerOnCreate', showTimer);
+    if (chkRemind) localStorage.setItem('showRemindOnCreate', showRemind);
+    if (chkDays) localStorage.setItem('showDaysOnCreate', showDays);
+    if (chkComment) localStorage.setItem('showCommentOnCreate', showComment);
+    if (chkNote) localStorage.setItem('showNoteOnCreate', showNote);
+    if (chkHyperlink) localStorage.setItem('showHyperlinkOnCreate', showHyperlink);
+    if (chkKeepDuration) localStorage.setItem('keepDurationTaskOnReset', keepDuration);
 }
 window.updateNewTaskSettings = updateNewTaskSettings;
 
@@ -251,6 +256,13 @@ function loadFloatingSettings() {
     const elRecheckInterval = document.getElementById('recheckInterval');
     if (elRecheckInterval) elRecheckInterval.value = localStorage.getItem('recheckInterval') || '0';
     toggleFixedPositionInputs('expanded');
+
+    setupDraggableLabel('labelFloatCollapsedX', 'floatCollapsedX', 'collapsed');
+    setupDraggableLabel('labelFloatCollapsedY', 'floatCollapsedY', 'collapsed');
+    setupDraggableLabel('labelFloatWidth', 'floatWidth', 'expanded');
+    setupDraggableLabel('labelFloatHeight', 'floatHeight', 'expanded');
+    setupDraggableLabel('labelFloatExpandedX', 'floatExpandedX', 'expanded');
+    setupDraggableLabel('labelFloatExpandedY', 'floatExpandedY', 'expanded');
 
     updateFloatingSettingsVisibility();
     updateStorageUsage();
@@ -385,72 +397,87 @@ function adjustRecheckInterval(delta) {
 window.adjustRecheckInterval = adjustRecheckInterval;
 
 function saveFloatingSettings(targetMode, skipStartWindow = false) {
-    const cScale = document.getElementById('floatCollapsedScale')?.value || "1.0";
-    const showEmpty = document.getElementById('showWhenEmpty')?.checked || false;
-    const moveC = document.getElementById('alwaysMoveCollapsed')?.checked || false;
-    const allowDragC = document.getElementById('allowDragCollapsed')?.checked || false;
-    const cX = document.getElementById('floatCollapsedX')?.value || "100";
-    const cY = document.getElementById('floatCollapsedY')?.value || "100";
+    const elCScale = document.getElementById('floatCollapsedScale');
+    const elShowEmpty = document.getElementById('showWhenEmpty');
+    const elMoveC = document.getElementById('alwaysMoveCollapsed');
+    const elAllowDragC = document.getElementById('allowDragCollapsed');
+    const elCX = document.getElementById('floatCollapsedX');
+    const elCY = document.getElementById('floatCollapsedY');
 
-    localStorage.setItem('floatCollapsedScale', cScale);
-    localStorage.setItem('showWhenEmpty', showEmpty);
-    localStorage.setItem('alwaysMoveCollapsed', moveC);
-    localStorage.setItem('allowDragCollapsed', allowDragC);
-    localStorage.setItem('floatCollapsedX', cX);
-    localStorage.setItem('floatCollapsedY', cY);
+    if (elCScale) localStorage.setItem('floatCollapsedScale', elCScale.value);
+    if (elShowEmpty) localStorage.setItem('showWhenEmpty', elShowEmpty.checked);
+    if (elMoveC) localStorage.setItem('alwaysMoveCollapsed', elMoveC.checked);
+    if (elAllowDragC) localStorage.setItem('allowDragCollapsed', elAllowDragC.checked);
+    if (elCX) localStorage.setItem('floatCollapsedX', elCX.value);
+    if (elCY) localStorage.setItem('floatCollapsedY', elCY.value);
 
-    const width = document.getElementById('floatWidth')?.value || "300";
-    const height = document.getElementById('floatHeight')?.value || "44";
-    const eScale = document.getElementById('floatExpandedScale')?.value || "1.0";
-    const moveE = document.getElementById('alwaysMoveExpanded')?.checked || false;
-    const eX = document.getElementById('floatExpandedX')?.value || "100";
-    const eY = document.getElementById('floatExpandedY')?.value || "100";
-    const showClose = document.getElementById('showCloseButtonExpanded')?.checked || false;
-    const keepService = document.getElementById('keepServiceOnClose')?.checked || false;
-    const showCheckedToggle = document.getElementById('showCheckedToggle')?.checked || false;
-    const showHistoryButton = document.getElementById('showHistoryButton')?.checked || false;
-    const navType = document.getElementById('navType')?.value || "button";
-    const menuActionDelayStr = document.getElementById('menuActionDelay')?.value || "0";
-    const menuActionDelay = parseInt(menuActionDelayStr) || 0;
-    const allowDrag = document.getElementById('allowDrag')?.checked || false;
-    const scrollButtonType = document.getElementById('scrollButtonType')?.value || "both";
+    const elWidth = document.getElementById('floatWidth');
+    const elHeight = document.getElementById('floatHeight');
+    const elEScale = document.getElementById('floatExpandedScale');
+    const elMoveE = document.getElementById('alwaysMoveExpanded');
+    const elEX = document.getElementById('floatExpandedX');
+    const elEY = document.getElementById('floatExpandedY');
+    const elShowClose = document.getElementById('showCloseButtonExpanded');
+    const elKeepService = document.getElementById('keepServiceOnClose');
+    const elShowCheckedToggle = document.getElementById('showCheckedToggle');
+    const elShowHistoryButton = document.getElementById('showHistoryButton');
+    const elNavType = document.getElementById('navType');
+    const elMenuDelay = document.getElementById('menuActionDelay');
+    const elAllowDrag = document.getElementById('allowDrag');
+    const elScrollBtnType = document.getElementById('scrollButtonType');
+
+    if (elWidth) localStorage.setItem('floatWidth', elWidth.value);
+    if (elHeight) localStorage.setItem('floatHeight', elHeight.value);
+    if (elEScale) localStorage.setItem('floatExpandedScale', elEScale.value);
+    if (elMoveE) localStorage.setItem('alwaysMoveExpanded', elMoveE.checked);
+    if (elEX) localStorage.setItem('floatExpandedX', elEX.value);
+    if (elEY) localStorage.setItem('floatExpandedY', elEY.value);
+    if (elShowClose) localStorage.setItem('showCloseButtonExpanded', elShowClose.checked);
+    if (elKeepService) localStorage.setItem('keepServiceOnClose', elKeepService.checked);
+    if (elShowCheckedToggle) localStorage.setItem('showCheckedToggle', elShowCheckedToggle.checked);
+    if (elShowHistoryButton) localStorage.setItem('showHistoryButton', elShowHistoryButton.checked);
+    if (elNavType) localStorage.setItem('navType', elNavType.value);
+    if (elMenuDelay) localStorage.setItem('menuActionDelay', elMenuDelay.value.toString());
+    if (elAllowDrag) localStorage.setItem('allowDrag', elAllowDrag.checked);
+    if (elScrollBtnType) localStorage.setItem('scrollButtonType', elScrollBtnType.value);
 
     const dInput = document.getElementById('displayTaskCount');
     const sInput = document.getElementById('scrollTaskCount');
     const hInput = document.getElementById('checkedHideDelay');
     const retryInput = document.getElementById('adRetryBaseInterval');
     const recheckInput = document.getElementById('recheckInterval');
-    let dCount = Math.max(1, Math.min(10, parseInt(dInput?.value) || 1));
-    let sCount = Math.max(1, Math.min(dCount, parseInt(sInput?.value) || 1));
-    let hDelay = Math.max(0, Math.min(60, parseInt(hInput?.value) || 0));
-    let retryInterval = Math.max(2, Math.min(60, parseInt(retryInput?.value) || 2));
-    let recheckIntervalVal = Math.max(0, Math.min(1440, parseInt(recheckInput?.value) || 0));
 
-    if (dInput) dInput.value = dCount;
-    if (sInput) { sInput.value = sCount; sInput.max = dCount; }
-    if (hInput) hInput.value = hDelay;
-    if (retryInput) retryInput.value = retryInterval;
-    if (recheckInput) recheckInput.value = recheckIntervalVal;
+    let dCount = parseInt(localStorage.getItem('displayTaskCount') || "1");
+    let sCount = parseInt(localStorage.getItem('scrollTaskCount') || "1");
+    let hDelay = parseInt(localStorage.getItem('checkedHideDelay') || "2");
+    let retryInterval = parseInt(localStorage.getItem('adRetryBaseInterval') || "5");
+    let recheckIntervalVal = parseInt(localStorage.getItem('recheckInterval') || "0");
 
-    localStorage.setItem('floatWidth', width);
-    localStorage.setItem('floatHeight', height);
-    localStorage.setItem('floatExpandedScale', eScale);
-    localStorage.setItem('alwaysMoveExpanded', moveE);
-    localStorage.setItem('floatExpandedX', eX);
-    localStorage.setItem('floatExpandedY', eY);
-    localStorage.setItem('showCloseButtonExpanded', showClose);
-    localStorage.setItem('keepServiceOnClose', keepService);
-    localStorage.setItem('showCheckedToggle', showCheckedToggle);
-    localStorage.setItem('showHistoryButton', showHistoryButton);
-    localStorage.setItem('navType', navType);
-    localStorage.setItem('menuActionDelay', menuActionDelay.toString());
-    localStorage.setItem('allowDrag', allowDrag);
-    localStorage.setItem('scrollButtonType', scrollButtonType);
-    localStorage.setItem('displayTaskCount', dCount.toString());
-    localStorage.setItem('scrollTaskCount', sCount.toString());
-    localStorage.setItem('checkedHideDelay', hDelay.toString());
-    localStorage.setItem('adRetryBaseInterval', retryInterval.toString());
-    localStorage.setItem('recheckInterval', recheckIntervalVal.toString());
+    if (dInput) {
+        dCount = Math.max(1, Math.min(10, parseInt(dInput.value) || 1));
+        dInput.value = dCount;
+        localStorage.setItem('displayTaskCount', dCount.toString());
+    }
+    if (sInput) {
+        sCount = Math.max(1, Math.min(dCount, parseInt(sInput.value) || 1));
+        sInput.value = sCount; sInput.max = dCount;
+        localStorage.setItem('scrollTaskCount', sCount.toString());
+    }
+    if (hInput) {
+        hDelay = Math.max(0, Math.min(60, parseInt(hInput.value) || 0));
+        hInput.value = hDelay;
+        localStorage.setItem('checkedHideDelay', hDelay.toString());
+    }
+    if (retryInput) {
+        retryInterval = Math.max(2, Math.min(60, parseInt(retryInput.value) || 5));
+        retryInput.value = retryInterval;
+        localStorage.setItem('adRetryBaseInterval', retryInterval.toString());
+    }
+    if (recheckInput) {
+        recheckIntervalVal = Math.max(0, Math.min(1440, parseInt(recheckInput.value) || 0));
+        recheckInput.value = recheckIntervalVal;
+        localStorage.setItem('recheckInterval', recheckIntervalVal.toString());
+    }
 
     if (typeof displayTaskCount !== 'undefined') displayTaskCount = dCount;
     if (typeof scrollTaskCount !== 'undefined') scrollTaskCount = sCount;
@@ -467,15 +494,41 @@ function saveFloatingSettings(targetMode, skipStartWindow = false) {
 
     if (typeof Android !== 'undefined') {
         if (Android.updateFloatingSettingsExtended) {
+            const cX = parseInt(localStorage.getItem('floatCollapsedX') || "100");
+            const cY = parseInt(localStorage.getItem('floatCollapsedY') || "100");
+            const cScale = parseFloat(localStorage.getItem('floatCollapsedScale') || "1.0");
+            const showEmpty = localStorage.getItem('showWhenEmpty') === 'true';
+            const moveC = localStorage.getItem('alwaysMoveCollapsed') === 'true';
+            const eX = parseInt(localStorage.getItem('floatExpandedX') || "100");
+            const eY = parseInt(localStorage.getItem('floatExpandedY') || "100");
+            const eScale = parseFloat(localStorage.getItem('floatExpandedScale') || "1.0");
+            const moveE = localStorage.getItem('alwaysMoveExpanded') === 'true';
+            const width = parseInt(localStorage.getItem('floatWidth') || "300");
+            const height = parseInt(localStorage.getItem('floatHeight') || "44");
+            const showClose = localStorage.getItem('showCloseButtonExpanded') === 'true';
+            const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
+            const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
+            const allowDrag = localStorage.getItem('allowDrag') !== 'false';
+            const allowDragC = localStorage.getItem('allowDragCollapsed') !== 'false';
+            const showHistoryButton = localStorage.getItem('showHistoryButton') === 'true';
+            const navType = localStorage.getItem('navType') || 'button';
+            const keepService = localStorage.getItem('keepServiceOnClose') === 'true';
+            const menuActionDelay = parseInt(localStorage.getItem('menuActionDelay') || "0");
+
             Android.updateFloatingSettingsExtended(
-                parseInt(cX), parseInt(cY), parseFloat(cScale), showEmpty, moveC,
-                parseInt(eX), parseInt(eY), parseFloat(eScale), moveE,
-                parseInt(width), parseInt(height), showClose,
+                cX, cY, cScale, showEmpty, moveC,
+                eX, eY, eScale, moveE,
+                width, height, showClose,
                 dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragC,
                 showHistoryButton, navType, keepService, menuActionDelay
             );
         } else if (Android.updateFloatingSettings) {
-            Android.updateFloatingSettings(parseInt(eX), parseInt(eY), parseInt(width), parseInt(height), parseFloat(eScale));
+            const eX = parseInt(localStorage.getItem('floatExpandedX') || "100");
+            const eY = parseInt(localStorage.getItem('floatExpandedY') || "100");
+            const width = parseInt(localStorage.getItem('floatWidth') || "300");
+            const height = parseInt(localStorage.getItem('floatHeight') || "44");
+            const eScale = parseFloat(localStorage.getItem('floatExpandedScale') || "1.0");
+            Android.updateFloatingSettings(eX, eY, width, height, eScale);
         }
 
         if (!skipStartWindow && Android.startFloatingWindow) Android.startFloatingWindow();
