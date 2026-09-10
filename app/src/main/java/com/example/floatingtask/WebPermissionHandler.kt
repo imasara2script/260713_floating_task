@@ -35,6 +35,10 @@ class WebPermissionHandler(private val context: Context) {
         }
     }
 
+    fun getBatteryOptimizationSettingsIntent(): Intent {
+        return Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+    }
+
     fun checkNotificationPermissionGranted(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(

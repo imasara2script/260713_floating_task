@@ -473,7 +473,30 @@ class MainActivity : AppCompatActivity(),
 
         @JavascriptInterface
         fun requestBatteryOptimizationExemption() {
-            mContext.startActivity(permissionHandler.getBatteryOptimizationIntent())
+            runOnUiThread {
+                try {
+                    val isExempt = permissionHandler.checkBatteryOptimizationExempt()
+                    val intent = if (isExempt) {
+                        // 既に許可済みの場合は、確認のために一覧画面を開く
+                        permissionHandler.getBatteryOptimizationSettingsIntent()
+                    } else {
+                        // 未許可の場合は、直接の許可リクエストを試行
+                        permissionHandler.getBatteryOptimizationIntent()
+                    }
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    mContext.startActivity(intent)
+                } catch (e: Exception) {
+                    AppLogger.log(mContext, "Error requesting battery optimization exemption: ${e.message}")
+                    try {
+                        // 直接のリクエストが失敗した場合はフォールバックとして一覧画面を開く
+                        val fallbackIntent = permissionHandler.getBatteryOptimizationSettingsIntent()
+                        fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        mContext.startActivity(fallbackIntent)
+                    } catch (e2: Exception) {
+                        AppLogger.log(mContext, "Fallback to battery optimization settings failed: ${e2.message}")
+                    }
+                }
+            }
         }
 
         @JavascriptInterface
@@ -705,7 +728,8 @@ class MainActivity : AppCompatActivity(),
 
             val permissionHandler = WebPermissionHandler(this)
             if (webView.url?.contains("permissions.html") == true) {
-                if (permissionHandler.allEssentialPermissionsGranted()) {
+                val isFromSettings = webView.url?.contains("from=settings") == true
+                if (permissionHandler.allEssentialPermissionsGranted() && !isFromSettings) {
                     webView.loadUrl("file:///android_asset/index.html")
                 } else {
                     webView.evaluateJavascript("updateAllStatus();", null)

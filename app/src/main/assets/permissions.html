@@ -354,6 +354,7 @@
 
     <script>
         let currentDetailType = null;
+        let lastPermissionStates = { overlay: false, notification: false, alarm: false, battery: false };
 
         function changeLanguage(lang) {
             localStorage.setItem('appLanguage', lang);
@@ -478,36 +479,42 @@
             const urlParams = new URLSearchParams(window.location.search);
             const isFromSettings = urlParams.get('from') === 'settings';
 
-            const overlay = Android.checkOverlayPermissionGranted();
-            const notification = Android.checkNotificationPermissionGranted();
-            const alarm = Android.checkExactAlarmPermission();
-            const battery = Android.checkBatteryOptimizationExempt();
+            const currentStates = {
+                overlay: Android.checkOverlayPermissionGranted(),
+                notification: Android.checkNotificationPermissionGranted(),
+                alarm: Android.checkExactAlarmPermission(),
+                battery: Android.checkBatteryOptimizationExempt()
+            };
 
-            updateItemStatus('overlay', overlay);
-            updateItemStatus('notification', notification);
-            updateItemStatus('alarm', alarm);
-            updateItemStatus('battery', battery);
+            updateItemStatus('overlay', currentStates.overlay);
+            updateItemStatus('notification', currentStates.notification);
+            updateItemStatus('alarm', currentStates.alarm);
+            updateItemStatus('battery', currentStates.battery);
 
             const startBtn = document.getElementById('btn-start-app');
             const skipBtn = document.getElementById('btn-skip-setup');
 
-            if (overlay && notification && alarm && battery) {
+            const allGranted = currentStates.overlay && currentStates.notification && currentStates.alarm && currentStates.battery;
+
+            if (allGranted) {
                 startBtn.style.display = 'block';
                 if (skipBtn) skipBtn.style.display = 'none';
                 if (isFromSettings) {
                     startBtn.textContent = getTranslation('btn_back_to_settings');
                     startBtn.onclick = () => { location.href = 'index.html?tab=settings'; };
                 }
-                if (currentDetailType) hideDetail();
             } else {
                 startBtn.style.display = 'none';
                 if (skipBtn) skipBtn.style.display = 'block';
-                // 現在表示中の詳細項目が許可されたら自動で閉じる
-                if (currentDetailType === 'overlay' && overlay) hideDetail();
-                if (currentDetailType === 'notification' && notification) hideDetail();
-                if (currentDetailType === 'alarm' && alarm) hideDetail();
-                if (currentDetailType === 'battery' && battery) hideDetail();
             }
+
+            // 現在表示中の詳細項目が「未許可から許可に変わった瞬間」のみ自動で閉じる
+            if (currentDetailType && currentStates[currentDetailType] && !lastPermissionStates[currentDetailType]) {
+                hideDetail();
+            }
+
+            // 状態を記録
+            lastPermissionStates = currentStates;
         }
 
         function updateItemStatus(id, granted) {
@@ -517,12 +524,12 @@
             if (granted) {
                 statusEl.textContent = getTranslation('status_enabled');
                 statusEl.style.color = 'green';
-                btnEl.style.display = 'none';
+                btnEl.textContent = getTranslation('btn_check_setting');
                 itemEl.style.backgroundColor = 'rgba(40, 167, 69, 0.05)';
             } else {
                 statusEl.textContent = getTranslation('status_enabled').startsWith('✅') ? getTranslation('status_disabled') : '⚠️ Disabled';
                 statusEl.style.color = 'orange';
-                btnEl.style.display = 'inline-block';
+                btnEl.textContent = getTranslation('btn_setting');
                 itemEl.style.backgroundColor = 'transparent';
             }
         }
@@ -532,6 +539,17 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             applyLanguage();
+
+            // 初回状態の記録
+            if (typeof Android !== 'undefined') {
+                lastPermissionStates = {
+                    overlay: Android.checkOverlayPermissionGranted(),
+                    notification: Android.checkNotificationPermissionGranted(),
+                    alarm: Android.checkExactAlarmPermission(),
+                    battery: Android.checkBatteryOptimizationExempt()
+                };
+            }
+
             updateAllStatus();
             updateLangButtons();
 
