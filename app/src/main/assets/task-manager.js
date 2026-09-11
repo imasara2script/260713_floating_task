@@ -201,6 +201,10 @@ function repeatTimer(id) {
 
     task.startTime = Date.now();
     task.completed = false;
+    task.justUncompletedUntil = Date.now() + (checkedHideDelay * 1000);
+    setTimeout(() => {
+        if (typeof render === 'function') render();
+    }, checkedHideDelay * 1000);
 
     if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
         const remaining = (task.startTime + task.durationMs) - Date.now();
