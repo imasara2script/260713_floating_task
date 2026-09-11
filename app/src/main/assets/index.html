@@ -107,23 +107,41 @@
                         </select>
                     </div>
 
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-                        <button class="btn btn-primary" style="width: 100%;" onclick="openPermissionsScreen()" data-i18n="label_system_permissions">⚙️ システム権限関係</button>
-                        <button class="btn btn-primary" style="width: 100%;" onclick="openFloatingSettings()" data-i18n="btn_floating_settings">フローティングウィンドウの設定</button>
-                        <button class="btn btn-primary" style="width: 100%;" onclick="openNewTaskSettings()" data-i18n="btn_new_task_settings">タスク</button>
-                        <button class="btn btn-primary" style="width: 100%;" onclick="openRewardsScreen()" data-i18n="btn_rewards">リワード</button>
-                        <button class="btn btn-primary" style="width: 100%;" onclick="openDataManagementScreen()" data-i18n="btn_data">データ</button>
+                    <div class="settings-grid">
+                        <button class="setting-tile tile-perm" onclick="openPermissionsScreen()">
+                            <span class="tile-icon">⚙️</span>
+                            <span class="tile-label" data-i18n="label_system_permissions">システム権限</span>
+                        </button>
+                        <button class="setting-tile tile-float" onclick="openFloatingSettings()">
+                            <span class="tile-icon">🔲</span>
+                            <span class="tile-label" data-i18n="btn_floating_settings">ウィンドウ</span>
+                        </button>
+                        <button class="setting-tile tile-task" onclick="openNewTaskSettings()">
+                            <span class="tile-icon">📋</span>
+                            <span class="tile-label" data-i18n="btn_new_task_settings">タスク</span>
+                        </button>
+                        <button class="setting-tile tile-melody" onclick="openMelodySettings()">
+                            <span class="tile-icon">🎵</span>
+                            <span class="tile-label" data-i18n="btn_melody_settings">通知音</span>
+                        </button>
+                        <button class="setting-tile tile-reward" onclick="openRewardsScreen()">
+                            <span class="tile-icon">🎁</span>
+                            <span class="tile-label" data-i18n="btn_rewards">リワード</span>
+                        </button>
+                        <button class="setting-tile tile-data" onclick="openDataManagementScreen()">
+                            <span class="tile-icon">💾</span>
+                            <span class="tile-label" data-i18n="btn_data">データ</span>
+                        </button>
+                        <button class="setting-tile tile-dev" onclick="openDeveloperSettings()">
+                            <span class="tile-icon">🛠️</span>
+                            <span class="tile-label" data-i18n="btn_developer">開発者用</span>
+                        </button>
                     </div>
 
                     <!-- 7. カレンダーのマーク -->
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; font-size: 14px;">
+                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 16px; font-size: 14px;">
                         <label for="calendarMarkInput" style="display: block; margin-bottom: 8px;" data-i18n="label_calendar_mark">カレンダーのマーク (記号や絵文字):</label>
                         <input type="text" id="calendarMarkInput" placeholder="例: ⭕, ✔, ⭐" onchange="updateCalendarMark()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
-                    </div>
-
-                    <!-- 9. 開発者用 -->
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                        <button class="btn btn-secondary" onclick="openDeveloperSettings()" style="width: 100%; font-size: 14px;" data-i18n="btn_developer">開発者用</button>
                     </div>
                 </div>
             </div>

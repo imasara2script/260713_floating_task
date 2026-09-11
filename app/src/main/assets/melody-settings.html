@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Task - Melody Settings</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="translations.js"></script>
+    <script src="app.js"></script>
+    <script src="ui-core.js"></script>
+    <script src="modal-manager.js"></script>
+    <script src="system-handler.js"></script>
+    <script src="settings-manager.js"></script>
+    <style>
+        html, body {
+            overflow: auto !important;
+            height: auto !important;
+        }
+        body {
+            background-color: #f8f9fa;
+            padding: 20px 20px 40px 20px;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            color: #333;
+            margin: 0;
+            overflow-x: hidden;
+            display: block;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 20px;
+            margin: 0;
+            text-align: center;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+            justify-content: center;
+            position: relative;
+        }
+        .btn-back {
+            position: absolute;
+            left: 0;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 12px;
+            color: #555;
+            border-left: 4px solid #007bff;
+            padding-left: 8px;
+        }
+        .settings-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .setting-item {
+            margin-bottom: 12px;
+        }
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+        .label-text {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .desc-text {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        .input-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .number-input {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            text-align: center;
+            font-weight: bold;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="btn-back" onclick="goBack()">←</button>
+            <h1 data-i18n="melody_settings_title">通知音・メロディ</h1>
+        </div>
+
+        <div class="section-title">スヌーズ設定</div>
+        <div class="settings-card">
+            <div class="setting-item">
+                <label class="label-text" for="snoozeDuration" data-i18n="label_snooze_duration">スヌーズの待機時間 (分):</label>
+                <div class="desc-text" data-i18n="desc_snooze_duration">エンドレス通知で「スヌーズ」を押した際の再通知までの時間です。</div>
+                <div class="input-control">
+                    <button class="btn btn-secondary" onclick="adjustSnoozeDuration(-1)" style="padding: 10px 16px; font-weight: bold;">-</button>
+                    <input type="number" id="snoozeDuration" class="number-input" min="1" max="60" onchange="updateSnoozeDuration()">
+                    <button class="btn btn-secondary" onclick="adjustSnoozeDuration(1)" style="padding: 10px 16px; font-weight: bold;">+</button>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-secondary" style="width: 100%;" onclick="goBack()" data-i18n="btn_close">閉じる</button>
+    </div>
+
+    <!-- Custom Modal -->
+    <div id="customModal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="modalTitle" class="modal-title"></div>
+            <label for="modalInput" style="display:none;">Input</label>
+            <input type="text" id="modalInput" class="modal-input" style="display: none;" aria-labelledby="modalTitle">
+            <label for="modalTextarea" style="display:none;">Textarea</label>
+            <textarea id="modalTextarea" class="modal-input" style="display: none; height: 150px; resize: vertical;" aria-labelledby="modalTitle"></textarea>
+            <div class="modal-actions">
+                <button id="modalNeutralBtn" class="btn btn-secondary" style="display: none;"></button>
+                <button id="modalCancelBtn" class="btn" onclick="closeModal()" data-i18n="btn_cancel">キャンセル</button>
+                <button id="modalConfirmBtn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function goBack() {
+            if (typeof Android !== 'undefined' && Android.stopFloatingWindow) {
+                Android.stopFloatingWindow();
+            }
+            location.href = 'index.html?tab=settings';
+        }
+
+        // Android のバックボタン対応
+        function handleBack() {
+            goBack();
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applyLanguage();
+            loadMelodySettings();
+        });
+    </script>
+</body>
+</html>

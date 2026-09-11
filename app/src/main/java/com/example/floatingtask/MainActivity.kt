@@ -664,6 +664,12 @@ class MainActivity : AppCompatActivity(),
         fun stopMelody() = mediaHandler.stopMelody()
 
         @JavascriptInterface
+        fun setSnoozeDuration(minutes: Int) {
+            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+            prefs.edit { putInt("snoozeDuration", minutes) }
+        }
+
+        @JavascriptInterface
         fun saveAutoBackup(jsonData: String) = mediaHandler.saveAutoBackup(jsonData)
 
         @JavascriptInterface

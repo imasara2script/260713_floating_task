@@ -69,6 +69,11 @@ function openNewTaskSettings() {
 }
 window.openNewTaskSettings = openNewTaskSettings;
 
+function openMelodySettings() {
+    location.href = 'melody-settings.html';
+}
+window.openMelodySettings = openMelodySettings;
+
 function openPermissionsScreen() {
     location.href = 'permissions.html?from=settings';
 }
@@ -143,6 +148,36 @@ function updateNewTaskSettings() {
     if (chkKeepDuration) localStorage.setItem('keepDurationTaskOnReset', keepDuration);
 }
 window.updateNewTaskSettings = updateNewTaskSettings;
+
+function loadMelodySettings() {
+    const snoozeDuration = localStorage.getItem('snoozeDuration') || '5';
+    const elSnooze = document.getElementById('snoozeDuration');
+    if (elSnooze) elSnooze.value = snoozeDuration;
+}
+window.loadMelodySettings = loadMelodySettings;
+
+function updateSnoozeDuration() {
+    const elSnooze = document.getElementById('snoozeDuration');
+    if (!elSnooze) return;
+    let val = parseInt(elSnooze.value) || 5;
+    val = Math.max(1, Math.min(60, val));
+    elSnooze.value = val;
+    localStorage.setItem('snoozeDuration', val.toString());
+    if (typeof Android !== 'undefined' && Android.setSnoozeDuration) {
+        Android.setSnoozeDuration(val);
+    }
+}
+window.updateSnoozeDuration = updateSnoozeDuration;
+
+function adjustSnoozeDuration(delta) {
+    const elSnooze = document.getElementById('snoozeDuration');
+    if (!elSnooze) return;
+    let val = parseInt(elSnooze.value) || 5;
+    val = Math.max(1, Math.min(60, val + delta));
+    elSnooze.value = val;
+    updateSnoozeDuration();
+}
+window.adjustSnoozeDuration = adjustSnoozeDuration;
 
 function loadFloatingSettings() {
     const cScale = localStorage.getItem('floatCollapsedScale') || '1.0';

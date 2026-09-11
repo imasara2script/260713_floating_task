@@ -41,6 +41,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 context.startForegroundService(serviceIntent)
             }
         } else if (action == "ACTION_TIMER_EXPIRED") {
+            val taskId = intent.getLongExtra("EXTRA_TASK_ID", -1L)
             val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: context.getString(R.string.timer_expired)
             val melody = intent.getStringExtra("EXTRA_MELODY") ?: "default"
             val melodyMode = intent.getStringExtra("EXTRA_MELODY_MODE") ?: "once"
@@ -50,7 +51,7 @@ class AlarmReceiver : BroadcastReceiver() {
             val timestamp = sdf.format(Date())
             val messageWithTime = taskText + context.getString(R.string.timer_completion_time_format, timestamp)
 
-            showNotification(context, context.getString(R.string.timer_expired), messageWithTime, melody, melodyMode)
+            showNotification(context, context.getString(R.string.timer_expired), messageWithTime, melody, melodyMode, taskId)
             
             if (Settings.canDrawOverlays(context)) {
                 val serviceIntent = Intent(context, FloatingWindowService::class.java).apply {
@@ -129,17 +130,42 @@ class AlarmReceiver : BroadcastReceiver() {
             val isCompleted = prefs.getBoolean(taskId.toString(), false)
 
             if (!isCompleted) {
-                showReminderNotification(context, taskText, message, melody, melodyMode)
+                showReminderNotification(context, taskText, message, melody, melodyMode, taskId)
             }
 
             // 翌日のアラームを再スケジュール
             if (timeStr.isNotEmpty()) {
                 AlarmScheduler.scheduleReminderAlarm(context, taskId, taskText, timeStr, message, melody, melodyMode)
             }
+        } else if (action == "ACTION_STOP_ALARM") {
+            val notificationId = intent.getIntExtra("EXTRA_NOTIFICATION_ID", -1)
+            if (notificationId != -1) {
+                val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                manager.cancel(notificationId)
+            }
+        } else if (action == "ACTION_SNOOZE_ALARM") {
+            val notificationId = intent.getIntExtra("EXTRA_NOTIFICATION_ID", -1)
+            val taskId = intent.getLongExtra("EXTRA_TASK_ID", -1L)
+            val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: ""
+            val melody = intent.getStringExtra("EXTRA_MELODY") ?: "default"
+            val melodyMode = intent.getStringExtra("EXTRA_MELODY_MODE") ?: "once"
+
+            val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            val snoozeMinutes = prefs.getInt("snoozeDuration", 5)
+
+            if (notificationId != -1) {
+                val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                manager.cancel(notificationId)
+            }
+
+            if (taskId != -1L) {
+                // 設定された分後にスヌーズ
+                AlarmScheduler.scheduleTimerAlarm(context, taskId, taskText, snoozeMinutes * 60 * 1000L, melody, melodyMode)
+            }
         }
     }
 
-    private fun showReminderNotification(context: Context, taskText: String, message: String, melody: String, melodyMode: String) {
+    private fun showReminderNotification(context: Context, taskText: String, message: String, melody: String, melodyMode: String, taskId: Long) {
         val title = context.getString(R.string.reminder_title)
         val body = if (message.isNotEmpty()) {
             context.getString(R.string.reminder_body_with_msg, taskText, message)
@@ -148,10 +174,10 @@ class AlarmReceiver : BroadcastReceiver() {
         }
 
         // 既存のタイマー通知用共通ロジックを利用して音色を反映させる
-        showNotification(context, title, body, melody, melodyMode)
+        showNotification(context, title, body, melody, melodyMode, taskId)
     }
 
-    private fun showNotification(context: Context, title: String, message: String, melody: String, melodyMode: String = "once") {
+    private fun showNotification(context: Context, title: String, message: String, melody: String, melodyMode: String = "once", taskId: Long = -1L) {
         if (melody == "none") {
             // 通知は出すが音は出さない、または通知自体出さないか検討が必要。
             // ここでは音なし通知とする。
@@ -159,6 +185,7 @@ class AlarmReceiver : BroadcastReceiver() {
             return
         }
 
+        val notificationId = System.currentTimeMillis().toInt()
         val channelId = "timer_notifications_${melody.hashCode()}_$melodyMode"
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
@@ -199,6 +226,35 @@ class AlarmReceiver : BroadcastReceiver() {
             builder.setFullScreenIntent(null, true) // 割り込み
             // FLAG_INSISTENT を追加
             builder.setSubText(if (Locale.getDefault().language == "ja") "停止するまで鳴り続けます" else "Playing until stopped")
+
+            // 停止ボタン
+            val stopIntent = Intent(context, AlarmReceiver::class.java).apply {
+                action = "ACTION_STOP_ALARM"
+                putExtra("EXTRA_NOTIFICATION_ID", notificationId)
+            }
+            val stopPendingIntent = android.app.PendingIntent.getBroadcast(
+                context, notificationId + 1, stopIntent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(0, context.getString(R.string.btn_stop), stopPendingIntent)
+
+            // スヌーズボタン
+            if (taskId != -1L) {
+                val snoozeIntent = Intent(context, AlarmReceiver::class.java).apply {
+                    action = "ACTION_SNOOZE_ALARM"
+                    putExtra("EXTRA_NOTIFICATION_ID", notificationId)
+                    putExtra("EXTRA_TASK_ID", taskId)
+                    putExtra("EXTRA_TASK_TEXT", if (title == context.getString(R.string.timer_expired)) message.split(" (")[0] else message)
+                    putExtra("EXTRA_MELODY", melody)
+                    putExtra("EXTRA_MELODY_MODE", melodyMode)
+                }
+                val snoozePendingIntent = android.app.PendingIntent.getBroadcast(
+                    context, notificationId + 2, snoozeIntent,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                )
+                val snoozeMinutes = context.getSharedPreferences("prefs", Context.MODE_PRIVATE).getInt("snoozeDuration", 5)
+                builder.addAction(0, context.getString(R.string.btn_snooze, snoozeMinutes), snoozePendingIntent)
+            }
         }
 
         val notification = builder.build()
@@ -206,7 +262,7 @@ class AlarmReceiver : BroadcastReceiver() {
             notification.flags = notification.flags or Notification.FLAG_INSISTENT
         }
 
-        manager.notify(System.currentTimeMillis().toInt(), notification)
+        manager.notify(notificationId, notification)
     }
 
     private fun showSilentNotification(context: Context, title: String, message: String) {

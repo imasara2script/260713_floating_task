@@ -29,4 +29,6 @@
     <string name="btn_done">Done</string>
     <string name="notification_interval_title">You have pending tasks</string>
     <string name="notification_interval_body">Tap to show the floating window</string>
+    <string name="btn_stop">Stop</string>
+    <string name="btn_snooze">Snooze (%1$dm)</string>
 </resources>
