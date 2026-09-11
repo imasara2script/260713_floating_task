@@ -64,7 +64,9 @@ class WebTaskActionHandler(
                 val obj = reminders.getJSONObject(i)
                 val time = obj.getString("time")
                 val message = obj.optString("message", "")
-                AlarmScheduler.scheduleReminderAlarm(context, taskId, taskText, time, message)
+                val melody = obj.optString("melody", "default")
+                val melodyMode = obj.optString("melodyMode", "once")
+                AlarmScheduler.scheduleReminderAlarm(context, taskId, taskText, time, message, melody, melodyMode)
                 newTimes.put(time)
             }
             prefs.edit { putString(taskId.toString(), newTimes.toString()) }
@@ -140,7 +142,7 @@ class WebTaskActionHandler(
         }
     }
 
-    fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String) {
-        AlarmScheduler.scheduleTimerAlarm(context, taskId, taskText, durationMs, melody)
+    fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String, melodyMode: String = "once") {
+        AlarmScheduler.scheduleTimerAlarm(context, taskId, taskText, durationMs, melody, melodyMode)
     }
 }

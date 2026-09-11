@@ -564,8 +564,8 @@ class MainActivity : AppCompatActivity(),
         fun setIntervalAlarm(minutes: Int) = taskActionHandler.setIntervalAlarm(minutes)
 
         @JavascriptInterface
-        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String) =
-            taskActionHandler.setTimerAlarm(taskId, taskText, durationMs, melody)
+        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String, melodyMode: String = "once") =
+            taskActionHandler.setTimerAlarm(taskId, taskText, durationMs, melody, melodyMode)
 
         @JavascriptInterface
         fun pickRingtone() = mediaHandler.pickRingtone()
@@ -658,7 +658,7 @@ class MainActivity : AppCompatActivity(),
         fun getSystemLanguage(): String = settingsHandler.getSystemLanguage()
 
         @JavascriptInterface
-        fun playMelody(melody: String) = mediaHandler.playMelody(melody)
+        fun playMelody(melody: String, looping: Boolean = false) = mediaHandler.playMelody(melody, looping)
 
         @JavascriptInterface
         fun stopMelody() = mediaHandler.stopMelody()

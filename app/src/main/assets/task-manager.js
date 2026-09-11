@@ -13,6 +13,7 @@ function addTask() {
     const timeInput = document.getElementById('timeValue');
     const unitSelect = document.getElementById('timerUnit');
     const melodySelect = document.getElementById('melodySelect');
+    const melodyModeSelect = document.getElementById('melodyMode');
 
     if (!text) {
         showModal(getTranslation('msg_input_task_name'), {
@@ -32,6 +33,7 @@ function addTask() {
             targetTask.referenceDate = referenceDate;
             targetTask.showCommentOnCheck = document.getElementById('showCommentOnCheck').checked;
             targetTask.selectedDays = Array.from(document.querySelectorAll('.reset-day-check:checked')).map(el => parseInt(el.value));
+            targetTask.melodyMode = melodyModeSelect ? melodyModeSelect.value : "once";
         }
     } else {
         const id = Date.now();
@@ -43,7 +45,8 @@ function addTask() {
             referenceDate: referenceDate,
             completed: false,
             showCommentOnCheck: document.getElementById('showCommentOnCheck').checked,
-            selectedDays: Array.from(document.querySelectorAll('.reset-day-check:checked')).map(el => parseInt(el.value))
+            selectedDays: Array.from(document.querySelectorAll('.reset-day-check:checked')).map(el => parseInt(el.value)),
+            melodyMode: melodyModeSelect ? melodyModeSelect.value : "once"
         };
     }
 
@@ -97,7 +100,7 @@ function addTask() {
         }
 
         if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-            Android.setTimerAlarm(targetTask.id, targetTask.text, durationMs, targetTask.melody || 'default');
+            Android.setTimerAlarm(targetTask.id, targetTask.text, durationMs, targetTask.melody || 'default', targetTask.melodyMode || 'once');
         }
     } else {
         targetTask.durationMs = 0;
@@ -112,7 +115,13 @@ function addTask() {
 
     // リマインド通知の設定
     if (typeof Android !== 'undefined' && Android.setReminderAlarms) {
-        const reminders = (currentTaskReminders || []).map(r => ({ time: r.time, message: r.message }));
+        const reminders = (currentTaskReminders || []).map(r => ({
+            time: r.time,
+            message: r.message,
+            melody: r.melody || 'default',
+            melodyName: r.melodyName || '',
+            melodyMode: r.melodyMode || 'once'
+        }));
         targetTask.reminders = reminders;
         Android.setReminderAlarms(targetTask.id, targetTask.text, JSON.stringify(reminders));
     }
@@ -195,7 +204,7 @@ function repeatTimer(id) {
 
     if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
         const remaining = (task.startTime + task.durationMs) - Date.now();
-        Android.setTimerAlarm(task.id, task.text, remaining, task.melody || 'default');
+        Android.setTimerAlarm(task.id, task.text, remaining, task.melody || 'default', task.melodyMode || 'once');
     }
     if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
         Android.updateTaskCompletionState(task.id, false);

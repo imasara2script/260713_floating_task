@@ -122,8 +122,8 @@ class WebMediaHandler(
         listener.onRestoreData()
     }
 
-    fun playMelody(melody: String) {
-        MelodyPlayer.play(context, melody)
+    fun playMelody(melody: String, looping: Boolean = false) {
+        MelodyPlayer.play(context, melody, looping)
     }
 
     fun stopMelody() {

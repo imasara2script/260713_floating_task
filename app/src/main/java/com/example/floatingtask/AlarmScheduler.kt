@@ -58,13 +58,14 @@ object AlarmScheduler {
         alarmManager.cancel(pendingIntent)
     }
 
-    fun scheduleTimerAlarm(context: Context, taskId: Long, taskText: String, durationMs: Long, melody: String) {
+    fun scheduleTimerAlarm(context: Context, taskId: Long, taskText: String, durationMs: Long, melody: String, melodyMode: String = "once") {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = "ACTION_TIMER_EXPIRED"
             putExtra("EXTRA_TASK_ID", taskId)
             putExtra("EXTRA_TASK_TEXT", taskText)
             putExtra("EXTRA_MELODY", melody)
+            putExtra("EXTRA_MELODY_MODE", melodyMode)
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -77,7 +78,7 @@ object AlarmScheduler {
         setExactAlarm(alarmManager, triggerAt, pendingIntent)
     }
 
-    fun scheduleReminderAlarm(context: Context, taskId: Long, taskText: String, timeStr: String, message: String) {
+    fun scheduleReminderAlarm(context: Context, taskId: Long, taskText: String, timeStr: String, message: String, melody: String = "default", melodyMode: String = "once") {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = "ACTION_REMINDER"
@@ -85,6 +86,8 @@ object AlarmScheduler {
             putExtra("EXTRA_TASK_TEXT", taskText)
             putExtra("EXTRA_REMINDER_MSG", message)
             putExtra("EXTRA_TIME_STR", timeStr)
+            putExtra("EXTRA_MELODY", melody)
+            putExtra("EXTRA_MELODY_MODE", melodyMode)
         }
         
         // requestCodeは taskId と時刻文字列のハッシュを組み合わせて一意にする

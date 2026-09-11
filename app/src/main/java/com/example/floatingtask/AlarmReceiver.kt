@@ -43,13 +43,14 @@ class AlarmReceiver : BroadcastReceiver() {
         } else if (action == "ACTION_TIMER_EXPIRED") {
             val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: context.getString(R.string.timer_expired)
             val melody = intent.getStringExtra("EXTRA_MELODY") ?: "default"
+            val melodyMode = intent.getStringExtra("EXTRA_MELODY_MODE") ?: "once"
 
             // 完了日時を取得
             val sdf = SimpleDateFormat("MM/dd (E) HH:mm", Locale.getDefault())
             val timestamp = sdf.format(Date())
             val messageWithTime = taskText + context.getString(R.string.timer_completion_time_format, timestamp)
 
-            showNotification(context, context.getString(R.string.timer_expired), messageWithTime, melody)
+            showNotification(context, context.getString(R.string.timer_expired), messageWithTime, melody, melodyMode)
             
             if (Settings.canDrawOverlays(context)) {
                 val serviceIntent = Intent(context, FloatingWindowService::class.java).apply {
@@ -120,53 +121,37 @@ class AlarmReceiver : BroadcastReceiver() {
             val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: ""
             val message = intent.getStringExtra("EXTRA_REMINDER_MSG") ?: ""
             val timeStr = intent.getStringExtra("EXTRA_TIME_STR") ?: ""
+            val melody = intent.getStringExtra("EXTRA_MELODY") ?: "default"
+            val melodyMode = intent.getStringExtra("EXTRA_MELODY_MODE") ?: "once"
 
             // 完了状態を SharedPreferences からチェック
             val prefs = context.getSharedPreferences("task_completion_prefs", Context.MODE_PRIVATE)
             val isCompleted = prefs.getBoolean(taskId.toString(), false)
 
             if (!isCompleted) {
-                showReminderNotification(context, taskText, message)
+                showReminderNotification(context, taskText, message, melody, melodyMode)
             }
 
             // 翌日のアラームを再スケジュール
             if (timeStr.isNotEmpty()) {
-                AlarmScheduler.scheduleReminderAlarm(context, taskId, taskText, timeStr, message)
+                AlarmScheduler.scheduleReminderAlarm(context, taskId, taskText, timeStr, message, melody, melodyMode)
             }
         }
     }
 
-    private fun showReminderNotification(context: Context, taskText: String, message: String) {
-        val channelId = "reminders_channel"
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                context.getString(R.string.channel_reminders),
-                NotificationManager.IMPORTANCE_HIGH
-            )
-            manager.createNotificationChannel(channel)
-        }
-
+    private fun showReminderNotification(context: Context, taskText: String, message: String, melody: String, melodyMode: String) {
+        val title = context.getString(R.string.reminder_title)
         val body = if (message.isNotEmpty()) {
             context.getString(R.string.reminder_body_with_msg, taskText, message)
         } else {
             context.getString(R.string.reminder_body_no_msg, taskText)
         }
 
-        val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(context.getString(R.string.reminder_title))
-            .setContentText(body)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .build()
-
-        manager.notify(System.currentTimeMillis().toInt(), notification)
+        // 既存のタイマー通知用共通ロジックを利用して音色を反映させる
+        showNotification(context, title, body, melody, melodyMode)
     }
 
-    private fun showNotification(context: Context, title: String, message: String, melody: String) {
+    private fun showNotification(context: Context, title: String, message: String, melody: String, melodyMode: String = "once") {
         if (melody == "none") {
             // 通知は出すが音は出さない、または通知自体出さないか検討が必要。
             // ここでは音なし通知とする。
@@ -174,7 +159,7 @@ class AlarmReceiver : BroadcastReceiver() {
             return
         }
 
-        val channelId = "timer_notifications_${melody.hashCode()}"
+        val channelId = "timer_notifications_${melody.hashCode()}_$melodyMode"
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
         val soundUri = when {
@@ -193,18 +178,33 @@ class AlarmReceiver : BroadcastReceiver() {
             }
             val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH).apply {
                 setSound(soundUri, Notification.AUDIO_ATTRIBUTES_DEFAULT)
+                if (melodyMode == "loop") {
+                    // ループ設定時はバイブレーションも強めにする
+                    enableVibration(true)
+                }
             }
             manager.createNotificationChannel(channel)
         }
 
-        val notification = NotificationCompat.Builder(context, channelId)
+        val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setSound(soundUri)
             .setAutoCancel(true)
-            .build()
+
+        if (melodyMode == "loop") {
+            builder.setOngoing(true) // 簡単に消されないようにする
+            builder.setFullScreenIntent(null, true) // 割り込み
+            // FLAG_INSISTENT を追加
+            builder.setSubText(if (Locale.getDefault().language == "ja") "停止するまで鳴り続けます" else "Playing until stopped")
+        }
+
+        val notification = builder.build()
+        if (melodyMode == "loop") {
+            notification.flags = notification.flags or Notification.FLAG_INSISTENT
+        }
 
         manager.notify(System.currentTimeMillis().toInt(), notification)
     }

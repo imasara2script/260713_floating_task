@@ -20,6 +20,7 @@ var editingTaskId = null;
 var currentDuration = { h: "0", m: "0", s: "0" };
 var currentTaskReminders = [];
 var isMelodyTesting = false;
+var melodyEditingTarget = 'main'; // 'main' or reminder ID
 var tempVisibilityFlags = {
     timer: false,
     remind: false,

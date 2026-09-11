@@ -10,8 +10,8 @@ import android.util.Log
 object MelodyPlayer {
     private var mediaPlayer: MediaPlayer? = null
 
-    fun play(context: Context, melody: String) {
-        Log.d("MelodyPlayer", "play: $melody")
+    fun play(context: Context, melody: String, looping: Boolean = false) {
+        Log.d("MelodyPlayer", "play: $melody, looping: $looping")
         stop() // 既に再生中の場合は停止
 
         try {
@@ -30,7 +30,7 @@ object MelodyPlayer {
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build()
                 )
-                isLooping = false
+                isLooping = looping
                 prepare()
                 start()
                 setOnCompletionListener {

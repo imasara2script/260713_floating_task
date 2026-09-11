@@ -230,6 +230,13 @@
                         <button id="btn-test-melody" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;" onclick="toggleMelodyTest()" data-i18n="btn_test_melody">テスト</button>
                     </div>
                     <div id="customMelodyName" style="font-size: 11px; color: #666; margin-top: 4px; display: none;"></div>
+                    <div style="margin-top: 8px;">
+                        <label for="melodyMode" style="color: #666; font-size: 13px;" data-i18n="label_melody_mode">鳴らし方：</label>
+                        <select id="melodyMode" style="width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                            <option value="once" data-i18n="melody_mode_once">1回のみ</option>
+                            <option value="loop" data-i18n="melody_mode_loop">停止するまでエンドレス</option>
+                        </select>
+                    </div>
                 </div>
                 <div id="reminderGroup" style="margin-bottom: 12px; display: none; border-top: 1px solid #eee; padding-top: 12px;">
                     <label style="color: #666; font-size: 14px; display: block; margin-bottom: 8px;" data-i18n="label_reminder_notifications">リマインド通知：</label>
