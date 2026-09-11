@@ -457,6 +457,40 @@ function applyTemporaryVisibility() {
     closeTemporaryVisibilityModal();
 }
 
+function addReminderItem(time = "", message = "") {
+    const id = Date.now() + Math.random();
+    currentTaskReminders.push({ id, time, message });
+    renderReminderList();
+}
+window.addReminderItem = addReminderItem;
+
+function removeReminderItem(id) {
+    currentTaskReminders = currentTaskReminders.filter(r => String(r.id) !== String(id));
+    renderReminderList();
+}
+window.removeReminderItem = removeReminderItem;
+
+function updateReminderData(id, field, value) {
+    const reminder = currentTaskReminders.find(r => String(r.id) === String(id));
+    if (reminder) reminder[field] = value;
+}
+window.updateReminderData = updateReminderData;
+
+function renderReminderList() {
+    const list = document.getElementById('reminderList');
+    if (!list) return;
+    list.innerHTML = currentTaskReminders.map(r => `
+        <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; padding: 8px; background: #f8f9fa; border-radius: 6px; border: 1px solid #eee;">
+            <div style="display: flex; gap: 4px; align-items: center;">
+                <input type="time" value="${r.time}" oninput="updateReminderData('${r.id}', 'time', this.value)" style="flex: 1; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                <button class="btn-icon" onclick="removeReminderItem('${r.id}')" style="margin-left: auto;">🗑️</button>
+            </div>
+            <input type="text" value="${r.message}" placeholder="${getTranslation('placeholder_reminder_msg')}" oninput="updateReminderData('${r.id}', 'message', this.value)" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; box-sizing: border-box;">
+        </div>
+    `).join('');
+}
+window.renderReminderList = renderReminderList;
+
 function addHyperlinkItem(url = "", text = "") {
     const id = Date.now() + Math.random();
     currentTaskLinks.push({ id, url, text });
@@ -467,7 +501,7 @@ window.addHyperlinkItem = addHyperlinkItem;
 function removeHyperlinkItem(id) {
     showModal(getTranslation('msg_confirm_delete_link'), {
         onConfirm: () => {
-            currentTaskLinks = currentTaskLinks.filter(l => l.id != id);
+            currentTaskLinks = currentTaskLinks.filter(l => String(l.id) !== String(id));
             renderHyperlinkList();
         }
     });
@@ -490,7 +524,7 @@ function renderHyperlinkList() {
 window.renderHyperlinkList = renderHyperlinkList;
 
 function updateHyperlinkData(id, field, value) {
-    const l = currentTaskLinks.find(x => x.id == id);
+    const l = currentTaskLinks.find(x => String(x.id) === String(id));
     if (l) l[field] = value;
 }
 window.updateHyperlinkData = updateHyperlinkData;

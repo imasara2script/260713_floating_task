@@ -32,7 +32,6 @@ var isDurationPickerRequested = false;
 var adRetryCount = 0;
 var adRetryTimeoutId = null;
 var adRetryBaseInterval = parseInt(localStorage.getItem('adRetryBaseInterval') || '5');
-var currentTaskReminders = [];
 var currentTaskLinks = [];
 var selectedCustomUri = null;
 var selectedCustomName = null;

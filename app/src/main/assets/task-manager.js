@@ -382,3 +382,4 @@ function viewHistoryFromModal() {
     renderHistory(task.id);
 }
 window.viewHistoryFromModal = viewHistoryFromModal;
+
