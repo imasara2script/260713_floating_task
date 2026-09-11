@@ -387,8 +387,7 @@ function viewHistoryFromModal() {
     if (!task) return;
 
     closeTaskModal();
-    switchTab('history');
-    renderHistory(task.id);
+    renderTaskHistory(task.id);
 }
 window.viewHistoryFromModal = viewHistoryFromModal;
 

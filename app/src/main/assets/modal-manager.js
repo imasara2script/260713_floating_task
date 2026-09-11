@@ -645,3 +645,20 @@ function updateHyperlinkData(id, field, value) {
     if (l) l[field] = value;
 }
 window.updateHyperlinkData = updateHyperlinkData;
+
+window.showModal = showModal;
+window.closeModal = closeModal;
+window.switchToViewMode = switchToViewMode;
+window.switchToEditMode = switchToEditMode;
+window.openTaskModal = openTaskModal;
+window.closeTaskModal = closeTaskModal;
+window.updateTaskModalVisibility = updateTaskModalVisibility;
+window.toggleTimerInput = toggleTimerInput;
+window.requestDurationPicker = requestDurationPicker;
+window.onDurationPickerDismissed = onDurationPickerDismissed;
+window.onDurationSelected = onDurationSelected;
+window.openTemporaryVisibilityModal = openTemporaryVisibilityModal;
+window.closeTemporaryVisibilityModal = closeTemporaryVisibilityModal;
+window.applyTemporaryVisibility = applyTemporaryVisibility;
+window.updateMelodyData = updateMelodyData;
+window.startMelodyTest = startMelodyTest;

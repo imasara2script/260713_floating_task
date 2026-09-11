@@ -3,20 +3,16 @@
  */
 
 function updateStorageUsage() {
-    console.log("updateStorageUsage execution started");
-    const infoEl = document.getElementById('storage-usage-info');
-    const barEl = document.getElementById('storage-usage-bar');
-    if (!infoEl) {
-        console.warn("updateStorageUsage: infoEl not found");
-        return;
-    }
+    var infoEl = document.getElementById('storage-usage-info');
+    var barEl = document.getElementById('storage-usage-bar');
+    if (!infoEl) return;
 
-    let total = 0;
+    var total = 0;
     try {
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
+        for (var i = 0; i < localStorage.length; i++) {
+            var key = localStorage.key(i);
             if (key) {
-                const value = localStorage.getItem(key) || "";
+                var value = localStorage.getItem(key) || "";
                 total += (key.length + value.length) * 2;
             }
         }
@@ -24,16 +20,14 @@ function updateStorageUsage() {
         console.error("Error calculating storage usage:", e);
     }
 
-    const usedKB = (total / 1024).toFixed(2);
-    const quotaKB = 5120; // 5MB limit approximation
-    const percent = Math.min(100, (parseFloat(usedKB) / quotaKB * 100)).toFixed(1);
-
-    console.log(`Storage usage: ${usedKB} KB / ${quotaKB} KB (${percent}%)`);
+    var usedKB = (total / 1024).toFixed(2);
+    var quotaKB = 5120;
+    var percent = Math.min(100, (parseFloat(usedKB) / quotaKB * 100)).toFixed(1);
 
     try {
         infoEl.textContent = getTranslation('storage_info', usedKB, quotaKB, percent);
     } catch (e) {
-        infoEl.textContent = `${usedKB} KB / ${quotaKB} KB (${percent}%)`;
+        infoEl.textContent = usedKB + " KB / " + quotaKB + " KB (" + percent + "%)";
     }
 
     if (barEl) {
@@ -43,17 +37,15 @@ function updateStorageUsage() {
         else barEl.style.backgroundColor = '#007bff';
     }
 }
-window.updateStorageUsage = updateStorageUsage;
 
 function openFloatingSettings() {
     location.href = 'floating-settings.html';
 }
-window.openFloatingSettings = openFloatingSettings;
 
 function openAdRetryInfo() {
-    const title = getTranslation('label_ad_retry_interval');
-    const desc = getTranslation('desc_ad_retry_interval');
-    const fullHtml = `<div style="font-size: 16px; font-weight: bold; margin-bottom: 12px;">${title}</div><div style="font-size: 14px; line-height: 1.6; font-weight: normal; color: #333; white-space: normal;">${desc}</div>`;
+    var title = getTranslation('label_ad_retry_interval');
+    var desc = getTranslation('desc_ad_retry_interval');
+    var fullHtml = '<div style="font-size: 16px; font-weight: bold; margin-bottom: 12px;">' + title + '</div><div style="font-size: 14px; line-height: 1.6; font-weight: normal; color: #333; white-space: normal;">' + desc + '</div>';
     if (typeof showModal === 'function') {
         showModal(fullHtml, {
             useHTML: true,
@@ -61,56 +53,66 @@ function openAdRetryInfo() {
         });
     }
 }
-window.openAdRetryInfo = openAdRetryInfo;
-
 
 function openNewTaskSettings() {
     location.href = 'task-settings.html';
 }
-window.openNewTaskSettings = openNewTaskSettings;
 
 function openMelodySettings() {
     location.href = 'melody-settings.html';
 }
-window.openMelodySettings = openMelodySettings;
 
 function openPermissionsScreen() {
     location.href = 'permissions.html?from=settings';
 }
-window.openPermissionsScreen = openPermissionsScreen;
 
 function openDataManagementScreen() {
     location.href = 'data-management.html';
 }
-window.openDataManagementScreen = openDataManagementScreen;
 
 function openRewardsScreen() {
     location.href = 'rewards.html';
 }
-window.openRewardsScreen = openRewardsScreen;
 
 function openDeveloperSettings() {
     location.href = 'developer-settings.html';
 }
-window.openDeveloperSettings = openDeveloperSettings;
 
+function unlockPremium() {
+    if (typeof showModal === 'function') {
+        showModal(getTranslation('msg_input_code'), {
+            showInput: true,
+            confirmText: getTranslation('btn_unlock_code'),
+            onConfirm: function(code) {
+                if (typeof Android !== 'undefined' && Android.submitUnlockCode) {
+                    var success = Android.submitUnlockCode(code);
+                    if (success) {
+                        showModal(getTranslation('msg_reward_earned'), { hideCancel: true });
+                    } else {
+                        showModal(getTranslation('msg_invalid_code'), { hideCancel: true });
+                    }
+                }
+            }
+        });
+    }
+}
 
 function loadNewTaskSettings() {
-    const showTimer = localStorage.getItem('showTimerOnCreate') === 'true';
-    const showRemind = localStorage.getItem('showRemindOnCreate') === 'true';
-    const showDays = localStorage.getItem('showDaysOnCreate') === 'true';
-    const showComment = localStorage.getItem('showCommentOnCreate') === 'true';
-    const showNote = localStorage.getItem('showNoteOnCreate') === 'true';
-    const showHyperlink = localStorage.getItem('showHyperlinkOnCreate') === 'true';
-    const keepDuration = (localStorage.getItem('keepDurationTaskOnReset') !== 'false');
+    var showTimer = localStorage.getItem('showTimerOnCreate') === 'true';
+    var showRemind = localStorage.getItem('showRemindOnCreate') === 'true';
+    var showDays = localStorage.getItem('showDaysOnCreate') === 'true';
+    var showComment = localStorage.getItem('showCommentOnCreate') === 'true';
+    var showNote = localStorage.getItem('showNoteOnCreate') === 'true';
+    var showHyperlink = localStorage.getItem('showHyperlinkOnCreate') === 'true';
+    var keepDuration = (localStorage.getItem('keepDurationTaskOnReset') !== 'false');
 
-    const chkTimer = document.getElementById('showTimerOnCreate');
-    const chkRemind = document.getElementById('showRemindOnCreate');
-    const chkDays = document.getElementById('showDaysOnCreate');
-    const chkComment = document.getElementById('showCommentOnCreate');
-    const chkNote = document.getElementById('showNoteOnCreate');
-    const chkHyperlink = document.getElementById('showHyperlinkOnCreate');
-    const chkKeepDuration = document.getElementById('keepDurationTaskOnReset');
+    var chkTimer = document.getElementById('showTimerOnCreate');
+    var chkRemind = document.getElementById('showRemindOnCreate');
+    var chkDays = document.getElementById('showDaysOnCreate');
+    var chkComment = document.getElementById('showCommentOnCreate');
+    var chkNote = document.getElementById('showNoteOnCreate');
+    var chkHyperlink = document.getElementById('showHyperlinkOnCreate');
+    var chkKeepDuration = document.getElementById('keepDurationTaskOnReset');
 
     if (chkTimer) chkTimer.checked = showTimer;
     if (chkRemind) chkRemind.checked = showRemind;
@@ -120,24 +122,23 @@ function loadNewTaskSettings() {
     if (chkHyperlink) chkHyperlink.checked = showHyperlink;
     if (chkKeepDuration) chkKeepDuration.checked = keepDuration;
 }
-window.loadNewTaskSettings = loadNewTaskSettings;
 
 function updateNewTaskSettings() {
-    const chkTimer = document.getElementById('showTimerOnCreate');
-    const chkRemind = document.getElementById('showRemindOnCreate');
-    const chkDays = document.getElementById('showDaysOnCreate');
-    const chkComment = document.getElementById('showCommentOnCreate');
-    const chkNote = document.getElementById('showNoteOnCreate');
-    const chkHyperlink = document.getElementById('showHyperlinkOnCreate');
-    const chkKeepDuration = document.getElementById('keepDurationTaskOnReset');
+    var chkTimer = document.getElementById('showTimerOnCreate');
+    var chkRemind = document.getElementById('showRemindOnCreate');
+    var chkDays = document.getElementById('showDaysOnCreate');
+    var chkComment = document.getElementById('showCommentOnCreate');
+    var chkNote = document.getElementById('showNoteOnCreate');
+    var chkHyperlink = document.getElementById('showHyperlinkOnCreate');
+    var chkKeepDuration = document.getElementById('keepDurationTaskOnReset');
 
-    const showTimer = chkTimer ? chkTimer.checked : false;
-    const showRemind = chkRemind ? chkRemind.checked : false;
-    const showDays = chkDays ? chkDays.checked : false;
-    const showComment = chkComment ? chkComment.checked : false;
-    const showNote = chkNote ? chkNote.checked : false;
-    const showHyperlink = chkHyperlink ? chkHyperlink.checked : false;
-    const keepDuration = chkKeepDuration ? chkKeepDuration.checked : true;
+    var showTimer = chkTimer ? chkTimer.checked : false;
+    var showRemind = chkRemind ? chkRemind.checked : false;
+    var showDays = chkDays ? chkDays.checked : false;
+    var showComment = chkComment ? chkComment.checked : false;
+    var showNote = chkNote ? chkNote.checked : false;
+    var showHyperlink = chkHyperlink ? chkHyperlink.checked : false;
+    var keepDuration = chkKeepDuration ? chkKeepDuration.checked : true;
 
     if (chkTimer) localStorage.setItem('showTimerOnCreate', showTimer);
     if (chkRemind) localStorage.setItem('showRemindOnCreate', showRemind);
@@ -147,19 +148,17 @@ function updateNewTaskSettings() {
     if (chkHyperlink) localStorage.setItem('showHyperlinkOnCreate', showHyperlink);
     if (chkKeepDuration) localStorage.setItem('keepDurationTaskOnReset', keepDuration);
 }
-window.updateNewTaskSettings = updateNewTaskSettings;
 
 function loadMelodySettings() {
-    const snoozeDuration = localStorage.getItem('snoozeDuration') || '5';
-    const elSnooze = document.getElementById('snoozeDuration');
+    var snoozeDuration = localStorage.getItem('snoozeDuration') || '5';
+    var elSnooze = document.getElementById('snoozeDuration');
     if (elSnooze) elSnooze.value = snoozeDuration;
 }
-window.loadMelodySettings = loadMelodySettings;
 
 function updateSnoozeDuration() {
-    const elSnooze = document.getElementById('snoozeDuration');
+    var elSnooze = document.getElementById('snoozeDuration');
     if (!elSnooze) return;
-    let val = parseInt(elSnooze.value) || 5;
+    var val = parseInt(elSnooze.value) || 5;
     val = Math.max(1, Math.min(60, val));
     elSnooze.value = val;
     localStorage.setItem('snoozeDuration', val.toString());
@@ -167,33 +166,31 @@ function updateSnoozeDuration() {
         Android.setSnoozeDuration(val);
     }
 }
-window.updateSnoozeDuration = updateSnoozeDuration;
 
 function adjustSnoozeDuration(delta) {
-    const elSnooze = document.getElementById('snoozeDuration');
+    var elSnooze = document.getElementById('snoozeDuration');
     if (!elSnooze) return;
-    let val = parseInt(elSnooze.value) || 5;
+    var val = parseInt(elSnooze.value) || 5;
     val = Math.max(1, Math.min(60, val + delta));
     elSnooze.value = val;
     updateSnoozeDuration();
 }
-window.adjustSnoozeDuration = adjustSnoozeDuration;
 
 function loadFloatingSettings() {
-    const cScale = localStorage.getItem('floatCollapsedScale') || '1.0';
-    const showEmpty = localStorage.getItem('showWhenEmpty') === 'true';
-    const moveC = localStorage.getItem('alwaysMoveCollapsed') === 'true';
-    const allowDragC = localStorage.getItem('allowDragCollapsed') !== 'false';
-    const cX = localStorage.getItem('floatCollapsedX') || '100';
-    const cY = localStorage.getItem('floatCollapsedY') || '100';
+    var cScale = localStorage.getItem('floatCollapsedScale') || '1.0';
+    var showEmpty = localStorage.getItem('showWhenEmpty') === 'true';
+    var moveC = localStorage.getItem('alwaysMoveCollapsed') === 'true';
+    var allowDragC = localStorage.getItem('allowDragCollapsed') !== 'false';
+    var cX = localStorage.getItem('floatCollapsedX') || '100';
+    var cY = localStorage.getItem('floatCollapsedY') || '100';
 
-    const elCScale = document.getElementById('floatCollapsedScale');
-    const elCScaleVal = document.getElementById('collapsedScaleVal');
-    const elShowEmpty = document.getElementById('showWhenEmpty');
-    const elMoveC = document.getElementById('alwaysMoveCollapsed');
-    const elAllowDragC = document.getElementById('allowDragCollapsed');
-    const elCX = document.getElementById('floatCollapsedX');
-    const elCY = document.getElementById('floatCollapsedY');
+    var elCScale = document.getElementById('floatCollapsedScale');
+    var elCScaleVal = document.getElementById('collapsedScaleVal');
+    var elShowEmpty = document.getElementById('showWhenEmpty');
+    var elMoveC = document.getElementById('alwaysMoveCollapsed');
+    var elAllowDragC = document.getElementById('allowDragCollapsed');
+    var elCX = document.getElementById('floatCollapsedX');
+    var elCY = document.getElementById('floatCollapsedY');
 
     if (elCScale) elCScale.value = cScale;
     if (elCScaleVal) elCScaleVal.innerText = cScale;
@@ -202,46 +199,46 @@ function loadFloatingSettings() {
     if (elAllowDragC) elAllowDragC.checked = allowDragC;
     if (elCX) elCX.value = cX;
     if (elCY) elCY.value = cY;
-    toggleFixedPositionInputs('collapsed');
+    if (typeof toggleFixedPositionInputs === 'function') toggleFixedPositionInputs('collapsed');
 
-    const eWidth = localStorage.getItem('floatWidth') || '300';
-    const eHeight = localStorage.getItem('floatHeight') || '44';
-    const eScale = localStorage.getItem('floatExpandedScale') || '1.0';
-    const moveE = localStorage.getItem('alwaysMoveExpanded') === 'true';
-    const eX = localStorage.getItem('floatExpandedX') || '100';
-    const eY = localStorage.getItem('floatExpandedY') || '100';
-    const showClose = localStorage.getItem('showCloseButtonExpanded') === 'true';
-    const keepService = localStorage.getItem('keepServiceOnClose') === 'true';
-    const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
-    const showHistoryButton = localStorage.getItem('showHistoryButton') === 'true';
-    const navType = localStorage.getItem('navType') || 'button';
-    const menuActionDelay = localStorage.getItem('menuActionDelay') || '0';
-    const allowDrag = localStorage.getItem('allowDrag') !== 'false';
-    const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
-    const dCount = localStorage.getItem('displayTaskCount') || '1';
-    const sCount = localStorage.getItem('scrollTaskCount') || '1';
-    const hDelay = localStorage.getItem('checkedHideDelay') || '2';
-    const retryInterval = localStorage.getItem('adRetryBaseInterval') || '5';
+    var eWidth = localStorage.getItem('floatWidth') || '300';
+    var eHeight = localStorage.getItem('floatHeight') || '44';
+    var eScale = localStorage.getItem('floatExpandedScale') || '1.0';
+    var moveE = localStorage.getItem('alwaysMoveExpanded') === 'true';
+    var eX = localStorage.getItem('floatExpandedX') || '100';
+    var eY = localStorage.getItem('floatExpandedY') || '100';
+    var showClose = localStorage.getItem('showCloseButtonExpanded') === 'true';
+    var keepService = localStorage.getItem('keepServiceOnClose') === 'true';
+    var showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
+    var showHistoryButton = localStorage.getItem('showHistoryButton') === 'true';
+    var navType = localStorage.getItem('navType') || 'button';
+    var menuActionDelay = localStorage.getItem('menuActionDelay') || '0';
+    var allowDrag = localStorage.getItem('allowDrag') !== 'false';
+    var scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
+    var dCount = localStorage.getItem('displayTaskCount') || '1';
+    var sCount = localStorage.getItem('scrollTaskCount') || '1';
+    var hDelay = localStorage.getItem('checkedHideDelay') || '2';
+    var retryInterval = localStorage.getItem('adRetryBaseInterval') || '5';
 
-    const elEWidth = document.getElementById('floatWidth');
-    const elEHeight = document.getElementById('floatHeight');
-    const elEScale = document.getElementById('floatExpandedScale');
-    const elEScaleVal = document.getElementById('expandedScaleVal');
-    const elMoveE = document.getElementById('alwaysMoveExpanded');
-    const elEX = document.getElementById('floatExpandedX');
-    const elEY = document.getElementById('floatExpandedY');
-    const elShowClose = document.getElementById('showCloseButtonExpanded');
-    const elKeepService = document.getElementById('keepServiceOnClose');
-    const elShowCheckedToggle = document.getElementById('showCheckedToggle');
-    const elShowHistoryButton = document.getElementById('showHistoryButton');
-    const elNavType = document.getElementById('navType');
-    const elMenuDelay = document.getElementById('menuActionDelay');
-    const elAllowDrag = document.getElementById('allowDrag');
-    const elScrollBtnType = document.getElementById('scrollButtonType');
-    const elDCount = document.getElementById('displayTaskCount');
-    const elSCount = document.getElementById('scrollTaskCount');
-    const elHDelay = document.getElementById('checkedHideDelay');
-    const elRetryInterval = document.getElementById('adRetryBaseInterval');
+    var elEWidth = document.getElementById('floatWidth');
+    var elEHeight = document.getElementById('floatHeight');
+    var elEScale = document.getElementById('floatExpandedScale');
+    var elEScaleVal = document.getElementById('expandedScaleVal');
+    var elMoveE = document.getElementById('alwaysMoveExpanded');
+    var elEX = document.getElementById('floatExpandedX');
+    var elEY = document.getElementById('floatExpandedY');
+    var elShowClose = document.getElementById('showCloseButtonExpanded');
+    var elKeepService = document.getElementById('keepServiceOnClose');
+    var elShowCheckedToggle = document.getElementById('showCheckedToggle');
+    var elShowHistoryButton = document.getElementById('showHistoryButton');
+    var elNavType = document.getElementById('navType');
+    var elMenuDelay = document.getElementById('menuActionDelay');
+    var elAllowDrag = document.getElementById('allowDrag');
+    var elScrollBtnType = document.getElementById('scrollButtonType');
+    var elDCount = document.getElementById('displayTaskCount');
+    var elSCount = document.getElementById('scrollTaskCount');
+    var elHDelay = document.getElementById('checkedHideDelay');
+    var elRetryInterval = document.getElementById('adRetryBaseInterval');
 
     if (elEWidth) elEWidth.value = eWidth;
     if (elEHeight) elEHeight.value = eHeight;
@@ -262,29 +259,30 @@ function loadFloatingSettings() {
     if (elSCount) elSCount.value = sCount;
     if (elHDelay) elHDelay.value = hDelay;
     if (elRetryInterval) elRetryInterval.value = retryInterval;
-    const elRecheckInterval = document.getElementById('recheckInterval');
+    var elRecheckInterval = document.getElementById('recheckInterval');
     if (elRecheckInterval) elRecheckInterval.value = localStorage.getItem('recheckInterval') || '0';
-    toggleFixedPositionInputs('expanded');
+    if (typeof toggleFixedPositionInputs === 'function') toggleFixedPositionInputs('expanded');
 
-    setupDraggableLabel('labelFloatCollapsedX', 'floatCollapsedX', 'collapsed');
-    setupDraggableLabel('labelFloatCollapsedY', 'floatCollapsedY', 'collapsed');
-    setupDraggableLabel('labelFloatWidth', 'floatWidth', 'expanded');
-    setupDraggableLabel('labelFloatHeight', 'floatHeight', 'expanded');
-    setupDraggableLabel('labelFloatExpandedX', 'floatExpandedX', 'expanded');
-    setupDraggableLabel('labelFloatExpandedY', 'floatExpandedY', 'expanded');
+    if (typeof setupDraggableLabel === 'function') {
+        setupDraggableLabel('labelFloatCollapsedX', 'floatCollapsedX', 'collapsed');
+        setupDraggableLabel('labelFloatCollapsedY', 'floatCollapsedY', 'collapsed');
+        setupDraggableLabel('labelFloatWidth', 'floatWidth', 'expanded');
+        setupDraggableLabel('labelFloatHeight', 'floatHeight', 'expanded');
+        setupDraggableLabel('labelFloatExpandedX', 'floatExpandedX', 'expanded');
+        setupDraggableLabel('labelFloatExpandedY', 'floatExpandedY', 'expanded');
+    }
 
-    updateFloatingSettingsVisibility();
+    if (typeof updateFloatingSettingsVisibility === 'function') updateFloatingSettingsVisibility();
     updateStorageUsage();
     if (typeof renderColorRules === 'function') renderColorRules();
 }
-window.loadFloatingSettings = loadFloatingSettings;
 
 function updateFloatingSettingsVisibility() {
-    const scrollButtonType = document.getElementById('scrollButtonType')?.value;
-    const navType = document.getElementById('navType')?.value;
-    const displayTaskCountContainer = document.getElementById('displayTaskCountContainer');
-    const scrollTaskCountContainer = document.getElementById('scrollTaskCountContainer');
-    const menuActionDelayContainer = document.getElementById('menuActionDelayContainer');
+    var scrollButtonType = document.getElementById('scrollButtonType') ? document.getElementById('scrollButtonType').value : null;
+    var navType = document.getElementById('navType') ? document.getElementById('navType').value : null;
+    var displayTaskCountContainer = document.getElementById('displayTaskCountContainer');
+    var scrollTaskCountContainer = document.getElementById('scrollTaskCountContainer');
+    var menuActionDelayContainer = document.getElementById('menuActionDelayContainer');
 
     if (scrollButtonType === 'scroll') {
         if (displayTaskCountContainer) displayTaskCountContainer.style.display = 'none';
@@ -298,29 +296,28 @@ function updateFloatingSettingsVisibility() {
         menuActionDelayContainer.style.display = (navType === 'menu') ? 'block' : 'none';
     }
 }
-window.updateFloatingSettingsVisibility = updateFloatingSettingsVisibility;
 
 function setupDraggableLabel(labelId, inputId, mode) {
-    const label = document.getElementById(labelId);
-    const input = document.getElementById(inputId);
+    var label = document.getElementById(labelId);
+    var input = document.getElementById(inputId);
     if (!label || !input) return;
-    let startY, startVal;
+    var startY, startVal;
 
-    const onMove = (e) => {
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        const delta = startY - clientY;
+    var onMove = function(e) {
+        var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        var delta = startY - clientY;
         input.value = Math.max(0, startVal + delta);
         saveFloatingSettings(mode);
     };
 
-    const onEnd = () => {
+    var onEnd = function() {
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onEnd);
         document.removeEventListener('touchmove', onMove);
         document.removeEventListener('touchend', onEnd);
     };
 
-    label.onmousedown = label.ontouchstart = (e) => {
+    label.onmousedown = label.ontouchstart = function(e) {
         startY = e.touches ? e.touches[0].clientY : e.clientY;
         startVal = parseInt(input.value) || 0;
 
@@ -338,81 +335,75 @@ function setupDraggableLabel(labelId, inputId, mode) {
 }
 
 function adjustDisplayTaskCount(delta) {
-    const input = document.getElementById('displayTaskCount');
+    var input = document.getElementById('displayTaskCount');
     if (!input) return;
-    let val = parseInt(input.value) || 1;
+    var val = parseInt(input.value) || 1;
     val = Math.max(1, Math.min(10, val + delta));
     input.value = val;
 
-    const scrollInput = document.getElementById('scrollTaskCount');
+    var scrollInput = document.getElementById('scrollTaskCount');
     if (scrollInput) {
         scrollInput.max = val;
         if (parseInt(scrollInput.value) > val) scrollInput.value = val;
     }
     saveFloatingSettings('expanded');
 }
-window.adjustDisplayTaskCount = adjustDisplayTaskCount;
 
 function adjustScrollTaskCount(delta) {
-    const input = document.getElementById('scrollTaskCount');
-    const displayInput = document.getElementById('displayTaskCount');
+    var input = document.getElementById('scrollTaskCount');
+    var displayInput = document.getElementById('displayTaskCount');
     if (!input || !displayInput) return;
-    let dVal = parseInt(displayInput.value) || 1;
-    let val = parseInt(input.value) || 1;
+    var dVal = parseInt(displayInput.value) || 1;
+    var val = parseInt(input.value) || 1;
     val = Math.max(1, Math.min(dVal, val + delta));
     input.value = val;
     saveFloatingSettings('expanded');
 }
-window.adjustScrollTaskCount = adjustScrollTaskCount;
 
 function adjustMenuActionDelay(delta) {
-    const input = document.getElementById('menuActionDelay');
+    var input = document.getElementById('menuActionDelay');
     if (!input) return;
-    let val = parseInt(input.value) || 0;
+    var val = parseInt(input.value) || 0;
     val = Math.max(0, Math.min(10, val + delta));
     input.value = val;
     saveFloatingSettings('expanded');
 }
-window.adjustMenuActionDelay = adjustMenuActionDelay;
 
 function adjustCheckedHideDelay(delta) {
-    const input = document.getElementById('checkedHideDelay');
+    var input = document.getElementById('checkedHideDelay');
     if (!input) return;
-    let val = parseInt(input.value) || 0;
+    var val = parseInt(input.value) || 0;
     val = Math.max(0, Math.min(60, val + delta));
     input.value = val;
     saveFloatingSettings('expanded', true);
 }
-window.adjustCheckedHideDelay = adjustCheckedHideDelay;
 
 function adjustAdRetryInterval(delta) {
-    const input = document.getElementById('adRetryBaseInterval');
+    var input = document.getElementById('adRetryBaseInterval');
     if (!input) return;
-    let val = parseInt(input.value) || 2;
+    var val = parseInt(input.value) || 2;
     val = Math.max(2, Math.min(60, val + delta));
     input.value = val;
-    // 第2引数に true を渡してフローティングウィンドウの起動をスキップする
     saveFloatingSettings(undefined, true);
 }
-window.adjustAdRetryInterval = adjustAdRetryInterval;
 
 function adjustRecheckInterval(delta) {
-    const input = document.getElementById('recheckInterval');
+    var input = document.getElementById('recheckInterval');
     if (!input) return;
-    let val = parseInt(input.value) || 0;
+    var val = parseInt(input.value) || 0;
     val = Math.max(0, Math.min(1440, val + delta));
     input.value = val;
     updateInterval();
 }
-window.adjustRecheckInterval = adjustRecheckInterval;
 
-function saveFloatingSettings(targetMode, skipStartWindow = false) {
-    const elCScale = document.getElementById('floatCollapsedScale');
-    const elShowEmpty = document.getElementById('showWhenEmpty');
-    const elMoveC = document.getElementById('alwaysMoveCollapsed');
-    const elAllowDragC = document.getElementById('allowDragCollapsed');
-    const elCX = document.getElementById('floatCollapsedX');
-    const elCY = document.getElementById('floatCollapsedY');
+function saveFloatingSettings(targetMode, skipStartWindow) {
+    if (skipStartWindow === undefined) skipStartWindow = false;
+    var elCScale = document.getElementById('floatCollapsedScale');
+    var elShowEmpty = document.getElementById('showWhenEmpty');
+    var elMoveC = document.getElementById('alwaysMoveCollapsed');
+    var elAllowDragC = document.getElementById('allowDragCollapsed');
+    var elCX = document.getElementById('floatCollapsedX');
+    var elCY = document.getElementById('floatCollapsedY');
 
     if (elCScale) localStorage.setItem('floatCollapsedScale', elCScale.value);
     if (elShowEmpty) localStorage.setItem('showWhenEmpty', elShowEmpty.checked);
@@ -421,20 +412,20 @@ function saveFloatingSettings(targetMode, skipStartWindow = false) {
     if (elCX) localStorage.setItem('floatCollapsedX', elCX.value);
     if (elCY) localStorage.setItem('floatCollapsedY', elCY.value);
 
-    const elWidth = document.getElementById('floatWidth');
-    const elHeight = document.getElementById('floatHeight');
-    const elEScale = document.getElementById('floatExpandedScale');
-    const elMoveE = document.getElementById('alwaysMoveExpanded');
-    const elEX = document.getElementById('floatExpandedX');
-    const elEY = document.getElementById('floatExpandedY');
-    const elShowClose = document.getElementById('showCloseButtonExpanded');
-    const elKeepService = document.getElementById('keepServiceOnClose');
-    const elShowCheckedToggle = document.getElementById('showCheckedToggle');
-    const elShowHistoryButton = document.getElementById('showHistoryButton');
-    const elNavType = document.getElementById('navType');
-    const elMenuDelay = document.getElementById('menuActionDelay');
-    const elAllowDrag = document.getElementById('allowDrag');
-    const elScrollBtnType = document.getElementById('scrollButtonType');
+    var elWidth = document.getElementById('floatWidth');
+    var elHeight = document.getElementById('floatHeight');
+    var elEScale = document.getElementById('floatExpandedScale');
+    var elMoveE = document.getElementById('alwaysMoveExpanded');
+    var elEX = document.getElementById('floatExpandedX');
+    var elEY = document.getElementById('floatExpandedY');
+    var elShowClose = document.getElementById('showCloseButtonExpanded');
+    var elKeepService = document.getElementById('keepServiceOnClose');
+    var elShowCheckedToggle = document.getElementById('showCheckedToggle');
+    var elShowHistoryButton = document.getElementById('showHistoryButton');
+    var elNavType = document.getElementById('navType');
+    var elMenuDelay = document.getElementById('menuActionDelay');
+    var elAllowDrag = document.getElementById('allowDrag');
+    var elScrollBtnType = document.getElementById('scrollButtonType');
 
     if (elWidth) localStorage.setItem('floatWidth', elWidth.value);
     if (elHeight) localStorage.setItem('floatHeight', elHeight.value);
@@ -451,17 +442,17 @@ function saveFloatingSettings(targetMode, skipStartWindow = false) {
     if (elAllowDrag) localStorage.setItem('allowDrag', elAllowDrag.checked);
     if (elScrollBtnType) localStorage.setItem('scrollButtonType', elScrollBtnType.value);
 
-    const dInput = document.getElementById('displayTaskCount');
-    const sInput = document.getElementById('scrollTaskCount');
-    const hInput = document.getElementById('checkedHideDelay');
-    const retryInput = document.getElementById('adRetryBaseInterval');
-    const recheckInput = document.getElementById('recheckInterval');
+    var dInput = document.getElementById('displayTaskCount');
+    var sInput = document.getElementById('scrollTaskCount');
+    var hInput = document.getElementById('checkedHideDelay');
+    var retryInput = document.getElementById('adRetryBaseInterval');
+    var recheckInput = document.getElementById('recheckInterval');
 
-    let dCount = parseInt(localStorage.getItem('displayTaskCount') || "1");
-    let sCount = parseInt(localStorage.getItem('scrollTaskCount') || "1");
-    let hDelay = parseInt(localStorage.getItem('checkedHideDelay') || "2");
-    let retryInterval = parseInt(localStorage.getItem('adRetryBaseInterval') || "5");
-    let recheckIntervalVal = parseInt(localStorage.getItem('recheckInterval') || "0");
+    var dCount = parseInt(localStorage.getItem('displayTaskCount') || "1");
+    var sCount = parseInt(localStorage.getItem('scrollTaskCount') || "1");
+    var hDelay = parseInt(localStorage.getItem('checkedHideDelay') || "2");
+    var retryInterval = parseInt(localStorage.getItem('adRetryBaseInterval') || "5");
+    var recheckIntervalVal = parseInt(localStorage.getItem('recheckInterval') || "0");
 
     if (dInput) {
         dCount = Math.max(1, Math.min(10, parseInt(dInput.value) || 1));
@@ -494,7 +485,6 @@ function saveFloatingSettings(targetMode, skipStartWindow = false) {
     if (typeof checkedHideDelay !== 'undefined') checkedHideDelay = hDelay;
     if (typeof adRetryBaseInterval !== 'undefined') adRetryBaseInterval = retryInterval;
 
-    // Android 側への通知 (アラーム再設定)
     if (typeof Android !== 'undefined' && Android.setIntervalAlarm) {
         Android.setIntervalAlarm(recheckIntervalVal);
     }
@@ -504,45 +494,32 @@ function saveFloatingSettings(targetMode, skipStartWindow = false) {
 
     if (typeof Android !== 'undefined') {
         if (Android.updateFloatingSettingsExtended) {
-            const cX = parseInt(localStorage.getItem('floatCollapsedX') || "100");
-            const cY = parseInt(localStorage.getItem('floatCollapsedY') || "100");
-            const cScale = parseFloat(localStorage.getItem('floatCollapsedScale') || "1.0");
-            const showEmpty = localStorage.getItem('showWhenEmpty') === 'true';
-            const moveC = localStorage.getItem('alwaysMoveCollapsed') === 'true';
-            const eX = parseInt(localStorage.getItem('floatExpandedX') || "100");
-            const eY = parseInt(localStorage.getItem('floatExpandedY') || "100");
-            const eScale = parseFloat(localStorage.getItem('floatExpandedScale') || "1.0");
-            const moveE = localStorage.getItem('alwaysMoveExpanded') === 'true';
-            const width = parseInt(localStorage.getItem('floatWidth') || "300");
-            const height = parseInt(localStorage.getItem('floatHeight') || "44");
-            const showClose = localStorage.getItem('showCloseButtonExpanded') === 'true';
-            const showCheckedToggle = localStorage.getItem('showCheckedToggle') === 'true';
-            const scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
-            const allowDrag = localStorage.getItem('allowDrag') !== 'false';
-            const allowDragC = localStorage.getItem('allowDragCollapsed') !== 'false';
-            const showHistoryButton = localStorage.getItem('showHistoryButton') === 'true';
-            const navType = localStorage.getItem('navType') || 'button';
-            const keepService = localStorage.getItem('keepServiceOnClose') === 'true';
-            const menuActionDelay = parseInt(localStorage.getItem('menuActionDelay') || "0");
-
             Android.updateFloatingSettingsExtended(
-                cX, cY, cScale, showEmpty, moveC,
-                eX, eY, eScale, moveE,
-                width, height, showClose,
-                dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragC,
-                showHistoryButton, navType, keepService, menuActionDelay, hDelay
+                parseInt(localStorage.getItem('floatCollapsedX') || "100"),
+                parseInt(localStorage.getItem('floatCollapsedY') || "100"),
+                parseFloat(localStorage.getItem('floatCollapsedScale') || "1.0"),
+                localStorage.getItem('showWhenEmpty') === 'true',
+                localStorage.getItem('alwaysMoveCollapsed') === 'true',
+                parseInt(localStorage.getItem('floatExpandedX') || "100"),
+                parseInt(localStorage.getItem('floatExpandedY') || "100"),
+                parseFloat(localStorage.getItem('floatExpandedScale') || "1.0"),
+                localStorage.getItem('alwaysMoveExpanded') === 'true',
+                parseInt(localStorage.getItem('floatWidth') || "300"),
+                parseInt(localStorage.getItem('floatHeight') || "44"),
+                localStorage.getItem('showCloseButtonExpanded') === 'true',
+                dCount, sCount,
+                localStorage.getItem('showCheckedToggle') === 'true',
+                localStorage.getItem('scrollButtonType') || 'both',
+                localStorage.getItem('allowDrag') !== 'false',
+                localStorage.getItem('allowDragCollapsed') !== 'false',
+                localStorage.getItem('showHistoryButton') === 'true',
+                localStorage.getItem('navType') || 'button',
+                localStorage.getItem('keepServiceOnClose') === 'true',
+                parseInt(localStorage.getItem('menuActionDelay') || "0"),
+                hDelay
             );
-        } else if (Android.updateFloatingSettings) {
-            const eX = parseInt(localStorage.getItem('floatExpandedX') || "100");
-            const eY = parseInt(localStorage.getItem('floatExpandedY') || "100");
-            const width = parseInt(localStorage.getItem('floatWidth') || "300");
-            const height = parseInt(localStorage.getItem('floatHeight') || "44");
-            const eScale = parseFloat(localStorage.getItem('floatExpandedScale') || "1.0");
-            Android.updateFloatingSettings(eX, eY, width, height, eScale);
         }
-
         if (!skipStartWindow && Android.startFloatingWindow) Android.startFloatingWindow();
-
         if (targetMode === 'collapsed') {
             if (typeof toggleFloatingExpand === 'function') toggleFloatingExpand(false);
         } else if (targetMode === 'expanded') {
@@ -550,72 +527,52 @@ function saveFloatingSettings(targetMode, skipStartWindow = false) {
         }
     }
 }
-window.saveFloatingSettings = saveFloatingSettings;
 
 function resetFloatingSettings() {
-    let defaultX = 100;
-    let defaultY = 100;
-    let defaultWidth = 300;
-    let defaultHeight = 44;
-
+    var defaultX = 100; var defaultY = 100; var defaultWidth = 300; var defaultHeight = 44;
     if (typeof Android !== 'undefined' && Android.getDisplayMetrics) {
         try {
-            const metrics = JSON.parse(Android.getDisplayMetrics());
-            const density = metrics.density || 1;
-            const widthPx = metrics.widthPixels;
+            var metrics = JSON.parse(Android.getDisplayMetrics());
+            var density = metrics.density || 1;
+            var widthPx = metrics.widthPixels;
             defaultWidth = Math.floor(widthPx * 0.9);
             defaultX = Math.floor((widthPx - defaultWidth) / 2);
             defaultY = Math.floor(100 * density);
             defaultHeight = Math.floor(44 * density);
-        } catch(e) { console.error("Failed to get display metrics", e); }
+        } catch(e) {}
     }
-
-    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-    const setChecked = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
-    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
-
-    setVal('floatCollapsedScale', 1.0); setText('collapsedScaleVal', "1.0");
-    setChecked('showWhenEmpty', false); setChecked('alwaysMoveCollapsed', false); setChecked('allowDragCollapsed', true);
+    var setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val; };
+    var setChecked = function(id, val) { var el = document.getElementById(id); if (el) el.checked = val; };
+    setVal('floatCollapsedScale', 1.0); setChecked('showWhenEmpty', false); setChecked('alwaysMoveCollapsed', false); setChecked('allowDragCollapsed', true);
     setVal('floatCollapsedX', defaultX); setVal('floatCollapsedY', defaultY);
-
-    setVal('floatWidth', defaultWidth); setVal('floatHeight', defaultHeight);
-    setVal('floatExpandedScale', 1.0); setText('expandedScaleVal', "1.0");
-    setChecked('alwaysMoveExpanded', false);
-    setVal('floatExpandedX', defaultX); setVal('floatExpandedY', defaultY);
-    setChecked('showCloseButtonExpanded', false); setChecked('keepServiceOnClose', false);
-    setChecked('showCheckedToggle', false); setChecked('showHistoryButton', false);
+    setVal('floatWidth', defaultWidth); setVal('floatHeight', defaultHeight); setVal('floatExpandedScale', 1.0);
+    setChecked('alwaysMoveExpanded', false); setVal('floatExpandedX', defaultX); setVal('floatExpandedY', defaultY);
+    setChecked('showCloseButtonExpanded', false); setChecked('keepServiceOnClose', false); setChecked('showCheckedToggle', false); setChecked('showHistoryButton', false);
     setVal('navType', 'button'); setVal('menuActionDelay', 0); setChecked('allowDrag', true);
     setVal('scrollButtonType', 'both'); setVal('displayTaskCount', 1); setVal('scrollTaskCount', 1); setVal('checkedHideDelay', 2);
-    setVal('adRetryBaseInterval', 5);
-    setVal('recheckInterval', 0);
-
-    updateFloatingSettingsVisibility();
-    updateStorageUsage();
-    saveFloatingSettings();
+    setVal('adRetryBaseInterval', 5); setVal('recheckInterval', 0);
+    updateFloatingSettingsVisibility(); updateStorageUsage(); saveFloatingSettings();
 }
-window.resetFloatingSettings = resetFloatingSettings;
 
 function updateInterval() {
-    const input = document.getElementById('recheckInterval');
+    var input = document.getElementById('recheckInterval');
     if (!input) return;
-    const interval = input.value;
-    if (typeof Android !== 'undefined' && Android.logToAppLog) {
-        Android.logToAppLog("JS: updateInterval called. value=" + interval);
-    }
+    var interval = input.value;
     localStorage.setItem('recheckInterval', interval);
     if (typeof Android !== 'undefined' && Android.setIntervalAlarm) {
         Android.setIntervalAlarm(parseInt(interval));
     }
 }
-window.updateInterval = updateInterval;
 
 function updateCalendarMark() {
-    const input = document.getElementById('calendarMarkInput');
-    const mark = (input ? input.value : "") || '⭕';
+    var input = document.getElementById('calendarMarkInput');
+    var mark = (input ? input.value : "") || '⭕';
     calendarMark = mark;
     localStorage.setItem('calendarMark', mark);
+    if (typeof currentCalendarTaskId !== 'undefined' && currentCalendarTaskId !== null) {
+        if (typeof renderCalendar === 'function') renderCalendar(currentCalendarTaskId, currentCalendarDate);
+    }
 }
-window.updateCalendarMark = updateCalendarMark;
 
 function addColorRule() {
     if (typeof bgThresholds !== 'undefined') {
@@ -623,11 +580,10 @@ function addColorRule() {
         saveColorRules();
     }
 }
-window.addColorRule = addColorRule;
 
 function removeColorRule(index) {
     showModal(getTranslation('msg_rule_delete_confirm'), {
-        onConfirm: () => {
+        onConfirm: function() {
             if (typeof bgThresholds !== 'undefined') {
                 bgThresholds.splice(index, 1);
                 saveColorRules();
@@ -635,17 +591,15 @@ function removeColorRule(index) {
         }
     });
 }
-window.removeColorRule = removeColorRule;
 
 function saveColorRules() {
     if (typeof bgThresholds !== 'undefined') {
-        bgThresholds.sort((a, b) => a.threshold - b.threshold);
+        bgThresholds.sort(function(a, b) { return a.threshold - b.threshold; });
         localStorage.setItem('bgThresholds', JSON.stringify(bgThresholds));
     }
     if (typeof render === 'function') render();
     renderColorRules();
 }
-window.saveColorRules = saveColorRules;
 
 function updateColorRule(index, field, value) {
     if (typeof bgThresholds !== 'undefined') {
@@ -654,49 +608,64 @@ function updateColorRule(index, field, value) {
         localStorage.setItem('bgThresholds', JSON.stringify(bgThresholds));
     }
     if (typeof render === 'function') render();
-    const previews = document.querySelectorAll('.color-preview-hex');
+    var previews = document.querySelectorAll('.color-preview-hex');
     if (previews[index] && typeof bgThresholds !== 'undefined') {
         previews[index].style.backgroundColor = bgThresholds[index].bgColor;
         previews[index].style.color = bgThresholds[index].textColor;
-        previews[index].innerHTML = `<div>${bgThresholds[index].bgColor.toUpperCase()}</div><div>${bgThresholds[index].textColor.toUpperCase()}</div>`;
+        previews[index].innerHTML = '<div>' + bgThresholds[index].bgColor.toUpperCase() + '</div><div>' + bgThresholds[index].textColor.toUpperCase() + '</div>';
     }
 }
-window.updateColorRule = updateColorRule;
 
 function renderColorRules() {
-    const list = document.getElementById('colorRulesList');
+    var list = document.getElementById('colorRulesList');
     if (!list || typeof bgThresholds === 'undefined') return;
-    list.innerHTML = bgThresholds.map((rule, index) => `
-        <div class="color-rule-item">
-            <div class="color-input-wrapper">
-                <span class="color-input-label">${getTranslation('label_bg_color')}</span>
-                <input type="color" value="${rule.bgColor}" onchange="updateColorRule(${index}, 'bgColor', this.value)">
-            </div>
-            <div class="color-input-wrapper">
-                <span class="color-input-label">${getTranslation('label_text_color')}</span>
-                <input type="color" value="${rule.textColor}" onchange="updateColorRule(${index}, 'textColor', this.value)">
-            </div>
-            <div class="threshold-input-group">
-                <input type="number" class="threshold-input" value="${Math.floor(rule.threshold / 60)}"
-                    onchange="updateColorRule(${index}, 'threshold', this.value * 60)"
-                    onblur="saveColorRules()">
-                <span style="font-size: 12px;">${getTranslation('label_threshold')}</span>
-            </div>
-            <div class="color-preview-hex" style="background-color: ${rule.bgColor}; color: ${rule.textColor}; border: 1px solid #ddd;">
-                <div>${rule.bgColor.toUpperCase()}</div>
-                <div>${rule.textColor.toUpperCase()}</div>
-            </div>
-            <button class="btn-icon" onclick="removeColorRule(${index})">🗑️</button>
-        </div>
-    `).join('');
+    list.innerHTML = bgThresholds.map(function(rule, index) {
+        var mins = Math.floor(rule.threshold / 60);
+        return '<div class="color-rule-item">' +
+            '<div class="color-input-wrapper"><span class="color-input-label">' + getTranslation('label_bg_color') + '</span><input type="color" value="' + rule.bgColor + '" onchange="updateColorRule(' + index + ', \'bgColor\', this.value)"></div>' +
+            '<div class="color-input-wrapper"><span class="color-input-label">' + getTranslation('label_text_color') + '</span><input type="color" value="' + rule.textColor + '" onchange="updateColorRule(' + index + ', \'textColor\', this.value)"></div>' +
+            '<div class="threshold-input-group"><input type="number" class="threshold-input" value="' + mins + '" onchange="updateColorRule(' + index + ', \'threshold\', this.value * 60)" onblur="saveColorRules()"><span style="font-size: 12px;">' + getTranslation('label_threshold') + '</span></div>' +
+            '<div class="color-preview-hex" style="background-color: ' + rule.bgColor + '; color: ' + rule.textColor + '; border: 1px solid #ddd;"><div>' + rule.bgColor.toUpperCase() + '</div><div>' + rule.textColor.toUpperCase() + '</div></div>' +
+            '<button class="btn-icon" onclick="removeColorRule(' + index + ')">🗑️</button></div>';
+    }).join('');
 }
-window.renderColorRules = renderColorRules;
 
 function toggleFixedPositionInputs(mode) {
-    const checkbox = document.getElementById(mode === 'collapsed' ? 'alwaysMoveCollapsed' : 'alwaysMoveExpanded');
-    const container = document.getElementById(mode === 'collapsed' ? 'collapsedPositionInputs' : 'expandedPositionInputs');
-    if (checkbox && container) {
-        container.style.display = checkbox.checked ? 'flex' : 'none';
-    }
+    var checkbox = document.getElementById(mode === 'collapsed' ? 'alwaysMoveCollapsed' : 'alwaysMoveExpanded');
+    var container = document.getElementById(mode === 'collapsed' ? 'collapsedPositionInputs' : 'expandedPositionInputs');
+    if (checkbox && container) container.style.display = checkbox.checked ? 'flex' : 'none';
 }
+
+window.updateStorageUsage = updateStorageUsage;
+window.openFloatingSettings = openFloatingSettings;
+window.openAdRetryInfo = openAdRetryInfo;
+window.openNewTaskSettings = openNewTaskSettings;
+window.openMelodySettings = openMelodySettings;
+window.openPermissionsScreen = openPermissionsScreen;
+window.openDataManagementScreen = openDataManagementScreen;
+window.openRewardsScreen = openRewardsScreen;
+window.openDeveloperSettings = openDeveloperSettings;
+window.unlockPremium = unlockPremium;
+window.loadNewTaskSettings = loadNewTaskSettings;
+window.updateNewTaskSettings = updateNewTaskSettings;
+window.loadMelodySettings = loadMelodySettings;
+window.updateSnoozeDuration = updateSnoozeDuration;
+window.adjustSnoozeDuration = adjustSnoozeDuration;
+window.loadFloatingSettings = loadFloatingSettings;
+window.updateFloatingSettingsVisibility = updateFloatingSettingsVisibility;
+window.adjustDisplayTaskCount = adjustDisplayTaskCount;
+window.adjustScrollTaskCount = adjustScrollTaskCount;
+window.adjustMenuActionDelay = adjustMenuActionDelay;
+window.adjustCheckedHideDelay = adjustCheckedHideDelay;
+window.adjustAdRetryInterval = adjustAdRetryInterval;
+window.adjustRecheckInterval = adjustRecheckInterval;
+window.saveFloatingSettings = saveFloatingSettings;
+window.resetFloatingSettings = resetFloatingSettings;
+window.updateInterval = updateInterval;
+window.updateCalendarMark = updateCalendarMark;
+window.addColorRule = addColorRule;
+window.removeColorRule = removeColorRule;
+window.saveColorRules = saveColorRules;
+window.updateColorRule = updateColorRule;
+window.renderColorRules = renderColorRules;
 window.toggleFixedPositionInputs = toggleFixedPositionInputs;

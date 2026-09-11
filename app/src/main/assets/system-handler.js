@@ -504,6 +504,11 @@ function clearAppLog() {
         showModal(getTranslation('msg_log_cleared'), { hideCancel: true });
     }
 }
+window.toggleLogging = toggleLogging;
+window.updateLogSize = updateLogSize;
+window.addLogComment = addLogComment;
+window.viewAppLog = viewAppLog;
+window.clearAppLog = clearAppLog;
 
 function updateCoinDisplay() {
     if (typeof Android !== 'undefined' && Android.getCoins) {

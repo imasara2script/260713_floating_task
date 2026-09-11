@@ -7,10 +7,12 @@ function renderCalendar(targetTaskId, date = new Date()) {
     const historyTitle = document.getElementById('history-title');
     const backBtn = document.getElementById('btn-back-history');
     const filterGroup = document.getElementById('history-filter');
+    const markSettings = document.getElementById('calendar-mark-settings');
     const task = tasks.find(t => t.id === targetTaskId);
 
     if (!task) {
         if (calendarView) calendarView.style.display = 'none';
+        if (markSettings) markSettings.style.display = 'none';
         currentCalendarTaskId = null;
         return;
     }
@@ -19,6 +21,11 @@ function renderCalendar(targetTaskId, date = new Date()) {
     currentCalendarDate = date;
 
     if (calendarView) calendarView.style.display = 'block';
+    if (markSettings) {
+        markSettings.style.display = 'block';
+        const input = document.getElementById('calendarMarkInput');
+        if (input) input.value = calendarMark;
+    }
     if (filterGroup) filterGroup.style.display = 'none';
     if (historyTitle) {
         historyTitle.innerHTML = `${getTranslation('history_task_title', task.text)} ${!task.durationMs ? `<span class="streak-badge" onclick="editStreak(${task.id})" style="cursor:pointer; font-size:14px; background:#e9ecef; padding:2px 8px; border-radius:4px; margin-left:8px; color:#495057; font-weight:normal;" title="クリックして回数を編集">🔥 ${task.streak || 0}</span>` : ''}`;
@@ -162,11 +169,13 @@ function renderHistory() {
     const historyTitle = document.getElementById('history-title');
     const backBtn = document.getElementById('btn-back-history');
     const filterGroup = document.getElementById('history-filter');
+    const markSettings = document.getElementById('calendar-mark-settings');
 
     if (!historyList) return;
 
     currentCalendarTaskId = null; // 全体履歴を表示する際はカレンダーモードを解除
     if (calendarView) calendarView.style.display = 'none';
+    if (markSettings) markSettings.style.display = 'none';
     if (historyTitle) historyTitle.textContent = getTranslation('history_title');
     if (backBtn) backBtn.style.display = 'none';
     if (filterGroup) filterGroup.style.display = 'block';
@@ -262,7 +271,6 @@ function editHistoryMemo(historyId, isInitial = false, taskId = null) {
         });
     }
 }
-window.editHistoryMemo = editHistoryMemo;
 
 function clearHistory() {
     if (typeof showModal === 'function') {
@@ -275,3 +283,10 @@ function clearHistory() {
         });
     }
 }
+
+window.renderCalendar = renderCalendar;
+window.changeMonth = changeMonth;
+window.renderTaskHistory = renderTaskHistory;
+window.renderHistory = renderHistory;
+window.editHistoryMemo = editHistoryMemo;
+window.clearHistory = clearHistory;

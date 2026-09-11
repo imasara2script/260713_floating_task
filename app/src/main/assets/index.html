@@ -59,6 +59,12 @@
             </div>
             <div id="calendar-view" style="display: none; margin-bottom: 20px;"></div>
 
+            <!-- カレンダーのマーク設定 (カレンダー表示中のみ) -->
+            <div id="calendar-mark-settings" class="card" style="display: none; margin-bottom: 20px;">
+                <label for="calendarMarkInput" style="display: block; margin-bottom: 8px; font-size: 14px;" data-i18n="label_calendar_mark">カレンダーのマーク (記号や絵文字):</label>
+                <input type="text" id="calendarMarkInput" placeholder="例: ⭕, ✔, ⭐" oninput="updateCalendarMark()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
+            </div>
+
             <!-- フィルターグループ -->
             <div id="history-filter" class="card" style="margin-bottom: 16px;">
                 <div style="font-weight: bold; margin-bottom: 8px; font-size: 14px;" data-i18n="filter_title">フィルター</div>
@@ -136,12 +142,6 @@
                             <span class="tile-icon">🛠️</span>
                             <span class="tile-label" data-i18n="btn_developer">開発者用</span>
                         </button>
-                    </div>
-
-                    <!-- 7. カレンダーのマーク -->
-                    <div style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 16px; font-size: 14px;">
-                        <label for="calendarMarkInput" style="display: block; margin-bottom: 8px;" data-i18n="label_calendar_mark">カレンダーのマーク (記号や絵文字):</label>
-                        <input type="text" id="calendarMarkInput" placeholder="例: ⭕, ✔, ⭐" onchange="updateCalendarMark()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box;">
                     </div>
                 </div>
             </div>

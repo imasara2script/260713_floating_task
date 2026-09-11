@@ -468,10 +468,10 @@ input[type="color"] {
     text-align: center;
     padding: 8px;
     border-radius: 16px;
-    color: white;
+    background-color: white;
     cursor: pointer;
-    border: none;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border: 2.5px solid #eee;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     transition: transform 0.1s, box-shadow 0.1s;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -479,7 +479,7 @@ input[type="color"] {
 
 .setting-tile:active {
     transform: scale(0.95);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .tile-icon {
@@ -493,29 +493,30 @@ input[type="color"] {
     line-height: 1.2;
     word-break: break-all;
     white-space: pre-line;
+    color: #333;
 }
 
-/* Tile Gradients based on the provided image */
+/* Tile Border Colors based on the previous gradients */
 .tile-perm {
-    background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%); /* Emerald to Blue-ish */
+    border-color: #43cea2;
 }
 .tile-float {
-    background: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%); /* Purple/Violet */
+    border-color: #8e2de2;
 }
 .tile-task {
-    background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%); /* Green/Lime */
+    border-color: #56ab2f;
 }
 .tile-melody {
-    background: linear-gradient(135deg, #f80759 0%, #bc4e9c 100%); /* Pink/Magenta */
+    border-color: #f80759;
 }
 .tile-reward {
-    background: linear-gradient(135deg, #f2994a 0%, #f2c94c 100%); /* Orange/Yellow */
+    border-color: #f2994a;
 }
 .tile-data {
-    background: linear-gradient(135deg, #2b5876 0%, #4e4376 100%); /* Deep Blue */
+    border-color: #2b5876;
 }
 .tile-dev {
-    background: linear-gradient(135deg, #606c88 0%, #3f4c6b 100%); /* Gray/Charcoal */
+    border-color: #606c88;
 }
 
 @media (max-width: 350px) {
