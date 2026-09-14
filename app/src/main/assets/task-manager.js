@@ -132,61 +132,18 @@ function addTask() {
 window.addTask = addTask;
 
 function toggleTask(id) {
-    const task = tasks.find(t => t.id === id);
-    if (!task) return;
-
-    if (!task.completed && task.showCommentOnCheck) {
-        showModal(getTranslation('label_show_comment_on_check'), {
+    toggleTaskCore(id, (task) => {
+        showModal(task.text, {
             showTextarea: true,
+            inputValue: task.note || "",
             placeholder: getTranslation('placeholder_history_memo'),
             confirmText: getTranslation('btn_save_comment'),
             cancelText: getTranslation('btn_no_comment'),
             onConfirm: (memo) => {
-                completeTaskWithMemo(id, memo);
+                completeTaskWithMemo(task.id, memo);
             }
         });
-    } else {
-        if (task.completed) {
-            task.completed = false;
-            task.justUncompletedUntil = Date.now() + (checkedHideDelay * 1000);
-            setTimeout(() => {
-                if (typeof render === 'function') render();
-            }, checkedHideDelay * 1000);
-        } else {
-            task.completed = true;
-            task.justCompletedUntil = Date.now() + (checkedHideDelay * 1000);
-            setTimeout(() => {
-                if (typeof render === 'function') render();
-            }, checkedHideDelay * 1000);
-
-            // 履歴への追加
-            history.unshift({
-                id: Date.now(),
-                taskId: task.id,
-                text: task.text,
-                memo: "",
-                completedAt: new Date().toISOString()
-            });
-            if (history.length > 500) history.pop();
-
-            // 連続実行回数の更新 (タイマーなしタスクのみ)
-            if (!task.durationMs) {
-                const today = new Date().toDateString();
-                const yesterday = new Date(Date.now() - 86400000).toDateString();
-                if (task.lastCompletedDate === yesterday) {
-                    task.streak = (task.streak || 0) + 1;
-                } else if (task.lastCompletedDate !== today) {
-                    task.streak = 1;
-                }
-                task.lastCompletedDate = today;
-            }
-        }
-
-        if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
-            Android.updateTaskCompletionState(task.id, task.completed);
-        }
-        saveTasks();
-    }
+    });
 }
 window.toggleTask = toggleTask;
 

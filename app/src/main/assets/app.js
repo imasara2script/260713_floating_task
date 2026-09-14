@@ -420,6 +420,68 @@ function completeTaskWithMemo(taskId, memo) {
 window.completeTaskWithMemo = completeTaskWithMemo;
 
 /**
+ * タスクの完了状態を切り替える共通ロジック
+ */
+function toggleTaskCore(taskId, onCommentRequired) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const newState = !task.completed;
+
+    if (newState && task.showCommentOnCheck) {
+        if (typeof onCommentRequired === 'function') {
+            onCommentRequired(task);
+        }
+        return;
+    }
+
+    if (newState) {
+        // 完了処理
+        const historyId = Date.now();
+        history.unshift({
+            id: historyId,
+            taskId: task.id,
+            text: task.text,
+            memo: "",
+            completedAt: new Date().toISOString()
+        });
+        if (history.length > 500) history.pop();
+
+        task.justCompletedUntil = Date.now() + (checkedHideDelay * 1000);
+        delete task.justUncompletedUntil;
+
+        // 連続実行回数の更新 (タイマーなしタスクのみ)
+        if (!task.durationMs) {
+            const today = new Date().toDateString();
+            const yesterday = new Date(Date.now() - 86400000).toDateString();
+            if (task.lastCompletedDate === yesterday) {
+                task.streak = (task.streak || 0) + 1;
+            } else if (task.lastCompletedDate !== today) {
+                task.streak = 1;
+            }
+            task.lastCompletedDate = today;
+        }
+    } else {
+        // チェック解除
+        task.justUncompletedUntil = Date.now() + (checkedHideDelay * 1000);
+        delete task.justCompletedUntil;
+    }
+
+    task.completed = newState;
+
+    if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
+        Android.updateTaskCompletionState(task.id, task.completed);
+    }
+
+    setTimeout(() => {
+        if (typeof render === 'function') render();
+    }, checkedHideDelay * 1000);
+
+    saveTasks();
+}
+window.toggleTaskCore = toggleTaskCore;
+
+/**
  * タイマーリピートの共通ロジック
  */
 function repeatTimerCore(taskId) {

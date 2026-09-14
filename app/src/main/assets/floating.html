@@ -362,48 +362,14 @@
         }
 
         function toggleTask(id) {
-            tasks = tasks.map(t => {
-                if (t.id === id) {
-                    const newState = !t.completed;
-                    if (newState) {
-                        if (t.showCommentOnCheck) {
-                            inputtingCommentForTaskId = id;
-                            if (typeof Android !== 'undefined') {
-                                if (Android.requestHeight) Android.requestHeight(150);
-                                if (Android.setFocusable) Android.setFocusable(true);
-                            }
-                            return t;
-                        }
-
-                        // 通常の完了処理
-                        const historyId = Date.now();
-                        history.unshift({
-                            id: historyId,
-                            taskId: t.id,
-                            text: t.text,
-                            memo: "",
-                            completedAt: new Date().toISOString()
-                        });
-                        if (history.length > 500) history.pop();
-
-                        t.justCompletedUntil = Date.now() + (checkedHideDelay * 1000);
-                        delete t.justUncompletedUntil;
-                        setTimeout(() => render(), checkedHideDelay * 1000);
-                    } else {
-                        // チェック解除時の処理
-                        t.justUncompletedUntil = Date.now() + (checkedHideDelay * 1000);
-                        delete t.justCompletedUntil;
-                        setTimeout(() => render(), checkedHideDelay * 1000);
-                    }
-
-                    if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
-                        Android.updateTaskCompletionState(t.id, newState);
-                    }
-                    return { ...t, completed: newState };
+            toggleTaskCore(id, (task) => {
+                inputtingCommentForTaskId = id;
+                if (typeof Android !== 'undefined') {
+                    if (Android.requestHeight) Android.requestHeight(150);
+                    if (Android.setFocusable) Android.setFocusable(true);
                 }
-                return t;
+                render();
             });
-            saveTasks();
         }
 
         function saveFloatingComment() {
