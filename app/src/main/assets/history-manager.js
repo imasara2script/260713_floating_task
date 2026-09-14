@@ -272,6 +272,22 @@ function editHistoryMemo(historyId, isInitial = false, taskId = null) {
     }
 }
 
+function saveHistoryMemo(historyId, val) {
+    const item = history.find(h => h.id === historyId);
+    if (item) {
+        item.memo = val;
+        if (typeof saveTasks === 'function') {
+            saveTasks();
+        }
+        // 再描画
+        if (currentCalendarTaskId) {
+            renderTaskHistory(currentCalendarTaskId);
+        } else {
+            renderHistory();
+        }
+    }
+}
+
 function clearHistory() {
     if (typeof showModal === 'function') {
         showModal(getTranslation('msg_history_clear_confirm'), {
@@ -289,4 +305,5 @@ window.changeMonth = changeMonth;
 window.renderTaskHistory = renderTaskHistory;
 window.renderHistory = renderHistory;
 window.editHistoryMemo = editHistoryMemo;
+window.saveHistoryMemo = saveHistoryMemo;
 window.clearHistory = clearHistory;
