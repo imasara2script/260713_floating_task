@@ -196,24 +196,9 @@ function editTask(id) {
 window.editTask = editTask;
 
 function repeatTimer(id) {
-    const task = tasks.find(t => t.id === id);
-    if (!task || !task.durationMs) return;
-
-    task.startTime = Date.now();
-    task.completed = false;
-    task.justUncompletedUntil = Date.now() + (checkedHideDelay * 1000);
-    setTimeout(() => {
-        if (typeof render === 'function') render();
-    }, checkedHideDelay * 1000);
-
-    if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-        const remaining = (task.startTime + task.durationMs) - Date.now();
-        Android.setTimerAlarm(task.id, task.text, remaining, task.melody || 'default', task.melodyMode || 'once');
+    if (typeof repeatTimerCore === 'function') {
+        repeatTimerCore(id);
     }
-    if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
-        Android.updateTaskCompletionState(task.id, false);
-    }
-    saveTasks();
 }
 window.repeatTimer = repeatTimer;
 

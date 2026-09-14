@@ -336,8 +336,8 @@ function handleTouchEnd(e) {
     });
     tasks = newTasks;
     window.tasks = tasks;
-    saveTasks();
     draggingElement = null;
+    saveTasks();
 }
 
 function getDragAfterElement(container, y) {

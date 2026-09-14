@@ -447,26 +447,9 @@
         }
 
         function repeatTimer(id) {
-            tasks = tasks.map(t => {
-                if (t.id === id && t.durationMs) {
-                    const melody = t.melody || 'default';
-                    if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-                        Android.setTimerAlarm(t.id, t.text, t.durationMs, melody);
-                    }
-                    const historyId = Date.now();
-                    history.unshift({
-                        id: historyId,
-                        taskId: t.id,
-                        text: t.text + getTranslation('repeat_suffix'),
-                        memo: "",
-                        completedAt: new Date().toISOString()
-                    });
-                    if (history.length > 500) history.pop();
-                    return { ...t, startTime: Date.now(), completed: false };
-                }
-                return t;
-            });
-            saveTasks();
+            if (typeof repeatTimerCore === 'function') {
+                repeatTimerCore(id);
+            }
         }
 
         function toggleTimerDisplayMode() {

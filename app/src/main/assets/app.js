@@ -419,6 +419,45 @@ function completeTaskWithMemo(taskId, memo) {
 }
 window.completeTaskWithMemo = completeTaskWithMemo;
 
+/**
+ * タイマーリピートの共通ロジック
+ */
+function repeatTimerCore(taskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || !task.durationMs) return;
+
+    const melody = task.melody || 'default';
+    const melodyMode = task.melodyMode || 'once';
+    if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
+        Android.setTimerAlarm(task.id, task.text, task.durationMs, melody, melodyMode);
+    }
+
+    history.unshift({
+        id: Date.now(),
+        taskId: task.id,
+        text: task.text + getTranslation('repeat_suffix'),
+        memo: "",
+        completedAt: new Date().toISOString()
+    });
+    if (history.length > 500) history.pop();
+
+    task.startTime = Date.now();
+    task.completed = false;
+    task.justUncompletedUntil = Date.now() + (checkedHideDelay * 1000);
+    delete task.justCompletedUntil;
+
+    if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
+        Android.updateTaskCompletionState(task.id, false);
+    }
+
+    setTimeout(() => {
+        if (typeof render === 'function') render();
+    }, checkedHideDelay * 1000);
+
+    saveTasks();
+}
+window.repeatTimerCore = repeatTimerCore;
+
 // ネイティブダイアログ用のコールバック管理
 window._nativeConfirmCallbacks = {};
 
