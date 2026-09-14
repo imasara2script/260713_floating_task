@@ -257,7 +257,7 @@ function executeExportTasks() {
     }
     const selectedTasks = tasks.filter(t => selectedExportIds.has(t.id));
     const data = { type: 'partial_tasks', tasks: selectedTasks };
-    if (typeof Android !== 'undefined' && Android.backupData) Android.backupData(JSON.stringify(data));
+    if (typeof Android !== 'undefined' && Android.backupData) Android.backupData(JSON.stringify(data), 'export');
     cancelExportMode();
 }
 window.executeExportTasks = executeExportTasks;

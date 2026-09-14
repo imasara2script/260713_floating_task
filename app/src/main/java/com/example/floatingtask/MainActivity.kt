@@ -599,7 +599,7 @@ class MainActivity : AppCompatActivity(),
         fun getDisplayMetrics(): String = settingsHandler.getDisplayMetrics()
 
         @JavascriptInterface
-        fun backupData(jsonData: String) = mediaHandler.backupData(jsonData)
+        fun backupData(jsonData: String, type: String) = mediaHandler.backupData(jsonData, type)
 
         @JavascriptInterface
         fun restoreData() = mediaHandler.restoreData()

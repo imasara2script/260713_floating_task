@@ -85,7 +85,7 @@ function getBackupData() {
 function performBackup() {
     const data = getBackupData();
     if (typeof Android !== 'undefined' && Android.backupData) {
-        Android.backupData(JSON.stringify(data));
+        Android.backupData(JSON.stringify(data), 'backup');
     }
 }
 
