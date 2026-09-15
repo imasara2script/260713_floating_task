@@ -325,7 +325,7 @@ class MainActivity : AppCompatActivity(),
         ringtonePickerLauncher.launch(intent)
     }
 
-    override fun onBackupData(fileName: String, jsonData: String) {
+    override fun onBackupData(fileName: String, jsonData: String, type: String) {
         dataToBackup = jsonData
         createDocumentLauncher.launch(fileName)
     }

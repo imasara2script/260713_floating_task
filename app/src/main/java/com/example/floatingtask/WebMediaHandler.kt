@@ -16,7 +16,7 @@ class WebMediaHandler(
 
     interface MediaActionListener {
         fun onPickRingtone(intent: Intent)
-        fun onBackupData(fileName: String, jsonData: String)
+        fun onBackupData(fileName: String, jsonData: String, type: String)
         fun onRestoreData()
     }
 
@@ -115,7 +115,7 @@ class WebMediaHandler(
         val sdf = SimpleDateFormat("yyyyMMdd HHmmss", Locale.getDefault())
         val timestamp = sdf.format(Date())
         val fileName = "floating task $type $timestamp.json"
-        listener.onBackupData(fileName, jsonData)
+        listener.onBackupData(fileName, jsonData, type)
     }
 
     fun restoreData() {

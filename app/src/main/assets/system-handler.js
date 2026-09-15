@@ -2,48 +2,13 @@
  * System, Data, and Ad Management Logic
  */
 
+var pendingSaveData = null;
+var pendingSaveType = null;
+
 function exportData() {
     console.log("exportData called");
-    const isPremiumValue = (typeof Android !== 'undefined' && Android.isPremium && Android.isPremium());
-    const coins = (typeof Android !== 'undefined' && Android.getCoins) ? Android.getCoins() : 0;
-    const msg = getTranslation('msg_backup_confirm');
-
-    if (isPremiumValue) {
-        showModal(msg, {
-            onConfirm: performBackup
-        });
-        return;
-    }
-
-    if (coins > 0) {
-        showModal(msg, {
-            confirmText: getTranslation('btn_use_coin'),
-            neutralText: getTranslation('btn_watch_ad'),
-            onConfirm: () => {
-                if (typeof Android !== 'undefined' && Android.consumeCoin()) {
-                    updateCoinDisplay();
-                    performBackup();
-                }
-            },
-            onNeutral: () => {
-                pendingAction = 'backup';
-                if (typeof Android !== 'undefined' && Android.showRewardedAd) {
-                    Android.showRewardedAd();
-                }
-            }
-        });
-        return;
-    }
-
-    showModal(msg + "\n\n" + getTranslation('msg_ad_notice'), {
-        confirmText: getTranslation('btn_watch_ad'),
-        onConfirm: () => {
-            pendingAction = 'backup';
-            if (typeof Android !== 'undefined' && Android.showRewardedAd) {
-                Android.showRewardedAd();
-            }
-        }
-    });
+    const data = getBackupData();
+    performBackup('backup', JSON.stringify(data));
 }
 
 function getBackupData() {
@@ -82,11 +47,55 @@ function getBackupData() {
     };
 }
 
-function performBackup() {
-    const data = getBackupData();
-    if (typeof Android !== 'undefined' && Android.backupData) {
-        Android.backupData(JSON.stringify(data), 'backup');
+function performBackup(type, jsonData) {
+    const isPremiumValue = (typeof Android !== 'undefined' && Android.isPremium && Android.isPremium());
+    const coins = (typeof Android !== 'undefined' && Android.getCoins) ? Android.getCoins() : 0;
+    const msg = getTranslation('msg_backup_confirm');
+
+    const execute = () => {
+        if (typeof Android !== 'undefined' && Android.backupData) {
+            Android.backupData(jsonData, type);
+        }
+    };
+
+    if (isPremiumValue) {
+        execute();
+        return;
     }
+
+    if (coins > 0) {
+        showModal(msg, {
+            confirmText: getTranslation('btn_use_coin'),
+            neutralText: getTranslation('btn_watch_ad'),
+            onConfirm: () => {
+                if (typeof Android !== 'undefined' && Android.consumeCoin()) {
+                    updateCoinDisplay();
+                    execute();
+                }
+            },
+            onNeutral: () => {
+                pendingAction = 'finalize_backup';
+                pendingSaveData = jsonData;
+                pendingSaveType = type;
+                if (typeof Android !== 'undefined' && Android.showRewardedAd) {
+                    Android.showRewardedAd();
+                }
+            }
+        });
+        return;
+    }
+
+    showModal(msg + "\n\n" + getTranslation('msg_ad_notice'), {
+        confirmText: getTranslation('btn_watch_ad'),
+        onConfirm: () => {
+            pendingAction = 'finalize_backup';
+            pendingSaveData = jsonData;
+            pendingSaveType = type;
+            if (typeof Android !== 'undefined' && Android.showRewardedAd) {
+                Android.showRewardedAd();
+            }
+        }
+    });
 }
 
 function checkAutoBackup() {
@@ -577,6 +586,17 @@ function onRewardEarned(type, remaining) {
         return;
     }
 
+    if (pendingAction === 'finalize_backup') {
+        pendingAction = null;
+        if (typeof closeModal === 'function') closeModal();
+        if (typeof Android !== 'undefined' && Android.backupData) {
+            Android.backupData(pendingSaveData, pendingSaveType);
+        }
+        pendingSaveData = null;
+        pendingSaveType = null;
+        return;
+    }
+
     showModal(getTranslation('msg_reward_earned'), { hideCancel: true });
 }
 
@@ -653,6 +673,7 @@ function showNormalAdError(type, errorCode, errorMessage) {
             if (type === 'limit') {
                 if (pendingAction === 'restore' && pendingRestoreData) requestPaymentAndRestore(pendingRestoreData, pendingRestoreOptions);
                 else if (pendingAction === 'backup') exportData();
+                else if (pendingAction === 'finalize_backup') performBackup(pendingSaveType, pendingSaveData);
             } else if (type === 'coin') earnCoinReward();
         }
     });
