@@ -288,6 +288,8 @@ function checkDailyReset() {
         const todayDay = todayObj.getDay(); // 0 (Sun) to 6 (Sat)
         tasks = tasks.map(t => {
             let shouldReset = false;
+            // 経過時間タイプ（タイマー設定あり、かつ時刻指定ではないもの）の判定を強化
+            const isDurationType = (t.type === 'duration' || (t.durationMs > 0 && !t.targetTime));
 
             if (t.type === 'biweekly' && t.referenceDate) {
                 // 隔週リセットロジック
@@ -306,11 +308,11 @@ function checkDailyReset() {
             } else {
                 // 既存の曜日指定ロジック
                 shouldReset = !t.selectedDays || t.selectedDays.length === 0 || t.selectedDays.includes(todayDay);
+            }
 
-                // 経過時間タイプのリセット除外設定
-                if (shouldReset && t.type === 'duration' && keepDuration) {
-                    shouldReset = false;
-                }
+            // 経過時間タイプのリセット除外設定が有効な場合、リセットをスキップ
+            if (shouldReset && isDurationType && keepDuration) {
+                shouldReset = false;
             }
 
             if (!shouldReset) return t;
