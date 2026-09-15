@@ -46,15 +46,23 @@ class AlarmReceiver : BroadcastReceiver() {
             }
         } else if (action == "ACTION_TIMER_EXPIRED") {
             val taskId = intent.getLongExtra("EXTRA_TASK_ID", -1L)
-            val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: context.getString(R.string.timer_expired)
-            val melody = intent.getStringExtra("EXTRA_MELODY") ?: "default"
-            val melodyMode = intent.getStringExtra("EXTRA_MELODY_MODE") ?: "once"
 
             // スヌーズ状態通知を消去
             if (taskId != -1L) {
                 val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 manager.cancel("SNOOZE", (taskId % Int.MAX_VALUE).toInt())
             }
+
+            // 完了状態をチェック
+            val compPrefs = context.getSharedPreferences("task_completion_prefs", Context.MODE_PRIVATE)
+            if (compPrefs.getBoolean(taskId.toString(), false)) {
+                AppLogger.log(context, "AlarmReceiver: Timer expired but task $taskId is already completed. Skipping notification.")
+                return
+            }
+
+            val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: context.getString(R.string.timer_expired)
+            val melody = intent.getStringExtra("EXTRA_MELODY") ?: "default"
+            val melodyMode = intent.getStringExtra("EXTRA_MELODY_MODE") ?: "once"
 
             // 完了日時を取得
             val sdf = SimpleDateFormat("MM/dd (E) HH:mm", Locale.getDefault())
