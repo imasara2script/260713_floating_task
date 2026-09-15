@@ -7,6 +7,8 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.util.Log
 
+import android.os.PowerManager
+
 object MelodyPlayer {
     private var mediaPlayer: MediaPlayer? = null
 
@@ -23,19 +25,28 @@ object MelodyPlayer {
             }
 
             mediaPlayer = MediaPlayer().apply {
+                setWakeMode(context, PowerManager.PARTIAL_WAKE_LOCK)
                 setDataSource(context, soundUri)
+                
+                // ループ設定時はアラーム、単発時は通知の属性を使用する
+                // 一部の端末で USAGE_ALARM を指定すると強制的にループされるのを防ぐため
+                val usage = if (looping) AudioAttributes.USAGE_ALARM else AudioAttributes.USAGE_NOTIFICATION
+                
                 setAudioAttributes(
                     AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                        .setUsage(usage)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build()
                 )
                 isLooping = looping
-                prepare()
-                start()
+                
+                // 再生開始前にリスナーを登録
                 setOnCompletionListener {
                     stop()
                 }
+                
+                prepare()
+                start()
             }
         } catch (e: Exception) {
             Log.e("MelodyPlayer", "Error playing melody: ${e.message}")

@@ -138,12 +138,14 @@ class AlarmReceiver : BroadcastReceiver() {
                 AlarmScheduler.scheduleReminderAlarm(context, taskId, taskText, timeStr, message, melody, melodyMode)
             }
         } else if (action == "ACTION_STOP_ALARM") {
+            MelodyPlayer.stop()
             val notificationId = intent.getIntExtra("EXTRA_NOTIFICATION_ID", -1)
             if (notificationId != -1) {
                 val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 manager.cancel(notificationId)
             }
         } else if (action == "ACTION_SNOOZE_ALARM") {
+            MelodyPlayer.stop()
             val notificationId = intent.getIntExtra("EXTRA_NOTIFICATION_ID", -1)
             val taskId = intent.getLongExtra("EXTRA_TASK_ID", -1L)
             val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: ""
@@ -189,13 +191,6 @@ class AlarmReceiver : BroadcastReceiver() {
         val channelId = "timer_notifications_${melody.hashCode()}_$melodyMode"
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
-        val soundUri = when {
-            melody == "alarm" -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            melody == "chime" -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-            melody.startsWith("content://") -> android.net.Uri.parse(melody)
-            else -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        }
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channelName = when {
                 melody == "alarm" -> context.getString(R.string.channel_timer_alarm)
@@ -204,7 +199,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 else -> context.getString(R.string.channel_timer_notifications)
             }
             val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH).apply {
-                setSound(soundUri, Notification.AUDIO_ATTRIBUTES_DEFAULT)
+                setSound(null, null)
                 if (melodyMode == "loop") {
                     // ループ設定時はバイブレーションも強めにする
                     enableVibration(true)
@@ -218,13 +213,30 @@ class AlarmReceiver : BroadcastReceiver() {
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setSound(soundUri)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(true)
+
+        // フルスクリーンインテント（画面オフ時の通知点灯用）
+        val fullScreenIntent = Intent(context, MainActivity::class.java).apply {
+            action = "ACTION_SHOW_FLOATING"
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("EXTRA_SHOW_FLOATING", true)
+        }
+        val fullScreenPendingIntent = android.app.PendingIntent.getActivity(
+            context,
+            notificationId + 10,
+            fullScreenIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        builder.setFullScreenIntent(fullScreenPendingIntent, true)
+
+        // MelodyPlayerで再生開始
+        MelodyPlayer.play(context, melody, melodyMode == "loop")
 
         if (melodyMode == "loop") {
             builder.setOngoing(true) // 簡単に消されないようにする
-            builder.setFullScreenIntent(null, true) // 割り込み
-            // FLAG_INSISTENT を追加
+            // builder.setFullScreenIntent(null, true) // 削除
+            // FLAG_INSISTENT を追加（MediaPlayer管理にするので不要だが、一応OS側の挙動として削除）
             builder.setSubText(if (Locale.getDefault().language == "ja") "停止するまで鳴り続けます" else "Playing until stopped")
 
             // 停止ボタン
@@ -258,10 +270,6 @@ class AlarmReceiver : BroadcastReceiver() {
         }
 
         val notification = builder.build()
-        if (melodyMode == "loop") {
-            notification.flags = notification.flags or Notification.FLAG_INSISTENT
-        }
-
         manager.notify(notificationId, notification)
     }
 

@@ -853,8 +853,8 @@ class FloatingWindowService : Service() {
         }
 
         @JavascriptInterface
-        fun playMelody(melody: String) {
-            MelodyPlayer.play(this@FloatingWindowService, melody)
+        fun playMelody(melody: String, looping: Boolean = false) {
+            MelodyPlayer.play(this@FloatingWindowService, melody, looping)
         }
 
         @JavascriptInterface
