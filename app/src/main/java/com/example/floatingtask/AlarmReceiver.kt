@@ -16,6 +16,10 @@ import java.util.Date
 import java.util.Locale
 
 class AlarmReceiver : BroadcastReceiver() {
+    companion object {
+        const val ACTION_CANCEL_SNOOZE = "ACTION_CANCEL_SNOOZE"
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
         AppLogger.log(context, "AlarmReceiver: onReceive called with action=$action")
@@ -45,6 +49,12 @@ class AlarmReceiver : BroadcastReceiver() {
             val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: context.getString(R.string.timer_expired)
             val melody = intent.getStringExtra("EXTRA_MELODY") ?: "default"
             val melodyMode = intent.getStringExtra("EXTRA_MELODY_MODE") ?: "once"
+
+            // スヌーズ状態通知を消去
+            if (taskId != -1L) {
+                val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                manager.cancel("SNOOZE", (taskId % Int.MAX_VALUE).toInt())
+            }
 
             // 完了日時を取得
             val sdf = SimpleDateFormat("MM/dd (E) HH:mm", Locale.getDefault())
@@ -161,10 +171,61 @@ class AlarmReceiver : BroadcastReceiver() {
             }
 
             if (taskId != -1L) {
+                val triggerAt = System.currentTimeMillis() + snoozeMinutes * 60 * 1000L
                 // 設定された分後にスヌーズ
                 AlarmScheduler.scheduleTimerAlarm(context, taskId, taskText, snoozeMinutes * 60 * 1000L, melody, melodyMode)
+                showSnoozeStatusNotification(context, taskId, taskText, triggerAt)
+            }
+        } else if (action == ACTION_CANCEL_SNOOZE) {
+            val taskId = intent.getLongExtra("EXTRA_TASK_ID", -1L)
+            if (taskId != -1L) {
+                AlarmScheduler.cancelTimerAlarm(context, taskId)
+                val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                manager.cancel("SNOOZE", (taskId % Int.MAX_VALUE).toInt())
             }
         }
+    }
+
+    private fun showSnoozeStatusNotification(context: Context, taskId: Long, taskText: String, triggerAt: Long) {
+        val channelId = "snooze_status_channel"
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                context.getString(R.string.channel_timer_notifications),
+                NotificationManager.IMPORTANCE_LOW
+            )
+            manager.createNotificationChannel(channel)
+        }
+
+        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val timeStr = sdf.format(Date(triggerAt))
+        
+        val title = context.getString(R.string.snoozing_prefix, taskText)
+        val message = context.getString(R.string.renotify_at_format, timeStr)
+
+        val cancelIntent = Intent(context, AlarmReceiver::class.java).apply {
+            action = ACTION_CANCEL_SNOOZE
+            putExtra("EXTRA_TASK_ID", taskId)
+        }
+        val cancelPendingIntent = android.app.PendingIntent.getBroadcast(
+            context,
+            (taskId % Int.MAX_VALUE).toInt() + 1000000,
+            cancelIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .addAction(0, context.getString(R.string.btn_cancel_snooze), cancelPendingIntent)
+
+        manager.notify("SNOOZE", (taskId % Int.MAX_VALUE).toInt(), builder.build())
     }
 
     private fun showReminderNotification(context: Context, taskText: String, message: String, melody: String, melodyMode: String, taskId: Long) {

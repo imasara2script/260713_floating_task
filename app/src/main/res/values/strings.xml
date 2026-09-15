@@ -31,4 +31,7 @@
     <string name="notification_interval_body">タップしてフローティングウィンドウを表示します</string>
     <string name="btn_stop">停止</string>
     <string name="btn_snooze">スヌーズ (%1$d分後)</string>
+    <string name="snoozing_prefix">スヌーズ中: %1$s</string>
+    <string name="renotify_at_format">再通知予定時刻: %1$s</string>
+    <string name="btn_cancel_snooze">スヌーズをキャンセル</string>
 </resources>

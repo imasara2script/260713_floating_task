@@ -78,6 +78,23 @@ object AlarmScheduler {
         setExactAlarm(alarmManager, triggerAt, pendingIntent)
     }
 
+    fun cancelTimerAlarm(context: Context, taskId: Long) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            action = "ACTION_TIMER_EXPIRED"
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            (taskId % Int.MAX_VALUE).toInt(),
+            intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pendingIntent != null) {
+            alarmManager.cancel(pendingIntent)
+            pendingIntent.cancel()
+        }
+    }
+
     fun scheduleReminderAlarm(context: Context, taskId: Long, taskText: String, timeStr: String, message: String, melody: String = "default", melodyMode: String = "once") {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java).apply {
