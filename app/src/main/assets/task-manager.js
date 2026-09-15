@@ -250,6 +250,22 @@ function toggleExportSelection(id) {
 }
 window.toggleExportSelection = toggleExportSelection;
 
+function toggleSelectAll() {
+    const currentIds = isExportMode ? selectedExportIds : selectedDeleteIds;
+    // 全タスクが既に選択されているかチェック
+    const isAllSelected = tasks.every(t => currentIds.has(t.id));
+
+    if (isAllSelected) {
+        // 全解除
+        currentIds.clear();
+    } else {
+        // 全選択
+        tasks.forEach(t => currentIds.add(t.id));
+    }
+    if (typeof render === 'function') render();
+}
+window.toggleSelectAll = toggleSelectAll;
+
 function executeExportTasks() {
     if (selectedExportIds.size === 0) {
         showModal(getTranslation('msg_export_select'), { hideCancel: true });

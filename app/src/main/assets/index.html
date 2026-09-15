@@ -32,9 +32,10 @@
             </div>
             <!-- エクスポート操作パネル -->
             <div id="export-controls" class="card" style="display: none; margin-bottom: 16px; background: #e7f3ff; border: 1px solid #b3d7ff;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                     <span id="export-panel-title" style="font-size: 14px; font-weight: bold; color: #0056b3;" data-i18n="panel_export_title">エクスポートするタスクを選択</span>
                     <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" onclick="toggleSelectAll()" style="padding: 4px 12px; font-size: 13px;" data-i18n="btn_select_all">全選択/解除</button>
                         <button class="btn btn-secondary" onclick="cancelBulkMode()" style="padding: 4px 12px; font-size: 13px;" data-i18n="btn_cancel">キャンセル</button>
                         <button id="btn-execute-action" class="btn btn-primary" onclick="executeExportTasks()" style="padding: 4px 12px; font-size: 13px;" data-i18n="btn_export_exec">エクスポート実行</button>
                     </div>
