@@ -168,7 +168,12 @@ function openEditMenu() {
         return;
     }
     const modal = document.getElementById('editMenuModal');
-    if (modal) modal.style.display = 'flex';
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.onclick = function(e) {
+            if (e.target === modal) closeEditMenu();
+        };
+    }
 }
 window.openEditMenu = openEditMenu;
 
