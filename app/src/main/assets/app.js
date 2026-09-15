@@ -503,18 +503,28 @@ function repeatTimerCore(taskId) {
     });
     if (history.length > 500) history.pop();
 
+    const isCurrentlyAtTop = isPendingForDisplay(task);
+
     task.startTime = Date.now();
     task.completed = false;
-    task.justUncompletedUntil = Date.now() + (checkedHideDelay * 1000);
     delete task.justCompletedUntil;
+
+    if (isCurrentlyAtTop) {
+        // すでに上部にある場合は、フラグを立てずにそのまま留まらせる
+        delete task.justUncompletedUntil;
+    } else {
+        // 下部（完了済み側）にある場合は、フラグを立てて移動を遅延させる
+        task.justUncompletedUntil = Date.now() + (checkedHideDelay * 1000);
+
+        // 指定秒数後に位置を更新（上部に移動）
+        setTimeout(() => {
+            if (typeof render === 'function') render();
+        }, checkedHideDelay * 1000);
+    }
 
     if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
         Android.updateTaskCompletionState(task.id, false);
     }
-
-    setTimeout(() => {
-        if (typeof render === 'function') render();
-    }, checkedHideDelay * 1000);
 
     saveTasks();
 }
