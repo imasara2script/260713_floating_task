@@ -397,10 +397,13 @@ function onDurationSelected(h, m, s) {
     currentDuration = { h: h.toString(), m: m.toString(), s: s.toString() };
     var btn = document.getElementById('durationBtn');
     if (!btn) return;
-    var text = ""; var hNum = parseFloat(h) || 0; var mNum = parseFloat(m) || 0; var sNum = parseFloat(s) || 0;
-    if (hNum > 0) text += h + getTranslation('unit_hour');
-    if (mNum > 0 || hNum > 0) text += m + getTranslation('unit_min');
-    text += s + getTranslation('unit_sec');
+    var text = "";
+    var hNum = parseInt(h) || 0;
+    var mNum = parseInt(m) || 0;
+    var sNum = parseInt(s) || 0;
+    if (hNum > 0) text += hNum + getTranslation('unit_hour');
+    if (mNum > 0 || hNum > 0) text += mNum + getTranslation('unit_min');
+    text += sNum + getTranslation('unit_sec');
     btn.textContent = text;
 }
 

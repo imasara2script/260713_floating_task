@@ -78,7 +78,10 @@ function addTask() {
             }
             durationMs = target.getTime() - now.getTime();
         } else if (unitSelect.value === 'duration') {
-            durationMs = (parseInt(currentDuration.h) * 3600 + parseInt(currentDuration.m) * 60 + parseInt(currentDuration.s)) * 1000;
+            const h = parseInt(currentDuration.h) || 0;
+            const m = parseInt(currentDuration.m) || 0;
+            const s = parseInt(currentDuration.s) || 0;
+            durationMs = (h * 3600 + m * 60 + s) * 1000;
             if (durationMs <= 0) {
                 showModal(getTranslation('msg_input_timer_val'), { hideCancel: true });
                 return;
