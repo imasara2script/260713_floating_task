@@ -185,6 +185,7 @@ window.closeEditMenu = closeEditMenu;
 
 function startSortMode() {
     closeEditMenu();
+    originalTasksBeforeSort = JSON.parse(JSON.stringify(tasks));
     isEditMode = true;
     if (typeof render === 'function') render();
 }

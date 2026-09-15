@@ -42,6 +42,7 @@ var pendingAction = null;
 var isImportMode = false;
 var pendingRestoreData = null;
 var pendingRestoreOptions = null;
+var originalTasksBeforeSort = null;
 
 function handleBack() {
     // Check modals priority
@@ -92,6 +93,11 @@ function handleBack() {
     }
 
     if (isEditMode) {
+        if (originalTasksBeforeSort) {
+            tasks = originalTasksBeforeSort;
+            window.tasks = tasks;
+            saveTasks();
+        }
         finishSortMode();
         return true;
     }
