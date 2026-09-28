@@ -2,6 +2,8 @@
  * Modal and Dialog Management Logic
  */
 
+var initialTaskNote = '';
+
 function showModal(title, options) {
     if (!options) options = {};
     var modal = document.getElementById('customModal');
@@ -323,6 +325,8 @@ function openTaskModal(taskId) {
         switchToEditMode();
     }
     if (typeof toggleTimerInput === 'function') toggleTimerInput();
+    var taskNote = document.getElementById('taskNote');
+    initialTaskNote = taskNote ? taskNote.value : '';
     var modal = document.getElementById('taskModal');
     if (modal) {
         modal.style.display = 'flex';
@@ -339,7 +343,22 @@ function openExternalUrl(url) {
 }
 window.openExternalUrl = openExternalUrl;
 
-function closeTaskModal() {
+function closeTaskModal(force) {
+    if (!force) {
+        var taskNote = document.getElementById('taskNote');
+        var currentNote = taskNote ? taskNote.value : '';
+        if (currentNote !== initialTaskNote) {
+            showModal(getTranslation('msg_discard_changes_confirm'), {
+                confirmText: getTranslation('btn_discard') || '破棄する',
+                cancelText: getTranslation('btn_cancel'),
+                onConfirm: function() {
+                    initialTaskNote = '';
+                    closeTaskModal(true);
+                }
+            });
+            return;
+        }
+    }
     if (isMelodyTesting) { if (typeof stopMelodyTest === 'function') stopMelodyTest(); }
     var modal = document.getElementById('taskModal');
     if (modal) modal.style.display = 'none';
@@ -350,6 +369,7 @@ function closeTaskModal() {
     if (deleteBtn) deleteBtn.style.display = 'none';
     if (editBtn) editBtn.style.display = 'none';
     editingTaskId = null;
+    initialTaskNote = '';
 }
 
 function updateTaskModalVisibility(task) {

@@ -130,7 +130,7 @@ function addTask() {
     }
 
     saveTasks();
-    closeTaskModal();
+    closeTaskModal(true);
 }
 window.addTask = addTask;
 
@@ -348,7 +348,7 @@ function deleteTaskFromModal() {
         onConfirm: () => {
             tasks = tasks.filter(t => t.id !== editingTaskId);
             saveTasks();
-            closeTaskModal();
+            closeTaskModal(true);
         }
     });
 }
@@ -359,7 +359,7 @@ function viewHistoryFromModal() {
     const task = tasks.find(t => t.id === editingTaskId);
     if (!task) return;
 
-    closeTaskModal();
+    closeTaskModal(true);
     renderTaskHistory(task.id);
 }
 window.viewHistoryFromModal = viewHistoryFromModal;
