@@ -1,20 +1,22 @@
-# タスク編集画面の破棄確認ダイアログ追加 完了レポート
+# スマホの画面ロック解除時展開表示モード機能 完了レポート
 
-タスク編集画面で補足文章（ノート）や入力内容を編集している最中に、誤って背景（グレー領域）のタップやキャンセル操作でモーダルを閉じようとした際、未保存の編集内容が失われないように確認ダイアログを表示する機能を実装しました。
+フローティングウィンドウの設定画面に「スマホの画面ロック解除時に展開表示モードにする」（デフォルト：OFF）の項目を追加し、デバイスの画面ロック解除を検知して自動的にウィンドウを展開表示モードにする機能を実装しました。
 
 ## 変更内容の概要
 
 ### 1. 翻訳の追加 (`translations.js`)
-- `msg_discard_changes_confirm`: `"編集内容を破棄しますか？」` (`"Discard changes?"` in English)
-- `btn_discard`: `"破棄する"` (`"Discard"` in English)
+- `label_expand_on_unlock`: `"スマホの画面ロック解除時に展開表示モードにする"` (`"Expand display mode when unlocking screen"` in English)
 
-### 2. 変更検知とダイアログ処理 (`modal-manager.js`)
-- **初期値の保持**: `openTaskModal()` 時に補足文章（`taskNote.value`）の初期状態を `initialTaskNote` として記録します。
-- **キャンセル時の破棄確認**: ユーザーがキャンセル操作（背景グレー領域のタップやキャンセルボタン、戻るキー）を行った際、現在の補足文章が初期値から変更されている（`currentNote !== initialTaskNote`）場合は、即座に閉じずに `showModal` で「編集内容を破棄しますか？」確認ダイアログを表示します。
-- **破棄の選択**: ユーザーが「破棄する」を選択した場合は、変更破棄を許可してモーダルを閉じます。
+### 2. 設定画面UIの追加 (`floating-settings.html`)
+- 展開表示モード設定セクションに、`expandOnUnlock` を切り替えるチェックボックスを追加しました。
 
-### 3. 保存時のスムーズなクローズ (`task-manager.js`)
-- タスクの追加・保存時や削除時など、意図した保存操作では確認ダイアログが出ずにスムーズに閉じるよう、`closeTaskModal(true)` を呼び出すように修正しました。
+### 3. 設定の保持・送信 (`settings-manager.js`, `WebSettingsHandler.kt`, `MainActivity.kt`)
+- `settings-manager.js`: チェックボックスの状態を `localStorage` および `expandOnUnlock` キーで保存し、`updateFloatingSettingsExtended` を介してネイティブ側へ送信。
+- `WebSettingsHandler.kt` / `MainActivity.kt`: 受信した `expandOnUnlock` 設定値を SharedPreferences (`"prefs"`) に永続化。
+
+### 4. ロック解除検知と自動展開 (`FloatingWindowService.kt`)
+- `Intent.ACTION_USER_PRESENT` を監視する BroadcastReceiver (`userPresentReceiver`) を動的登録しました。
+- 画面ロック解除時に SharedPreferences の `expandOnUnlock` が有効であれば、自動的にフローティングウィンドウを展開表示モード (`isExpanded = true`) に切り替える処理を実装しました。
 
 ## 検証結果
 

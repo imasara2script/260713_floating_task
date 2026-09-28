@@ -204,6 +204,7 @@ function loadFloatingSettings() {
     var eWidth = localStorage.getItem('floatWidth') || '300';
     var eHeight = localStorage.getItem('floatHeight') || '44';
     var eScale = localStorage.getItem('floatExpandedScale') || '1.0';
+    var expandOnUnlock = localStorage.getItem('expandOnUnlock') === 'true';
     var moveE = localStorage.getItem('alwaysMoveExpanded') === 'true';
     var eX = localStorage.getItem('floatExpandedX') || '100';
     var eY = localStorage.getItem('floatExpandedY') || '100';
@@ -224,6 +225,7 @@ function loadFloatingSettings() {
     var elEHeight = document.getElementById('floatHeight');
     var elEScale = document.getElementById('floatExpandedScale');
     var elEScaleVal = document.getElementById('expandedScaleVal');
+    var elExpandOnUnlock = document.getElementById('expandOnUnlock');
     var elMoveE = document.getElementById('alwaysMoveExpanded');
     var elEX = document.getElementById('floatExpandedX');
     var elEY = document.getElementById('floatExpandedY');
@@ -244,6 +246,7 @@ function loadFloatingSettings() {
     if (elEHeight) elEHeight.value = eHeight;
     if (elEScale) elEScale.value = eScale;
     if (elEScaleVal) elEScaleVal.innerText = eScale;
+    if (elExpandOnUnlock) elExpandOnUnlock.checked = expandOnUnlock;
     if (elMoveE) elMoveE.checked = moveE;
     if (elEX) elEX.value = eX;
     if (elEY) elEY.value = eY;
@@ -426,10 +429,12 @@ function saveFloatingSettings(targetMode, skipStartWindow) {
     var elMenuDelay = document.getElementById('menuActionDelay');
     var elAllowDrag = document.getElementById('allowDrag');
     var elScrollBtnType = document.getElementById('scrollButtonType');
+    var elExpandOnUnlock = document.getElementById('expandOnUnlock');
 
     if (elWidth) localStorage.setItem('floatWidth', elWidth.value);
     if (elHeight) localStorage.setItem('floatHeight', elHeight.value);
     if (elEScale) localStorage.setItem('floatExpandedScale', elEScale.value);
+    if (elExpandOnUnlock) localStorage.setItem('expandOnUnlock', elExpandOnUnlock.checked);
     if (elMoveE) localStorage.setItem('alwaysMoveExpanded', elMoveE.checked);
     if (elEX) localStorage.setItem('floatExpandedX', elEX.value);
     if (elEY) localStorage.setItem('floatExpandedY', elEY.value);
@@ -516,7 +521,8 @@ function saveFloatingSettings(targetMode, skipStartWindow) {
                 localStorage.getItem('navType') || 'button',
                 localStorage.getItem('keepServiceOnClose') === 'true',
                 parseInt(localStorage.getItem('menuActionDelay') || "0"),
-                hDelay
+                hDelay,
+                localStorage.getItem('expandOnUnlock') === 'true'
             );
         }
         if (!skipStartWindow && Android.startFloatingWindow) Android.startFloatingWindow();

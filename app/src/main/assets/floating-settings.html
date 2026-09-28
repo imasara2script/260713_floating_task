@@ -158,6 +158,13 @@
         <!-- 展開表示モードセクション -->
         <div class="section-title" data-i18n="section_expanded">展開表示モード</div>
         <div class="settings-card">
+            <div class="setting-item">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="expandOnUnlock" onchange="saveFloatingSettings('expanded')">
+                    <span data-i18n="label_expand_on_unlock">スマホの画面ロック解除時に展開表示モードにする</span>
+                </label>
+            </div>
+
             <div class="hint" style="background: #f0f7ff; padding: 10px; border-radius: 6px; margin-bottom: 16px; color: #0056b3;" data-i18n="floating_adj_hint">
                 ラベル部分を上下にドラッグすると数値を素早く調整できます。
             </div>

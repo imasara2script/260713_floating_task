@@ -47,6 +47,21 @@ class FloatingWindowService : Service() {
         }
     }
 
+    private val userPresentReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == Intent.ACTION_USER_PRESENT) {
+                val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+                val expandOnUnlock = prefs.getBoolean("expandOnUnlock", false)
+                AppLogger.log(this@FloatingWindowService, "User present received. expandOnUnlock=$expandOnUnlock")
+                if (expandOnUnlock && !isExpanded) {
+                    updateWindowSize(expanded = true)
+                    val webView: WebView? = floatingView?.findViewById(R.id.floatingWebView)
+                    webView?.evaluateJavascript("toggleFloatingExpand(true, true);", null)
+                }
+            }
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -59,6 +74,13 @@ class FloatingWindowService : Service() {
             dataChangeReceiver,
             filter,
             androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+        val userPresentFilter = IntentFilter(Intent.ACTION_USER_PRESENT)
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
+            userPresentReceiver,
+            userPresentFilter,
+            androidx.core.content.ContextCompat.RECEIVER_EXPORTED,
         )
     }
 
@@ -544,7 +566,12 @@ class FloatingWindowService : Service() {
     override fun onDestroy() {
         AppLogger.log(this, "FloatingWindowService onDestroy")
         super.onDestroy()
-        unregisterReceiver(dataChangeReceiver)
+        try {
+            unregisterReceiver(dataChangeReceiver)
+        } catch (e: Exception) {}
+        try {
+            unregisterReceiver(userPresentReceiver)
+        } catch (e: Exception) {}
         floatingView?.let {
             windowManager.removeView(it)
         }

@@ -25,9 +25,10 @@ class WebSettingsHandler(
         showCheckedToggle: Boolean, scrollButtonType: String,
         allowDrag: Boolean, allowDragCollapsed: Boolean,
         showHistoryButton: Boolean, navType: String, keepService: Boolean,
-        menuActionDelay: Int, checkedHideDelay: Int
+        menuActionDelay: Int, checkedHideDelay: Int,
+        expandOnUnlock: Boolean
     ) {
-        android.util.Log.d("WebSettingsHandler", "updateFloatingSettingsExtended: menuActionDelay=$menuActionDelay, checkedHideDelay=$checkedHideDelay")
+        android.util.Log.d("WebSettingsHandler", "updateFloatingSettingsExtended: menuActionDelay=$menuActionDelay, checkedHideDelay=$checkedHideDelay, expandOnUnlock=$expandOnUnlock")
         val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         prefs.edit {
             putInt("floatCollapsedX", cX)
@@ -43,6 +44,15 @@ class WebSettingsHandler(
             putBoolean("alwaysMoveExpanded", moveE)
 
             putInt("floatWidth", width)
+            putInt("floatHeight", height)
+            putBoolean("showCloseButtonExpanded", showClose)
+            putBoolean("keepServiceOnClose", keepService)
+            putBoolean("showCheckedToggle", showCheckedToggle)
+            putBoolean("showHistoryButton", showHistoryButton)
+            putString("navType", navType)
+            putInt("menuActionDelay", menuActionDelay)
+            putInt("checkedHideDelay", checkedHideDelay)
+            putBoolean("expandOnUnlock", expandOnUnlock)
             putInt("floatHeight", height)
             putBoolean("showCloseButtonExpanded", showClose)
             putBoolean("keepServiceOnClose", keepService)
