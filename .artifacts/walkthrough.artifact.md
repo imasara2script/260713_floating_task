@@ -1,28 +1,23 @@
-# タスク登録数上限解除のコイン消費・CM再生対応 完了レポート
+# システム側の問題によるアラーム未発火検知機能 完了レポート
 
-「タスク登録数上限の解除」について、従来のCM再生（広告視聴）だけでなく、コイン消費（1コイン）でも実行できるように機能を拡張しました。
+タイマーやリマインダーの予定時刻を過ぎているにもかかわらず、システム側の問題（OSによる強制終了やDozeモード等）によりアラームが鳴らなかった場合を正確に検知し、通知および履歴への記録を行う機能を実装しました。
 
 ## 変更内容の概要
 
-### 1. Kotlin バックエンドの拡張
-- **[WebAdCoinHandler.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/WebAdCoinHandler.kt)**
-  - コインを消費してタスク上限を解除する `unlockLimitByCoin()` メソッドを追加しました。
-- **[MainActivity.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MainActivity.kt)**
-  - JavaScript から呼び出せるように `@JavascriptInterface` として `unlockLimitByCoin()` を公開しました。
+### 1. アラーム発火実績の記録 (`AlarmReceiver.kt`)
+- タイマー満了 (`ACTION_TIMER_EXPIRED`) およびリマインダー発火 (`ACTION_REMINDER`) が正常に実行された際、SharedPreferences (`alarm_fired_prefs`) に発火実績（タスクID・タイムスタンプ等）を記録するようにしました。
 
-### 2. JavaScript フロントエンドの拡張
-- **[modal-manager.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/modal-manager.js)**
-  - タスク上限（3件以上）に達した状態で新規追加を試みた際、所持コイン (`coins > 0`) があれば「コインを消費して実行 (-1)」と「広告を視聴する」を選択できるモーダルを表示するようにしました。
-  - コインがない場合は従来の広告視聴案内を表示します。
-- **[system-handler.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/system-handler.js)**
-  - `pendingAction === 'unlock_limit'` の処理を追加し、広告視聴による上限解除完了後に自動的にタスク追加モーダルが開くように連携しました。
+### 2. 未発火検知ロジックの実装 (`WebTaskActionHandler.kt` / `MainActivity.kt`)
+- アプリ起動時に呼び出される `checkMissedAlarms()` を実装しました。
+- 未完了かつ設定されたタイマー/リマインダーの予定時刻を過ぎているタスクについて、`alarm_fired_prefs` に発火記録が存在するかどうかを照合します。
+- **「時刻を過ぎている」かつ「発火記録がない」**場合、システム側の問題によりアラームが鳴らなかったと判定し、該当タスク情報を返却します。
 
-### 3. UI/翻訳の調整
-- **[translations.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/translations.js)**
-  - ボタン文字列から「(CM再生)」(英語では "(Watch CM)") を削除し、シンプルに「タスク登録数上限を解除」に変更しました。
-  - 上限解除ボタン押下時の確認メッセージ (`msg_ad_confirm`) をご指定の文言「広告を視聴するかコインを消費すると、アプリを完全に終了するまでの間、タスク登録数の制限がなくなります。」に更新しました。
+### 3. 通知・履歴への統合 (`app.js` / `translations.js`)
+- アプリ起動時の初期化処理 (`checkDailyReset()`) 内で `checkMissedAlarms()` を呼び出し、未発火が検出された場合に以下を実行します：
+  - 履歴 (`history`) に `"システム側の問題によりタイマーが鳴らなかった可能性があります: [タスク名]"` を追加。
+  - ユーザー向けにモーダル通知 (`msg_system_alarm_missed`) を表示。
+- 重複報告を防ぐため、一度報告した未発火イベントは `alarm_missed_reported_prefs` で管理して再通知を抑制します。
 
 ## 検証結果
 
 - Gradleビルド (`app:assembleDebug`) を実行し、コンパイルエラー・警告がないことを確認しました（ビルド成功）。
-- 実際の動作確認はユーザー様にご実施いただきます。

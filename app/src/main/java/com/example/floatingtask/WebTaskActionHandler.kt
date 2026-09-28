@@ -8,6 +8,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
 import org.json.JSONArray
+import org.json.JSONObject
 
 class WebTaskActionHandler(
     private val context: Context,
@@ -78,6 +79,87 @@ class WebTaskActionHandler(
     fun updateTaskCompletionState(taskId: Long, isCompleted: Boolean) {
         val prefs = context.getSharedPreferences("task_completion_prefs", Context.MODE_PRIVATE)
         prefs.edit { putBoolean(taskId.toString(), isCompleted) }
+    }
+
+    fun checkMissedAlarms(jsonTasks: String): String {
+        val missedList = JSONArray()
+        try {
+            val tasks = JSONArray(jsonTasks)
+            val firedPrefs = context.getSharedPreferences("alarm_fired_prefs", Context.MODE_PRIVATE)
+            val missedReportedPrefs = context.getSharedPreferences("alarm_missed_reported_prefs", Context.MODE_PRIVATE)
+            val now = System.currentTimeMillis()
+
+            for (i in 0 until tasks.length()) {
+                val task = tasks.getJSONObject(i)
+                val taskId = task.optLong("id", -1L)
+                val text = task.optString("text", "")
+                val completed = task.optBoolean("completed", false)
+                val durationMs = task.optLong("durationMs", 0L)
+                val startTime = task.optLong("startTime", 0L)
+
+                if (taskId == -1L || completed) continue
+
+                // Check timer expiration
+                if (durationMs > 0) {
+                    val targetTime = startTime + durationMs
+                    if (targetTime <= now) {
+                        val firedKey = "timer_$taskId"
+                        val reportedKey = "reported_timer_${taskId}_$targetTime"
+                        val fired = firedPrefs.getBoolean(firedKey, false)
+                        val reported = missedReportedPrefs.getBoolean(reportedKey, false)
+
+                        if (!fired && !reported) {
+                            missedReportedPrefs.edit { putBoolean(reportedKey, true) }
+                            val obj = JSONObject()
+                            obj.put("taskId", taskId)
+                            obj.put("text", text)
+                            obj.put("type", "timer")
+                            missedList.put(obj)
+                        }
+                    }
+                }
+
+                // Check reminders
+                val reminders = task.optJSONArray("reminders")
+                if (reminders != null) {
+                    val calendar = java.util.Calendar.getInstance()
+                    val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+                    for (j in 0 until reminders.length()) {
+                        val rem = reminders.getJSONObject(j)
+                        val timeStr = rem.optString("time", "")
+                        if (timeStr.isNotEmpty()) {
+                            val parts = timeStr.split(":")
+                            if (parts.size == 2) {
+                                calendar.set(java.util.Calendar.HOUR_OF_DAY, parts[0].toInt())
+                                calendar.set(java.util.Calendar.MINUTE, parts[1].toInt())
+                                calendar.set(java.util.Calendar.SECOND, 0)
+                                calendar.set(java.util.Calendar.MILLISECOND, 0)
+                                val remTargetTime = calendar.timeInMillis
+                                if (remTargetTime <= now) {
+                                    val firedKey = "reminder_${taskId}_${todayStr}_$timeStr"
+                                    val reportedKey = "reported_reminder_${taskId}_${todayStr}_$timeStr"
+                                    val fired = firedPrefs.getBoolean(firedKey, false)
+                                    val reported = missedReportedPrefs.getBoolean(reportedKey, false)
+
+                                    if (!fired && !reported) {
+                                        missedReportedPrefs.edit { putBoolean(reportedKey, true) }
+                                        val obj = JSONObject()
+                                        obj.put("taskId", taskId)
+                                        obj.put("text", text)
+                                        obj.put("type", "reminder")
+                                        obj.put("time", timeStr)
+                                        missedList.put(obj)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            AppLogger.log(context, "Error checking missed alarms: ${e.message}")
+        }
+        return missedList.toString()
     }
 
     fun testReminderNotification(taskText: String, message: String) {

@@ -446,6 +446,10 @@ class MainActivity : AppCompatActivity(),
             taskActionHandler.updateTaskCompletionState(taskId, isCompleted)
 
         @JavascriptInterface
+        fun checkMissedAlarms(jsonTasks: String): String =
+            taskActionHandler.checkMissedAlarms(jsonTasks)
+
+        @JavascriptInterface
         fun testReminderNotification(taskText: String, message: String) =
             taskActionHandler.testReminderNotification(taskText, message)
 

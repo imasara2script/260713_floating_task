@@ -11,6 +11,7 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.edit
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -46,6 +47,11 @@ class AlarmReceiver : BroadcastReceiver() {
             }
         } else if (action == "ACTION_TIMER_EXPIRED") {
             val taskId = intent.getLongExtra("EXTRA_TASK_ID", -1L)
+
+            if (taskId != -1L) {
+                val firedPrefs = context.getSharedPreferences("alarm_fired_prefs", Context.MODE_PRIVATE)
+                firedPrefs.edit().putBoolean("timer_$taskId", true).apply()
+            }
 
             // スヌーズ状態通知を消去
             if (taskId != -1L) {
@@ -142,6 +148,12 @@ class AlarmReceiver : BroadcastReceiver() {
             val timeStr = intent.getStringExtra("EXTRA_TIME_STR") ?: ""
             val melody = intent.getStringExtra("EXTRA_MELODY") ?: "default"
             val melodyMode = intent.getStringExtra("EXTRA_MELODY_MODE") ?: "once"
+
+            if (taskId != -1L && timeStr.isNotEmpty()) {
+                val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+                val firedPrefs = context.getSharedPreferences("alarm_fired_prefs", Context.MODE_PRIVATE)
+                firedPrefs.edit { putBoolean("reminder_${taskId}_${todayStr}_$timeStr", true) }
+            }
 
             // 完了状態を SharedPreferences からチェック
             val prefs = context.getSharedPreferences("task_completion_prefs", Context.MODE_PRIVATE)

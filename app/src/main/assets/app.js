@@ -354,6 +354,36 @@ function checkDailyReset() {
         }
     });
 
+    if (typeof Android !== 'undefined' && Android.checkMissedAlarms) {
+        try {
+            const missedJson = Android.checkMissedAlarms(JSON.stringify(tasks));
+            const missedArray = JSON.parse(missedJson);
+            if (missedArray && missedArray.length > 0) {
+                missedArray.forEach(m => {
+                    const msg = getTranslation('history_system_alarm_missed', m.text);
+                    history.unshift({
+                        id: Date.now() + Math.random(),
+                        type: 'system_alarm_missed',
+                        text: msg,
+                        memo: "",
+                        completedAt: new Date().toISOString()
+                    });
+                    if (history.length > 500) history.pop();
+                });
+                window.history = history;
+                saveTasks();
+                const alertMsg = getTranslation('msg_system_alarm_missed', missedArray.map(m => m.text).join(', '));
+                setTimeout(() => {
+                    if (typeof showModal === 'function') {
+                        showModal(alertMsg, { hideCancel: true });
+                    }
+                }, 500);
+            }
+        } catch (e) {
+            console.error("Failed to check missed alarms:", e);
+        }
+    }
+
     if (typeof Android !== 'undefined' && Android.checkDailyCoinBonus) {
         if (Android.checkDailyCoinBonus()) {
             history.unshift({

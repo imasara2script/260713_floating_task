@@ -1,6 +1,6 @@
-# タスク登録数上限解除のコイン消費・CM再生対応 タスク一覧
+# システム側の問題によるアラーム未発火検知 タスク一覧
 
-- `[x]` `WebAdCoinHandler.kt` に `unlockLimitByCoin()` を追加
-- `[x]` `MainActivity.kt` に JavascriptInterface `unlockLimitByCoin()` を追加
-- `[x]` `modal-manager.js` の `openTaskModal()` を修正し、コイン所持状況に応じた選択肢（コイン消費 / CM再生）を表示
-- `[x]` `system-handler.js` の `onRewardEarned()` に `unlock_limit` アクションの処理を追加
+- `[x]` `AlarmReceiver.kt` でアラーム発火時に SharedPreferences へ発火実績を記録
+- `[x]` `translations.js` にシステム側未発火のメッセージおよび履歴文言を追加
+- `[x]` アプリ起動時に発火履歴とタスクの状態を照合し、未発火を検知して履歴・通知に追加する処理を実装
+- `[x]` Gradle ビルドの実行と動作確認

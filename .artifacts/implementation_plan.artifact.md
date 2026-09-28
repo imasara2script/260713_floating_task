@@ -1,39 +1,32 @@
-# タスク登録数上限解除のコイン消費・CM再生対応計画
+# システム側の問題によるアラーム未発火検知（発火履歴ベース）の実装計画
 
-タスク登録数上限（3件）に達した場合の解除方法について、従来のCM再生（広告視聴）だけでなく、コイン消費（1コイン）でも解除できるように改修します。
+タイマーやリマインドの予定時刻を過ぎた際単に経過時間を見るのではなく、「AlarmReceiver（アラームレシーバー）が実際に起動してメロディを鳴らしたという発火履歴が存在するかどうか」を基準にして、システム側の問題（OSによる強制終了やDozeモード等）による未発火を正確に検知します。
 
 ## ユーザーレビューが必要な事項
-特になし。コイン消費とCM再生の選択肢を追加します。
+- **検知ロジックの変更**: 単なる時刻超過判定ではなく、「AlarmReceiver が正常に発火した記録がないこと」を条件にすることで、ユーザーの操作遅延等による誤検知を防ぎます。
 
 ## オープンクエスチョン
 特になし。
 
 ## 変更内容
 
-### 1. Kotlin バックエンドの修正
+### 1. AlarmReceiver での発火記録 (Kotlin)
+#### [MODIFY] [AlarmReceiver.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/AlarmReceiver.kt)
+- `ACTION_TIMER_EXPIRED` および `ACTION_REMINDER` が正常に実行され、アラームが鳴った際に、SharedPreferences（例: `alarm_fired_prefs`）に発火実績（タスクIDやタイムスタンプ）を記録します。
 
-#### [MODIFY] [WebAdCoinHandler.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/WebAdCoinHandler.kt)
-- コインを消費してタスク上限を解除する関数 `unlockLimitByCoin(): Boolean` を追加します。
+### 2. 翻訳の追加 (JavaScript)
+#### [MODIFY] [translations.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/translations.js)
+- システム側の問題による未発火検知時のメッセージおよび履歴テキストを追加します。
+  - `history_system_alarm_missed`: "システム側の問題によりタイマーが鳴らなかった可能性があります: {0}"
+  - `msg_system_alarm_missed`: "システム側の問題により、タスク「{0}」のタイマーが鳴らなかった可能性があります。"
 
+### 3. 発火履歴に基づく未発火チェック (Kotlin / JavaScript または Bridge)
 #### [MODIFY] [MainActivity.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MainActivity.kt)
-- JavascriptInterface に `unlockLimitByCoin()` を公開します。
-
-### 2. JavaScript フロントエンドの修正
-
-#### [MODIFY] [modal-manager.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/modal-manager.js)
-- `openTaskModal()` 内でタスク上限（`tasks.length >= 3`）に達している場合の処理を変更します。
-  - 所持コイン (`coins > 0`) がある場合：
-    - コイン消費（-1）で上限解除、またはCM再生（広告視聴）を選択できるダイアログを表示する。
-  - 所持コインがない場合：
-    - 従来のCM再生（広告視聴）による上限解除ダイアログを表示する。
-
-#### [MODIFY] [system-handler.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/system-handler.js)
-- `pendingAction === 'unlock_limit'` の処理を `onRewardEarned()` に追加し、CM再生完了後にタスク追加モーダルが開くようにする。
+- アプリ起動時やタスクチェック時に、期限切れかつ発火履歴がない未完了タスクをチェックし、未発火イベントを検出して JS 側またはアプリ内通知・履歴に追加するブリッジメソッド（または起動時処理）を追加します。
 
 ## 検証計画
 
-### 手動確認（ユーザー実施）
-1. タスクを3件登録した状態で新規タスク追加ボタンを押す。
-2. コインを所持している場合、コイン消費(-1)または広告視聴を選択できるモーダルが表示されることを確認する。
-3. コイン消費を選択した場合、コインが1消費され、タスク上限が解除されてタスク追加モーダルが開くことを確認する。
-4. 広告視聴を選択した場合、CM再生後にタスク上限が解除されてタスク追加モーダルが開くことを確認する。
+### 手動確認
+1. タイマー付きタスクを設定する。
+2. アプリを完全にキル（またはアラームが不発になる状況）し、設定時刻を過ぎた後にアプリを再起動する。
+3. `AlarmReceiver` の発火記録がない状態での起動時に、システム側の問題による未発火が検知され、履歴および通知に記録されることを確認する。
