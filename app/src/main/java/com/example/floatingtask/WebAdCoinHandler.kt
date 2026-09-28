@@ -199,6 +199,14 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
 
     fun isAdFreeEffective(): Boolean = isAdFree || isLimitUnlockedByReward
 
+    fun unlockLimitByCoin(): Boolean {
+        if (consumeCoin()) {
+            isLimitUnlockedByReward = true
+            return true
+        }
+        return false
+    }
+
     fun setAdFree(enabled: Boolean) {
         isAdFree = enabled
         val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)

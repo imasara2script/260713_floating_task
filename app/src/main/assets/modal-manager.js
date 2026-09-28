@@ -116,12 +116,40 @@ function openTaskModal(taskId) {
     if (taskId === undefined) taskId = null;
     if (typeof checkAdFree === 'function') checkAdFree();
     if (!isAdFree && !taskId && tasks.length >= 3) {
-        showModal(getTranslation('msg_ad_confirm'), {
-            onConfirm: function() {
+        const coins = (typeof Android !== 'undefined' && Android.getCoins) ? Android.getCoins() : 0;
+        const msg = getTranslation('msg_ad_confirm');
+
+        if (coins > 0) {
+            showModal(msg, {
+                confirmText: getTranslation('btn_use_coin'),
+                neutralText: getTranslation('btn_watch_ad'),
+                onConfirm: () => {
+                    if (typeof Android !== 'undefined' && Android.unlockLimitByCoin()) {
+                        if (typeof updateCoinDisplay === 'function') updateCoinDisplay();
+                        if (typeof checkAdFree === 'function') checkAdFree();
+                        if (typeof render === 'function') render();
+                        showModal(getTranslation('msg_reward_earned'), { hideCancel: true });
+                        openTaskModal(taskId);
+                    }
+                },
+                onNeutral: () => {
+                    pendingAction = 'unlock_limit';
+                    pendingUnlockTaskId = taskId;
+                    if (typeof Android !== 'undefined' && Android.showRewardedAd) {
+                        Android.showRewardedAd();
+                    }
+                }
+            });
+            return;
+        }
+
+        showModal(msg, {
+            confirmText: getTranslation('btn_watch_ad'),
+            onConfirm: () => {
+                pendingAction = 'unlock_limit';
+                pendingUnlockTaskId = taskId;
                 if (typeof Android !== 'undefined' && Android.showRewardedAd) {
-                    var isReady = Android.isRewardedAdReady ? Android.isRewardedAdReady() : false;
                     Android.showRewardedAd();
-                    return isReady;
                 }
             }
         });

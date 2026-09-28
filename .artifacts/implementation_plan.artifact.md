@@ -1,37 +1,39 @@
-# 非表示項目の提供一時的な表示機能の追加
+# タスク登録数上限解除のコイン消費・CM再生対応計画
 
-タスク作成および編集画面において、グローバル設定で非表示になっている項目を一時的に表示できるようにする機能を追加します。
+タスク登録数上限（3件）に達した場合の解除方法について、従来のCM再生（広告視聴）だけでなく、コイン消費（1コイン）でも解除できるように改修します。
 
 ## ユーザーレビューが必要な事項
+特になし。コイン消費とCM再生の選択肢を追加します。
 
-- **表示の維持**: この「一時的な表示」は、モーダルを閉じたり保存したりするまでの間のみ有効ですか？それともタスクの編集中はずっと有効ですか？
-    - 本プランでは「タスクモーダルが開いている間のみ有効な一時的なフラグ」として実装します。保存して再度開いた際は、また設定またはデータの有無に基づいた表示に戻ります。
-- **UI配置**: 「非表示設定の項目を一時的に表示」ボタンは、入力エリアの最後（「補足文章」の下あたり）に配置する予定です。
+## オープンクエスチョン
+特になし。
 
-## Proposed Changes
+## 変更内容
 
-### [app](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app)
+### 1. Kotlin バックエンドの修正
 
-#### [MODIFY] [index.html](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/index.html)
+#### [MODIFY] [WebAdCoinHandler.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/WebAdCoinHandler.kt)
+- コインを消費してタスク上限を解除する関数 `unlockLimitByCoin(): Boolean` を追加します。
 
-- **UIの追加**:
-    - `taskEditContainer` 内の最下部に「非表示設定の項目を一時的に表示」ボタンを追加します。
-    - `tempVisibilityModal` という新しいモーダルを追加します。この中には「タイマー」「リマインド通知」「チェック時のコメント設定」「補足文章」のチェックボックスを配置します。
-- **翻訳の追加**:
-    - `btn_show_hidden_items`, `temp_visibility_title`, `label_select_items_to_show` などの翻訳を追加します。
-- **JavaScriptロジックの追加/修正**:
-    - `openTemporaryVisibilityModal()`: 選択用モーダルを開きます。現在の表示状態を反映させます。
-    - `applyTemporaryVisibility()`: 選択された項目をタスク編集画面で「表示」状態にします。
-    - `openTaskModal()`: モーダルを開くたびに一時的な表示フラグをリセットする処理を追加します。
-    - `updateTaskModalVisibility()`: 表示/非表示のロジックを共通関数化し、グローバル設定、データの有無、および「一時的な表示フラグ」の3点を考慮するようにします。
+#### [MODIFY] [MainActivity.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MainActivity.kt)
+- JavascriptInterface に `unlockLimitByCoin()` を公開します。
 
-## Verification Plan
+### 2. JavaScript フロントエンドの修正
 
-### Manual Verification
-1. 設定画面で全ての項目（タイマー、リマインド通知等）をOFFにする。
-2. タスクを新規作成し、タスク名入力欄以外が非表示であることを確認する。
-3. 「非表示設定の項目を一時的に表示」ボタンを押す。
-4. 表示されたモーダルで「タイマー」にチェックを入れ、OKを押す。
-5. タスク作成画面に「タイマー」が出現することを確認する。
-6. キャンセルして再度新規作成を開き、また非表示に戻っていることを確認する。
-7. 既存タスク（一部項目あり）でも同様に動作することを確認する。
+#### [MODIFY] [modal-manager.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/modal-manager.js)
+- `openTaskModal()` 内でタスク上限（`tasks.length >= 3`）に達している場合の処理を変更します。
+  - 所持コイン (`coins > 0`) がある場合：
+    - コイン消費（-1）で上限解除、またはCM再生（広告視聴）を選択できるダイアログを表示する。
+  - 所持コインがない場合：
+    - 従来のCM再生（広告視聴）による上限解除ダイアログを表示する。
+
+#### [MODIFY] [system-handler.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/system-handler.js)
+- `pendingAction === 'unlock_limit'` の処理を `onRewardEarned()` に追加し、CM再生完了後にタスク追加モーダルが開くようにする。
+
+## 検証計画
+
+### 手動確認（ユーザー実施）
+1. タスクを3件登録した状態で新規タスク追加ボタンを押す。
+2. コインを所持している場合、コイン消費(-1)または広告視聴を選択できるモーダルが表示されることを確認する。
+3. コイン消費を選択した場合、コインが1消費され、タスク上限が解除されてタスク追加モーダルが開くことを確認する。
+4. 広告視聴を選択した場合、CM再生後にタスク上限が解除されてタスク追加モーダルが開くことを確認する。

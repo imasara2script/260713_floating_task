@@ -633,6 +633,9 @@ class MainActivity : AppCompatActivity(),
         fun consumeCoin(): Boolean = adCoinHandler.consumeCoin()
 
         @JavascriptInterface
+        fun unlockLimitByCoin(): Boolean = adCoinHandler.unlockLimitByCoin()
+
+        @JavascriptInterface
         fun checkDailyCoinBonus(): Boolean = adCoinHandler.checkDailyCoinBonus()
 
         @JavascriptInterface

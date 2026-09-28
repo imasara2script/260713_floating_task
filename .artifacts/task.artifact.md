@@ -1,18 +1,6 @@
-# タスクリスト：新規タスク作成時の設定追加
+# タスク登録数上限解除のコイン消費・CM再生対応 タスク一覧
 
-- `[x]` 翻訳テキストの追加 (日本語・英語)
-- `[x]` 設定画面 (index.html) に「新規タスク作成時の設定」ボタンを追加
-- `[x]` 設定画面 (index.html) に詳細設定ビューを追加
-- `[x]` JavaScript ロジックの実装
-    - `[x]` 詳細画面の開閉処理 (`openNewTaskSettings`, `closeNewTaskSettings`)
-    - `[x]` 設定の読み込み・保存処理 (`loadNewTaskSettings`, `updateNewTaskSettings`)
-- `[x]` タスク作成/編集モーダル (`openTaskModal`) の表示制御ロジックの修正
-- `[x]` 動作確認とデバッグ
-
-# タスクリスト：非表示項目の一時表示機能追加
-
-- `[x]` 翻訳テキストの追加 (日本語・英語)
-- `[x]` タスク編集画面に「一時的に表示」ボタンを追加
-- `[x]` 一時表示項目を選択するモーダルを追加
-- `[x]` 表示制御ロジックの共通化と拡張
-- `[x]` 動作確認
+- `[x]` `WebAdCoinHandler.kt` に `unlockLimitByCoin()` を追加
+- `[x]` `MainActivity.kt` に JavascriptInterface `unlockLimitByCoin()` を追加
+- `[x]` `modal-manager.js` の `openTaskModal()` を修正し、コイン所持状況に応じた選択肢（コイン消費 / CM再生）を表示
+- `[x]` `system-handler.js` の `onRewardEarned()` に `unlock_limit` アクションの処理を追加

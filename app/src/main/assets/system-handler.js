@@ -4,6 +4,7 @@
 
 var pendingSaveData = null;
 var pendingSaveType = null;
+var pendingUnlockTaskId = null;
 
 function exportData() {
     console.log("exportData called");
@@ -597,6 +598,17 @@ function onRewardEarned(type, remaining) {
         return;
     }
 
+    if (pendingAction === 'unlock_limit') {
+        const tId = pendingUnlockTaskId;
+        pendingAction = null;
+        pendingUnlockTaskId = null;
+        if (typeof closeModal === 'function') closeModal();
+        if (typeof openTaskModal === 'function') {
+            openTaskModal(tId);
+        }
+        return;
+    }
+
     showModal(getTranslation('msg_reward_earned'), { hideCancel: true });
 }
 
@@ -607,7 +619,7 @@ function onAdFailed(type, errorCode, errorMessage) {
     }
 
     // 在庫切れ (No Fill: Code 3) の場合のみリトライを検討
-    if (errorCode === 3 && adRetryCount < 5) {
+    if (errorCode === 3 && adRetryCount < 3) {
         adRetryCount++;
         // 指数バックオフ: 基本時間 * 2^(リトライ回数 - 1)
         const waitSec = adRetryBaseInterval * Math.pow(2, adRetryCount - 1);
@@ -674,6 +686,7 @@ function showNormalAdError(type, errorCode, errorMessage) {
                 if (pendingAction === 'restore' && pendingRestoreData) requestPaymentAndRestore(pendingRestoreData, pendingRestoreOptions);
                 else if (pendingAction === 'backup') exportData();
                 else if (pendingAction === 'finalize_backup') performBackup(pendingSaveType, pendingSaveData);
+                else if (pendingAction === 'unlock_limit') openTaskModal(pendingUnlockTaskId);
             } else if (type === 'coin') earnCoinReward();
         }
     });
