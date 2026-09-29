@@ -1,22 +1,19 @@
-# スマホの画面ロック解除時展開表示モード機能 完了レポート
+# 連続広告再生時の10秒クールダウンおよびリトライ機能 完了レポート
 
-フローティングウィンドウの設定画面に「スマホの画面ロック解除時に展開表示モードにする」（デフォルト：OFF）の項目を追加し、デバイスの画面ロック解除を検知して自動的にウィンドウを展開表示モードにする機能を実装しました。
+広告を連続で複数回再生しようとした際、1つ前の広告の再生終了後から次の広告再生を試みるまでに **10秒間のクールダウン（待機時間）** を設け、10秒経過後に在庫がない（No Fill / Code 3）場合は自動リトライを開始する機能を実装しました。
 
 ## 変更内容の概要
 
 ### 1. 翻訳の追加 (`translations.js`)
-- `label_expand_on_unlock`: `"スマホの画面ロック解除時に展開表示モードにする"` (`"Expand display mode when unlocking screen"` in English)
+- `msg_ad_cooldown`: `"連続で広告を再生する場合、少なくとも数秒の間隔をあける必要があるため、あと{0}秒お待ちください"` (EN: `"Due to the need to wait a few seconds between consecutive ad playbacks, please wait {0} more seconds..."`)
 
-### 2. 設定画面UIの追加 (`floating-settings.html`)
-- 展開表示モード設定セクションに、`expandOnUnlock` を切り替えるチェックボックスを追加しました。
+### 2. システムハンドラーの調整 (`system-handler.js`)
+- `onAdCooldown(type, remainingSec)` 関数を追加し、クールダウン中に指定された文言およびカウントダウン付きモーダルを表示する処理を実装しました。
 
-### 3. 設定の保持・送信 (`settings-manager.js`, `WebSettingsHandler.kt`, `MainActivity.kt`)
-- `settings-manager.js`: チェックボックスの状態を `localStorage` および `expandOnUnlock` キーで保存し、`updateFloatingSettingsExtended` を介してネイティブ側へ送信。
-- `WebSettingsHandler.kt` / `MainActivity.kt`: 受信した `expandOnUnlock` 設定値を SharedPreferences (`"prefs"`) に永続化。
-
-### 4. ロック解除検知と自動展開 (`FloatingWindowService.kt`)
-- `Intent.ACTION_USER_PRESENT` を監視する BroadcastReceiver (`userPresentReceiver`) を動的登録しました。
-- 画面ロック解除時に SharedPreferences の `expandOnUnlock` が有効であれば、自動的にフローティングウィンドウを展開表示モード (`isExpanded = true`) に切り替える処理を実装しました。
+### 3. クールダウンとリトライ連携 (`WebAdCoinHandler.kt`)
+- **再生終了時刻の記録**: 広告が閉じられた際 (`onAdDismissedFullScreenContent`) に `lastAdDismissTimestamp` を記録します。
+- **10秒クールダウンの判定**: 10秒以内に再度広告再生が要求された場合、残りの時間だけ待機（`postDelayed`）させ、JS側に `onAdCooldown` を通知します。
+- **待機後の在庫切れ判定**: 10秒待機後に広告がロードされていない（`rewardedAd == null`）場合、エラーコード `3` (No Fill) として `onAdFailed` を呼び出し、設定された秒数（初期設定ベース）に基づく自動リトライ機構へスムーズに移行します。
 
 ## 検証結果
 

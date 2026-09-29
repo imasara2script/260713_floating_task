@@ -698,3 +698,41 @@ function onAdLoading(type) {
         confirmText: getTranslation('btn_close')
     });
 }
+
+var adCooldownTimeoutId = null;
+
+function onAdCooldown(type, remainingSec) {
+    if (adCooldownTimeoutId) {
+        clearTimeout(adCooldownTimeoutId);
+        adCooldownTimeoutId = null;
+    }
+
+    const updateCooldownModal = () => {
+        const msg = getTranslation('msg_ad_cooldown', remainingSec);
+        showModal(msg, {
+            hideCancel: true,
+            confirmText: getTranslation('btn_close'),
+            onConfirm: () => {
+                if (adCooldownTimeoutId) {
+                    clearTimeout(adCooldownTimeoutId);
+                    adCooldownTimeoutId = null;
+                }
+            }
+        });
+    };
+
+    const tick = () => {
+        remainingSec--;
+        if (remainingSec <= 0) {
+            adCooldownTimeoutId = null;
+            if (typeof closeModal === 'function') closeModal();
+        } else {
+            updateCooldownModal();
+            adCooldownTimeoutId = setTimeout(tick, 1000);
+        }
+    };
+
+    updateCooldownModal();
+    adCooldownTimeoutId = setTimeout(tick, 1000);
+}
+window.onAdCooldown = onAdCooldown;

@@ -25,6 +25,7 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
         private set
     private var lastRewardType: String? = null
     private var pendingShowType: String? = null
+    private var lastAdDismissTimestamp: Long = 0L
     
     private val mainHandler = Handler(Looper.getMainLooper())
     private val autoReloadRunnable = Runnable {
@@ -79,6 +80,19 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
     fun showRewardedAdWithType(type: String) {
         activity.runOnUiThread {
             lastRewardType = type
+            val now = System.currentTimeMillis()
+            val elapsed = now - lastAdDismissTimestamp
+            val cooldown = 10000L // 10 seconds
+            if (lastAdDismissTimestamp > 0 && elapsed < cooldown) {
+                val remainingSec = ((cooldown - elapsed) / 1000).toInt().coerceAtLeast(1)
+                AppLogger.log(context, "Ad cooldown active. Remaining: ${remainingSec}s")
+                webView.evaluateJavascript("onAdCooldown('$type', $remainingSec);", null)
+                mainHandler.postDelayed({
+                    showRewardedAdWithType(type)
+                }, cooldown - elapsed)
+                return@runOnUiThread
+            }
+
             if (rewardedAd != null) {
                 val ad = rewardedAd
                 rewardedAd = null // 早期にnullをセットして再ロード可能にする
@@ -87,6 +101,7 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
                 ad?.fullScreenContentCallback = object : FullScreenContentCallback() {
                     override fun onAdDismissedFullScreenContent() {
                         AppLogger.log(context, "Rewarded ad dismissed: type=$lastRewardType")
+                        lastAdDismissTimestamp = System.currentTimeMillis()
                         // 設定が「startup」なら、即座に次の広告をロード
                         if (getAdLoadTiming() == "startup") {
                             loadRewardedAd()
@@ -115,10 +130,16 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
                 }
             } else {
                 // 広告がロードされていない場合
-                AppLogger.log(context, "Rewarded ad NOT loaded: type=$type. Setting pendingShowType.")
-                pendingShowType = type
-                webView.evaluateJavascript("onAdLoading('$type');", null)
-                loadRewardedAd()
+                if (lastAdDismissTimestamp > 0) {
+                    AppLogger.log(context, "Rewarded ad NOT loaded after cooldown: type=$type. Triggering no fill (Code 3).")
+                    webView.evaluateJavascript("onAdFailed('$type', 3, 'No fill after cooldown');", null)
+                    lastAdDismissTimestamp = 0L
+                } else {
+                    AppLogger.log(context, "Rewarded ad NOT loaded: type=$type. Setting pendingShowType.")
+                    pendingShowType = type
+                    webView.evaluateJavascript("onAdLoading('$type');", null)
+                    loadRewardedAd()
+                }
             }
         }
     }
