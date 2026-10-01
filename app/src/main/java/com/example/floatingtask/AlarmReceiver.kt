@@ -12,6 +12,8 @@ import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -69,6 +71,8 @@ class AlarmReceiver : BroadcastReceiver() {
             val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: context.getString(R.string.timer_expired)
             val melody = intent.getStringExtra("EXTRA_MELODY") ?: "default"
             val melodyMode = intent.getStringExtra("EXTRA_MELODY_MODE") ?: "once"
+
+            addPendingHistory(context, taskId, taskText)
 
             // 完了日時を取得
             val sdf = SimpleDateFormat("MM/dd (E) HH:mm", Locale.getDefault())
@@ -161,6 +165,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
             if (!isCompleted) {
                 showReminderNotification(context, taskText, message, melody, melodyMode, taskId)
+                addPendingHistory(context, taskId, taskText + if (message.isNotEmpty()) " ($message)" else "")
             }
 
             // 翌日のアラームを再スケジュール
@@ -246,6 +251,26 @@ class AlarmReceiver : BroadcastReceiver() {
             .addAction(0, context.getString(R.string.btn_cancel_snooze), cancelPendingIntent)
 
         manager.notify("SNOOZE", (taskId % Int.MAX_VALUE).toInt(), builder.build())
+    }
+
+    private fun addPendingHistory(context: Context, taskId: Long, text: String) {
+        try {
+            val prefs = context.getSharedPreferences("pending_history_prefs", Context.MODE_PRIVATE)
+            val listStr = prefs.getString("history_list", "[]") ?: "[]"
+            val jsonArray = JSONArray(listStr)
+
+            val item = JSONObject().apply {
+                put("id", System.currentTimeMillis() + Math.random())
+                put("taskId", taskId)
+                put("text", text)
+                put("memo", "")
+                put("completedAt", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(Date()))
+            }
+            jsonArray.put(item)
+            prefs.edit().putString("history_list", jsonArray.toString()).apply()
+        } catch (e: Exception) {
+            AppLogger.log(context, "Error adding pending history: ${e.message}")
+        }
     }
 
     private fun showReminderNotification(context: Context, taskText: String, message: String, melody: String, melodyMode: String, taskId: Long) {

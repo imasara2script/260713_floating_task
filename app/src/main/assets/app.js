@@ -384,6 +384,36 @@ function checkDailyReset() {
         }
     }
 
+    if (typeof Android !== 'undefined' && Android.getPendingHistoryItems) {
+        try {
+            const pendingJson = Android.getPendingHistoryItems();
+            const pendingArray = JSON.parse(pendingJson);
+            if (pendingArray && pendingArray.length > 0) {
+                let updated = false;
+                pendingArray.forEach(p => {
+                    if (!history.some(h => h.taskId === p.taskId && h.completedAt === p.completedAt)) {
+                        history.unshift({
+                            id: p.id || (Date.now() + Math.random()),
+                            taskId: p.taskId,
+                            text: p.text,
+                            memo: p.memo || "",
+                            completedAt: p.completedAt || new Date().toISOString()
+                        });
+                        updated = true;
+                    }
+                });
+                if (updated) {
+                    if (history.length > 500) history.splice(500);
+                    window.history = history;
+                    saveTasks();
+                    if (typeof render === 'function') render();
+                }
+            }
+        } catch (e) {
+            console.error("Failed to get pending history items:", e);
+        }
+    }
+
     if (typeof Android !== 'undefined' && Android.checkDailyCoinBonus) {
         if (Android.checkDailyCoinBonus()) {
             history.unshift({

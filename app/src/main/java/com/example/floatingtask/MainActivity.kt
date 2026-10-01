@@ -450,6 +450,10 @@ class MainActivity : AppCompatActivity(),
             taskActionHandler.checkMissedAlarms(jsonTasks)
 
         @JavascriptInterface
+        fun getPendingHistoryItems(): String =
+            taskActionHandler.getPendingHistoryItems()
+
+        @JavascriptInterface
         fun testReminderNotification(taskText: String, message: String) =
             taskActionHandler.testReminderNotification(taskText, message)
 

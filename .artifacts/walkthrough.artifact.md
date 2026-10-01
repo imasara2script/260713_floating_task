@@ -1,18 +1,17 @@
-# タスク編集画面の「コメント記入欄」アコーディオン化 完了レポート
+# 経過時間・リマインド通知時の履歴自動記録 完了レポート
 
-タスク編集画面の「コメント記入欄」(`commentConfigGroup`) を他の設定項目（タイマー、リマインダー、補足文章など）と同様にアコーディオン（折りたたみ・展開可能）形式に統一しました。
+経過時間タイプ（タイマー終了）やリマインド通知などのタスクにおいて、予定時刻に通知・メロディが鳴った（AlarmReceiver が発火した）日時を、自動的にアプリの完了履歴（`taskHistory`）に記録する機能を実装しました。
 
 ## 変更内容の概要
 
-### 1. 翻訳の追加 (`translations.js`)
-- `label_comment_config`: `"コメント記入欄："` (`"Comment Input:"` in English)
+### 1. ネイティブ側での履歴キュー保存 (`AlarmReceiver.kt`)
+- タイマー満了 (`ACTION_TIMER_EXPIRED`) およびリマインダー発火 (`ACTION_REMINDER`) が正常に実行された際、SharedPreferences (`pending_history_prefs`) のキューに新しい履歴エントリ（タスクID、テキスト、発生日時）を JSON 形式で追加するようにしました。
 
-### 2. UI 構造の調整 (`index.html`)
-- `commentConfigGroup` にヘッダーラベル（「コメント記入欄：」）と、内部のチェックボックスオプションを包むコンテナ要素を追加しました。
+### 2. JS ブリッジメソッドの提供 (`WebTaskActionHandler.kt`, `MainActivity.kt`)
+- `@JavascriptInterface` として `getPendingHistoryItems(): String` を追加し、蓄積された未処理の履歴アイテムを JSON 文字列として取得してキューをクリアする機能を提供しました。
 
-### 3. アコーディオン管理の統一 (`modal-manager.js`)
-- `updateTaskModalVisibility()` 内のグループ定義において `commentConfigGroup` を `collapsible: true` に設定しました。
-- これにより、他の拡張項目と同様に、拡張項目表示がOFFの時は非表示となり、ONの時はヘッダーラベル（項目名）のみが表示された折りたたみ状態（クリックで展開・折りたたみ可能）として動作するように統一しました。
+### 3. アプリ起動時の履歴統合 (`app.js`)
+- アプリ起動時の初期化処理（`checkDailyReset()` 内）で `Android.getPendingHistoryItems()` を呼び出し、未処理の履歴を `history` 配列（`taskHistory`）に自動統合して `localStorage` に永続化するようにしました。
 
 ## 検証結果
 

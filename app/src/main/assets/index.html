@@ -209,7 +209,7 @@
                 <div id="viewTaskReminders" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none; background: #f0f7ff; padding: 8px; border-radius: 6px;"></div>
                 <div id="viewTaskLinks" style="font-size: 14px; color: #666; margin-bottom: 12px; display: none; background: #e7f3ff; padding: 8px; border-radius: 6px;"></div>
                 <div id="viewNoteGroup">
-                    <div style="color: #666; font-size: 12px; margin-bottom: 4px;" data-i18n="label_note">補足文章：</div>
+                    <div style="color: #666; font-size: 12px; margin-bottom: 4px;" data-i18n="label_note">補足文章</div>
                     <div id="viewTaskNote" style="font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 6px; min-height: 40px; white-space: pre-wrap; margin-bottom: 20px; border: 1px solid #eee; word-break: break-all;"></div>
                 </div>
             </div>
@@ -273,14 +273,14 @@
                 </div>
                 <div id="daysGroup" style="margin-bottom: 12px; border-top: 1px solid #eee; padding-top: 12px;">
                     <label style="color: #666; font-size: 14px; display: block; margin-bottom: 8px;" data-i18n="label_reset_days">曜日：</label>
-                    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
-                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="0"> <span data-i18n="calendar_sun">日</span></label>
-                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="1"> <span data-i18n="calendar_mon">月</span></label>
-                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="2"> <span data-i18n="calendar_tue">火</span></label>
-                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="3"> <span data-i18n="calendar_wed">水</span></label>
-                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="4"> <span data-i18n="calendar_thu">木</span></label>
-                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="5"> <span data-i18n="calendar_fri">金</span></label>
-                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="6"> <span data-i18n="calendar_sat">土</span></label>
+                    <div style="display: flex; flex-wrap: wrap; align-items: center;">
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; margin: 6px 4px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="0"> <span data-i18n="calendar_sun">日</span></label>
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; margin: 6px 4px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="1"> <span data-i18n="calendar_mon">月</span></label>
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; margin: 6px 4px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="2"> <span data-i18n="calendar_tue">火</span></label>
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; margin: 6px 4px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="3"> <span data-i18n="calendar_wed">水</span></label>
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; margin: 6px 4px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="4"> <span data-i18n="calendar_thu">木</span></label>
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; margin: 6px 4px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="5"> <span data-i18n="calendar_fri">金</span></label>
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; margin: 6px 4px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="6"> <span data-i18n="calendar_sat">土</span></label>
                     </div>
                 </div>
                 <div id="hyperlinkGroup" style="margin-bottom: 12px; border-top: 1px solid #eee; padding-top: 12px;">
@@ -289,7 +289,7 @@
                     <button class="btn btn-secondary" onclick="addHyperlinkItem()" style="width: 100%; font-size: 13px; margin-top: 4px;" data-i18n="btn_add_link">＋リンクを追加</button>
                 </div>
                 <div id="noteGroup" style="margin-bottom: 20px;">
-                    <label for="taskNote" style="color: #666; font-size: 14px; display: block; margin-bottom: 4px;" data-i18n="label_note">補足文章：</label>
+                    <label for="taskNote" style="color: #666; font-size: 14px; display: block; margin-bottom: 4px;" data-i18n="label_note">補足文章</label>
                     <textarea id="taskNote" placeholder="補足情報を入力..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; height: 120px; resize: none; box-sizing: border-box;" data-i18n-placeholder="placeholder_note"></textarea>
                 </div>
                 <div style="margin-bottom: 12px; text-align: center;">

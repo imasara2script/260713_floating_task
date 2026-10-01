@@ -1,6 +1,6 @@
-# タスク編集画面の拡張項目表示・折りたたみ タスク一覧
+# 経過時間・リマインド通知時の履歴自動記録 タスク一覧
 
-- [x] `translations.js` に `btn_show_extended_items` と `btn_hide_extended_items` の翻訳を追加
-- [x] `index.html` のボタン文言変更および `tempVisibilityModal` の整理
-- [x] `modal-manager.js` に `isExtendedExpanded` トグルおよび折りたたみ表示ロジックを実装
+- [x] `AlarmReceiver.kt` にタイマー・リマインド発火時の履歴キュー追加処理を実装
+- [x] `WebTaskActionHandler.kt` および `MainActivity.kt` に `getPendingHistoryItems()` ブリッジを追加
+- [x] `app.js` の起動時処理にペンディング履歴の取得・統合処理を追加
 - [x] Gradle ビルドの実行確認
