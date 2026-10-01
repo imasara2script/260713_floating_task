@@ -630,6 +630,9 @@ class MainActivity : AppCompatActivity(),
         fun getCoins(): Int = adCoinHandler.getCoins()
 
         @JavascriptInterface
+        fun getRemainingDailyAdCount(): Int = adCoinHandler.getRemainingDailyAdCount()
+
+        @JavascriptInterface
         fun canEarnCoinToday(): Boolean = adCoinHandler.canEarnCoinToday()
 
         @JavascriptInterface

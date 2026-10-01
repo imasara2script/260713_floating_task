@@ -151,6 +151,10 @@
                 <span>🪙</span>
                 <span id="coin-count-val">--</span>
             </div>
+            <div style="font-size: 13px; color: #666; margin-bottom: 12px; line-height: 1.5;">
+                <div data-i18n="label_daily_ad_limit">1日あたりの獲得可能回数: 10回</div>
+                <div id="ad-remaining-display" style="font-weight: bold; color: #0056b3;"></div>
+            </div>
             <button class="btn-reward" onclick="earnCoinReward()" data-i18n="btn_get_coin_reward">リワード広告を視聴して１コインをゲット</button>
         </div>
 
@@ -222,6 +226,14 @@
             if (typeof Android !== 'undefined' && Android.getCoins) {
                 const coins = Android.getCoins();
                 document.getElementById('coin-count-val').textContent = coins;
+            }
+
+            if (typeof Android !== 'undefined' && Android.getRemainingDailyAdCount) {
+                const remaining = Android.getRemainingDailyAdCount();
+                const remEl = document.getElementById('ad-remaining-display');
+                if (remEl) {
+                    remEl.textContent = getTranslation('label_daily_ad_remaining', remaining);
+                }
             }
 
             if (typeof Android !== 'undefined' && Android.getAdLoadTiming) {

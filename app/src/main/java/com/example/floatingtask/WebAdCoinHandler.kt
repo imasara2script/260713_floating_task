@@ -174,6 +174,14 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
         return dailyCount < 10
     }
 
+    fun getRemainingDailyAdCount(): Int {
+        val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+        val lastAdDate = prefs.getString("lastAdDate", "")
+        val dailyCount = if (lastAdDate == today) prefs.getInt("dailyAdCount", 0) else 0
+        return (10 - dailyCount).coerceAtLeast(0)
+    }
+
     fun earnCoin(): Int {
         val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         val coins = prefs.getInt("coins", 0)

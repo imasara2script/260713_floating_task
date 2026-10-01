@@ -1,36 +1,36 @@
-# 連続広告再生時の10秒クールダウンおよびリトライ対応計画
+# タスク編集画面の拡張項目表示・折りたたみ機能の実装計画
 
-広告を連続で複数回再生しようとした際、1つ前の広告の再生終了後から次の広告再生を試みるまでに **10秒間のクールダウン（待機時間）** を設け、10秒経過後に広告の在庫がない（No Fill / Code 3）場合は、そこから設定された秒数に基づく自動リトライを開始する機能を実装します。
+タスク編集画面にある「非表示設定の項目を一時的に表示」ボタンを「拡張項目を表示」に変更し、クリックすることで非表示設定の項目を折りたたまれた状態（項目名のみ表示）で直接トグル表示できるようにします。
 
 ## ユーザーレビューが必要な事項
-- クールダウン中のメッセージ文言を指定された通り「連続で広告を再生する場合、少なくとも数秒の間隔をあける必要があるため、あと{0}秒お待ちください」に設定します。
+- ボタンの名称を「拡張項目を表示」（トグル時は「拡張項目を隠す」）に変更します。
+- 非表示設定になっている項目は、拡張項目表示がONの時に折りたたまれた状態（項目名/ラベルのみ表示、クリックで展開可能）で表示されます。
 
 ## オープンクエスチョン
 特になし。
 
 ## 変更内容
 
-### 1. WebAdCoinHandler の修正 (Kotlin)
-#### [MODIFY] [WebAdCoinHandler.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/WebAdCoinHandler.kt)
-- `lastAdDismissTimestamp` 変数を追加し、広告が閉じられた時刻 (`onAdDismissedFullScreenContent`) を記録します。
-- `showRewardedAdWithType(type)` 呼び出し時に、前回広告終了から10秒（10000ms）経過しているかチェックします：
-  - 10秒経っていない場合：残りの時間だけ遅延 (`postDelayed`) させ、JS側に待機中（クールダウン）を通知する。
-  - 10秒経過後：
-    - `rewardedAd != null` ならば広告を表示。
-    - `rewardedAd == null`（在庫切れ）ならば、エラーコード `3` (No Fill) として `onAdFailed` を呼び出し、既存のリトライロジックを開始する。
-
-### 2. 翻訳の追加 (JavaScript)
+### 1. 翻訳の追加・更新 (JavaScript)
 #### [MODIFY] [translations.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/translations.js)
-- クールダウン中のメッセージ翻訳を追加します。
-  - `msg_ad_cooldown`: "連続で広告を再生する場合、少なくとも数秒の間隔をあける必要があるため、あと{0}秒お待ちください"
+- 拡張項目表示用ボタンの翻訳を追加・変更します。
+  - `btn_show_extended_items`: "拡張項目を表示" (EN: "Show extended items")
+  - `btn_hide_extended_items`: "拡張項目を隠す" (EN: "Hide extended items")
 
-### 3. システムハンドラーの調整 (JavaScript)
-#### [MODIFY] [system-handler.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/system-handler.js)
-- `onAdCooldown(type, remainingSec)` 関数を追加し、クールダウン中のカウントダウンタイマー付きモーダルを表示します。
+### 2. UI およびモーダル管理の修正 (HTML / JavaScript)
+#### [MODIFY] [index.html](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/index.html)
+- 従来の「非表示設定の項目を一時的に表示」ボタンを「拡張項目を表示」ボタンに変更します。
+- 不要になった `tempVisibilityModal` を削除します。
+
+#### [MODIFY] [modal-manager.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/modal-manager.js)
+- `isExtendedExpanded` 状態変数および `toggleExtendedItems()` 関数を実装します。
+- `updateTaskModalVisibility()` 内で、設定で非表示になっている項目について、拡張項目表示がONのときは「折りたたみ表示（項目名のみ表示、クリックで展開）」にし、OFFのときは完全に非表示 (`display: none`) にするように制御します。
 
 ## 検証計画
 
 ### 手動確認
-1. 広告を1回視聴して閉じ、10秒以内に再度広告を再生するアクションを実行する。
-2. 指定された文言のクールダウンモーダルが表示され、秒数がカウントダウンされることを確認する。
-3. 10秒経過後に在庫がない場合、そこから設定された秒数での自動リトライが開始されることを確認する。
+1. 設定でいくつかの項目を非表示に設定しておく。
+2. タスク追加・編集画面を開き、「拡張項目を表示」ボタンをクリックする。
+3. 非表示だった項目が折りたたまれた状態（項目名のみ表示）で表示されることを確認する。
+4. 各項目のヘッダーをクリックして展開・折りたたみが動作することを確認する。
+5. 「拡張項目を隠す」をクリックして再び非表示に戻ることを確認する。

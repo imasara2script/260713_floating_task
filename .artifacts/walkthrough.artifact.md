@@ -1,19 +1,18 @@
-# 連続広告再生時の10秒クールダウンおよびリトライ機能 完了レポート
+# タスク編集画面の「コメント記入欄」アコーディオン化 完了レポート
 
-広告を連続で複数回再生しようとした際、1つ前の広告の再生終了後から次の広告再生を試みるまでに **10秒間のクールダウン（待機時間）** を設け、10秒経過後に在庫がない（No Fill / Code 3）場合は自動リトライを開始する機能を実装しました。
+タスク編集画面の「コメント記入欄」(`commentConfigGroup`) を他の設定項目（タイマー、リマインダー、補足文章など）と同様にアコーディオン（折りたたみ・展開可能）形式に統一しました。
 
 ## 変更内容の概要
 
 ### 1. 翻訳の追加 (`translations.js`)
-- `msg_ad_cooldown`: `"連続で広告を再生する場合、少なくとも数秒の間隔をあける必要があるため、あと{0}秒お待ちください"` (EN: `"Due to the need to wait a few seconds between consecutive ad playbacks, please wait {0} more seconds..."`)
+- `label_comment_config`: `"コメント記入欄："` (`"Comment Input:"` in English)
 
-### 2. システムハンドラーの調整 (`system-handler.js`)
-- `onAdCooldown(type, remainingSec)` 関数を追加し、クールダウン中に指定された文言およびカウントダウン付きモーダルを表示する処理を実装しました。
+### 2. UI 構造の調整 (`index.html`)
+- `commentConfigGroup` にヘッダーラベル（「コメント記入欄：」）と、内部のチェックボックスオプションを包むコンテナ要素を追加しました。
 
-### 3. クールダウンとリトライ連携 (`WebAdCoinHandler.kt`)
-- **再生終了時刻の記録**: 広告が閉じられた際 (`onAdDismissedFullScreenContent`) に `lastAdDismissTimestamp` を記録します。
-- **10秒クールダウンの判定**: 10秒以内に再度広告再生が要求された場合、残りの時間だけ待機（`postDelayed`）させ、JS側に `onAdCooldown` を通知します。
-- **待機後の在庫切れ判定**: 10秒待機後に広告がロードされていない（`rewardedAd == null`）場合、エラーコード `3` (No Fill) として `onAdFailed` を呼び出し、設定された秒数（初期設定ベース）に基づく自動リトライ機構へスムーズに移行します。
+### 3. アコーディオン管理の統一 (`modal-manager.js`)
+- `updateTaskModalVisibility()` 内のグループ定義において `commentConfigGroup` を `collapsible: true` に設定しました。
+- これにより、他の拡張項目と同様に、拡張項目表示がOFFの時は非表示となり、ONの時はヘッダーラベル（項目名）のみが表示された折りたたみ状態（クリックで展開・折りたたみ可能）として動作するように統一しました。
 
 ## 検証結果
 

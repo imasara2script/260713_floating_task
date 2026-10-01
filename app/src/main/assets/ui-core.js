@@ -21,14 +21,6 @@ var currentDuration = { h: "0", m: "0", s: "0" };
 var currentTaskReminders = [];
 var isMelodyTesting = false;
 var melodyEditingTarget = 'main'; // 'main' or reminder ID
-var tempVisibilityFlags = {
-    timer: false,
-    remind: false,
-    comment: false,
-    days: false,
-    note: false,
-    hyperlink: false
-};
 var isDurationPickerRequested = false;
 var adRetryCount = 0;
 var adRetryTimeoutId = null;
@@ -46,12 +38,6 @@ var originalTasksBeforeSort = null;
 
 function handleBack() {
     // Check modals priority
-    const tempVisibilityModal = document.getElementById('tempVisibilityModal');
-    if (tempVisibilityModal && tempVisibilityModal.style.display === 'flex') {
-        closeTemporaryVisibilityModal();
-        return true;
-    }
-
     const customModal = document.getElementById('customModal');
     if (customModal && customModal.style.display === 'flex') {
         const cancelBtn = document.getElementById('modalCancelBtn');

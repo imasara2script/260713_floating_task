@@ -235,26 +235,26 @@
                         <label for="referenceDate" style="color: #666; font-size: 14px;" data-i18n="label_reference_date">基準日：</label>
                         <input type="date" id="referenceDate" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;" aria-label="基準日">
                     </div>
-                </div>
-                <div id="melodyGroup" style="margin-bottom: 12px; display: none;">
-                    <label for="melodySelect" style="color: #666; font-size: 14px;" data-i18n="label_melody">メロディ：</label>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <select id="melodySelect" onchange="handleMelodyChange()" style="flex-grow: 1; padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
-                            <option value="none" data-i18n="melody_none">なし</option>
-                            <option value="default" data-i18n="melody_default">デフォルト</option>
-                            <option value="alarm" data-i18n="melody_alarm">アラーム音</option>
-                            <option value="chime" data-i18n="melody_chime">チャイム</option>
-                            <option value="custom" data-i18n="melody_custom">端末内から選択...</option>
-                        </select>
-                        <button id="btn-test-melody" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;" onclick="toggleMelodyTest()" data-i18n="btn_test_melody">テスト</button>
-                    </div>
-                    <div id="customMelodyName" style="font-size: 11px; color: #666; margin-top: 4px; display: none;"></div>
-                    <div style="margin-top: 8px;">
-                        <label for="melodyMode" style="color: #666; font-size: 13px;" data-i18n="label_melody_mode">鳴らし方：</label>
-                        <select id="melodyMode" style="width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
-                            <option value="once" data-i18n="melody_mode_once">1回のみ</option>
-                            <option value="loop" data-i18n="melody_mode_loop">停止するまでエンドレス</option>
-                        </select>
+                    <div id="melodyGroup" style="margin-top: 12px; display: none;">
+                        <label for="melodySelect" style="color: #666; font-size: 14px;" data-i18n="label_melody">メロディ：</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <select id="melodySelect" onchange="handleMelodyChange()" style="flex-grow: 1; padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                                <option value="none" data-i18n="melody_none">なし</option>
+                                <option value="default" data-i18n="melody_default">デフォルト</option>
+                                <option value="alarm" data-i18n="melody_alarm">アラーム音</option>
+                                <option value="chime" data-i18n="melody_chime">チャイム</option>
+                                <option value="custom" data-i18n="melody_custom">端末内から選択...</option>
+                            </select>
+                            <button id="btn-test-melody" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;" onclick="toggleMelodyTest()" data-i18n="btn_test_melody">テスト</button>
+                        </div>
+                        <div id="customMelodyName" style="font-size: 11px; color: #666; margin-top: 4px; display: none;"></div>
+                        <div style="margin-top: 8px;">
+                            <label for="melodyMode" style="color: #666; font-size: 13px;" data-i18n="label_melody_mode">鳴らし方：</label>
+                            <select id="melodyMode" style="width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                                <option value="once" data-i18n="melody_mode_once">1回のみ</option>
+                                <option value="loop" data-i18n="melody_mode_loop">停止するまでエンドレス</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div id="reminderGroup" style="margin-bottom: 12px; display: none; border-top: 1px solid #eee; padding-top: 12px;">
@@ -263,21 +263,24 @@
                     <button class="btn btn-secondary" onclick="addReminderItem()" style="width: 100%; font-size: 13px; margin-top: 4px;" data-i18n="btn_add_reminder">＋通知を追加</button>
                 </div>
                 <div id="commentConfigGroup" style="margin-bottom: 12px; border-top: 1px solid #eee; padding-top: 12px;">
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
-                        <input type="checkbox" id="showCommentOnCheck">
-                        <span data-i18n="label_show_comment_on_check">チェックを入れた時にコメント記入欄を表示</span>
-                    </label>
+                    <label style="color: #666; font-size: 14px; display: block; margin-bottom: 8px;" data-i18n="label_comment_config">コメント記入欄：</label>
+                    <div>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+                            <input type="checkbox" id="showCommentOnCheck">
+                            <span data-i18n="label_show_comment_on_check">チェックを入れた時にコメント記入欄を表示</span>
+                        </label>
+                    </div>
                 </div>
                 <div id="daysGroup" style="margin-bottom: 12px; border-top: 1px solid #eee; padding-top: 12px;">
                     <label style="color: #666; font-size: 14px; display: block; margin-bottom: 8px;" data-i18n="label_reset_days">曜日：</label>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="0"> <span data-i18n="calendar_sun">日</span></label>
-                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="1"> <span data-i18n="calendar_mon">月</span></label>
-                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="2"> <span data-i18n="calendar_tue">火</span></label>
-                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="3"> <span data-i18n="calendar_wed">水</span></label>
-                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="4"> <span data-i18n="calendar_thu">木</span></label>
-                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="5"> <span data-i18n="calendar_fri">金</span></label>
-                        <label style="font-size: 13px; display: flex; align-items: center; gap: 2px;"><input type="checkbox" class="reset-day-check" value="6"> <span data-i18n="calendar_sat">土</span></label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="0"> <span data-i18n="calendar_sun">日</span></label>
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="1"> <span data-i18n="calendar_mon">月</span></label>
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="2"> <span data-i18n="calendar_tue">火</span></label>
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="3"> <span data-i18n="calendar_wed">水</span></label>
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="4"> <span data-i18n="calendar_thu">木</span></label>
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="5"> <span data-i18n="calendar_fri">金</span></label>
+                        <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; cursor: pointer;"><input type="checkbox" class="reset-day-check" value="6"> <span data-i18n="calendar_sat">土</span></label>
                     </div>
                 </div>
                 <div id="hyperlinkGroup" style="margin-bottom: 12px; border-top: 1px solid #eee; padding-top: 12px;">
@@ -290,7 +293,7 @@
                     <textarea id="taskNote" placeholder="補足情報を入力..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; height: 120px; resize: none; box-sizing: border-box;" data-i18n-placeholder="placeholder_note"></textarea>
                 </div>
                 <div style="margin-bottom: 12px; text-align: center;">
-                    <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 12px; background: none; border: 1px solid #ccc; color: #888;" onclick="openTemporaryVisibilityModal()" data-i18n="btn_show_hidden_items">非表示設定の項目を一時的に表示</button>
+                    <button id="btn-toggle-extended" class="btn btn-secondary" style="font-size: 12px; padding: 4px 12px; background: none; border: 1px solid #ccc; color: #888;" onclick="toggleExtendedItems()" data-i18n="btn_show_extended_items">拡張項目を表示</button>
                 </div>
             </div>
             <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
@@ -299,44 +302,6 @@
                 <button id="modalDeleteBtn" class="btn" style="background: none; border: none; font-size: 24px; padding: 0; display: none;" onclick="deleteTaskFromModal()" title="タスクを削除">🗑️</button>
                 <button class="btn btn-secondary" onclick="closeTaskModal()" data-i18n="btn_cancel">キャンセル</button>
                 <button id="taskModalConfirmBtn" class="btn btn-primary" onclick="addTask()" data-i18n="btn_add">追加</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Temporary Visibility Modal -->
-    <div id="tempVisibilityModal" class="modal-overlay">
-        <div class="modal-content" style="max-width: 300px;">
-            <div class="modal-title" data-i18n="temp_visibility_title">表示する項目を選択</div>
-            <div style="font-size: 12px; color: #666; margin-bottom: 12px;" data-i18n="label_select_items_to_show">一時的に表示したい項目にチェックを入れてください</div>
-            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
-                <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
-                    <input type="checkbox" id="tempShowTimer" style="margin-right: 8px;">
-                    <span data-i18n="label_timer_setting">タイマー</span>
-                </label>
-                <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
-                    <input type="checkbox" id="tempShowRemind" style="margin-right: 8px;">
-                    <span data-i18n="label_remind_setting">リマインド通知</span>
-                </label>
-                <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
-                    <input type="checkbox" id="tempShowComment" style="margin-right: 8px;">
-                    <span data-i18n="label_show_comment_on_check">チェックを入れた時にコメント記入欄を表示</span>
-                </label>
-                <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
-                    <input type="checkbox" id="tempShowDays" style="margin-right: 8px;">
-                    <span data-i18n="label_reset_days">曜日</span>
-                </label>
-                <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
-                    <input type="checkbox" id="tempShowNote" style="margin-right: 8px;">
-                    <span data-i18n="label_note">補足文章</span>
-                </label>
-                <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
-                    <input type="checkbox" id="tempShowLinks" style="margin-right: 8px;">
-                    <span data-i18n="label_hyperlinks">ハイパーリンク</span>
-                </label>
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeTemporaryVisibilityModal()" data-i18n="btn_cancel">キャンセル</button>
-                <button class="btn btn-primary" onclick="applyTemporaryVisibility()" data-i18n="btn_ok">OK</button>
             </div>
         </div>
     </div>

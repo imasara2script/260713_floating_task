@@ -3,6 +3,8 @@
  */
 
 var initialTaskNote = '';
+var isExtendedExpanded = false;
+var collapsedExtendedGroups = {};
 
 function showModal(title, options) {
     if (!options) options = {};
@@ -163,7 +165,10 @@ function openTaskModal(taskId) {
     var historyBtn = document.getElementById('modalHistoryBtn');
     var deleteBtn = document.getElementById('modalDeleteBtn');
     var editBtn = document.getElementById('modalEditBtn');
-    tempVisibilityFlags = { timer: false, remind: false, comment: false, days: false, note: false, hyperlink: false };
+    isExtendedExpanded = false;
+    collapsedExtendedGroups = {};
+    var extBtn = document.getElementById('btn-toggle-extended');
+    if (extBtn) extBtn.textContent = getTranslation('btn_show_extended_items');
     currentTaskReminders = [];
     currentTaskLinks = [];
     if (taskId) {
@@ -372,6 +377,19 @@ function closeTaskModal(force) {
     initialTaskNote = '';
 }
 
+function toggleExtendedItems() {
+    isExtendedExpanded = !isExtendedExpanded;
+    var btn = document.getElementById('btn-toggle-extended');
+    if (btn) {
+        btn.textContent = getTranslation(isExtendedExpanded ? 'btn_hide_extended_items' : 'btn_show_extended_items');
+    }
+    if (!isExtendedExpanded) {
+        collapsedExtendedGroups = {};
+    }
+    updateTaskModalVisibility(editingTaskId ? tasks.find(function(t) { return t.id === editingTaskId; }) : null);
+}
+window.toggleExtendedItems = toggleExtendedItems;
+
 function updateTaskModalVisibility(task) {
     var showTimerSetting = localStorage.getItem('showTimerOnCreate') === 'true';
     var showRemindSetting = localStorage.getItem('showRemindOnCreate') === 'true';
@@ -386,24 +404,79 @@ function updateTaskModalVisibility(task) {
     var hasNote = task ? !!task.note : false;
     var hasLinks = task ? (task.links && task.links.length > 0) : false;
     var isBiweekly = task ? task.type === 'biweekly' : false;
-    var timerGroup = document.getElementById('timerGroup');
-    var reminderGroup = document.getElementById('reminderGroup');
-    var daysGroup = document.getElementById('daysGroup');
-    var commentConfigGroup = document.getElementById('commentConfigGroup');
-    var noteGroup = document.getElementById('noteGroup');
-    var hyperlinkGroup = document.getElementById('hyperlinkGroup');
+
+    var groups = [
+        { id: 'timerGroup', natural: showTimerSetting || hasTimer || isBiweekly, collapsible: true },
+        { id: 'reminderGroup', natural: showRemindSetting || hasReminders, collapsible: true },
+        { id: 'daysGroup', natural: showDaysSetting || hasDays, collapsible: true },
+        { id: 'commentConfigGroup', natural: showCommentSetting || hasCommentConfig, collapsible: true },
+        { id: 'hyperlinkGroup', natural: showHyperlinkSetting || hasLinks, collapsible: true },
+        { id: 'noteGroup', natural: showNoteSetting || hasNote, collapsible: true }
+    ];
+
+    groups.forEach(function(g) {
+        var el = document.getElementById(g.id);
+        if (!el) return;
+        if (g.natural) {
+            el.style.display = 'block';
+            if (g.collapsible) setGroupCollapsed(el, false);
+        } else if (isExtendedExpanded) {
+            el.style.display = 'block';
+            if (g.collapsible) {
+                var isCollapsed = collapsedExtendedGroups[g.id] !== undefined ? collapsedExtendedGroups[g.id] : true;
+                setGroupCollapsed(el, isCollapsed);
+            } else {
+                var children = el.children;
+                for (var i = 0; i < children.length; i++) {
+                    children[i].style.display = '';
+                }
+            }
+        } else {
+            el.style.display = 'none';
+        }
+    });
+
     var viewDays = document.getElementById('viewTaskDays');
     var viewNoteGroup = document.getElementById('viewNoteGroup');
     var viewLinks = document.getElementById('viewTaskLinks');
-    if (timerGroup) timerGroup.style.display = (showTimerSetting || hasTimer || isBiweekly || tempVisibilityFlags.timer) ? 'block' : 'none';
-    if (reminderGroup) reminderGroup.style.display = (showRemindSetting || hasReminders || tempVisibilityFlags.remind) ? 'block' : 'none';
-    if (daysGroup) daysGroup.style.display = (showDaysSetting || hasDays || tempVisibilityFlags.days) ? 'block' : 'none';
-    if (commentConfigGroup) commentConfigGroup.style.display = (showCommentSetting || hasCommentConfig || tempVisibilityFlags.comment) ? 'block' : 'none';
-    if (noteGroup) noteGroup.style.display = (showNoteSetting || hasNote || tempVisibilityFlags.note) ? 'block' : 'none';
-    if (hyperlinkGroup) hyperlinkGroup.style.display = (showHyperlinkSetting || hasLinks || tempVisibilityFlags.hyperlink) ? 'block' : 'none';
-    if (viewDays) viewDays.style.display = (showDaysSetting || hasDays || tempVisibilityFlags.days) ? 'block' : 'none';
-    if (viewNoteGroup) viewNoteGroup.style.display = (showNoteSetting || hasNote || tempVisibilityFlags.note) ? 'block' : 'none';
+    if (viewDays) viewDays.style.display = (showDaysSetting || hasDays) ? 'block' : 'none';
+    if (viewNoteGroup) viewNoteGroup.style.display = (showNoteSetting || hasNote) ? 'block' : 'none';
     if (viewLinks) viewLinks.style.display = hasLinks ? 'block' : 'none';
+}
+
+function setGroupCollapsed(groupEl, collapsed) {
+    collapsedExtendedGroups[groupEl.id] = collapsed;
+    var headerLabel = groupEl.querySelector('label');
+    var children = groupEl.children;
+    for (var i = 0; i < children.length; i++) {
+        var child = children[i];
+        if (child === headerLabel) {
+            child.style.cursor = 'pointer';
+            child.style.userSelect = 'none';
+            var text = child.textContent.replace(/^▶ |^▼ /, '');
+            child.textContent = (collapsed ? '▶ ' : '▼ ') + text;
+            child.onclick = function(el, gId) {
+                return function() {
+                    var current = collapsedExtendedGroups[gId];
+                    setGroupCollapsed(el, !current);
+                };
+            }(groupEl, groupEl.id);
+        } else {
+            if (collapsed) {
+                child.style.display = 'none';
+            } else {
+                var styleStr = child.getAttribute('style') || '';
+                if (styleStr.indexOf('display: flex') !== -1) {
+                    child.style.display = 'flex';
+                } else {
+                    child.style.display = '';
+                }
+            }
+        }
+    }
+    if (!collapsed && groupEl.id === 'timerGroup') {
+        if (typeof toggleTimerInput === 'function') toggleTimerInput(false);
+    }
 }
 
 function toggleTimerInput(isManualChange) {
@@ -453,50 +526,6 @@ function onDurationSelected(h, m, s) {
     if (mNum > 0 || hNum > 0) text += mNum + getTranslation('unit_min');
     text += sNum + getTranslation('unit_sec');
     btn.textContent = text;
-}
-
-
-function openTemporaryVisibilityModal() {
-    var timerGroup = document.getElementById('timerGroup');
-    var reminderGroup = document.getElementById('reminderGroup');
-    var daysGroup = document.getElementById('daysGroup');
-    var commentConfigGroup = document.getElementById('commentConfigGroup');
-    var noteGroup = document.getElementById('noteGroup');
-    var tempShowTimer = document.getElementById('tempShowTimer');
-    var tempShowRemind = document.getElementById('tempShowRemind');
-    var tempShowDays = document.getElementById('tempShowDays');
-    var tempShowComment = document.getElementById('tempShowComment');
-    var tempShowNote = document.getElementById('tempShowNote');
-    if (tempShowTimer) tempShowTimer.checked = timerGroup && timerGroup.style.display === 'block';
-    if (tempShowRemind) tempShowRemind.checked = reminderGroup && reminderGroup.style.display === 'block';
-    if (tempShowDays) tempShowDays.checked = daysGroup && daysGroup.style.display === 'block';
-    if (tempShowComment) tempShowComment.checked = commentConfigGroup && commentConfigGroup.style.display === 'block';
-    if (tempShowNote) tempShowNote.checked = noteGroup && noteGroup.style.display === 'block';
-    var tempShowLinks = document.getElementById('tempShowLinks');
-    if (tempShowLinks) tempShowLinks.checked = document.getElementById('hyperlinkGroup') && document.getElementById('hyperlinkGroup').style.display === 'block';
-    var modal = document.getElementById('tempVisibilityModal');
-    if (modal) { modal.style.display = 'flex'; modal.onclick = function(e) { if (e.target === modal) closeTemporaryVisibilityModal(); }; }
-}
-
-function closeTemporaryVisibilityModal() {
-    var modal = document.getElementById('tempVisibilityModal');
-    if (modal) modal.style.display = 'none';
-}
-
-function applyTemporaryVisibility() {
-    var tempShowTimer = document.getElementById('tempShowTimer');
-    var tempShowRemind = document.getElementById('tempShowRemind');
-    var tempShowDays = document.getElementById('tempShowDays');
-    var tempShowComment = document.getElementById('tempShowComment');
-    var tempShowNote = document.getElementById('tempShowNote');
-    tempVisibilityFlags.timer = tempShowTimer ? tempShowTimer.checked : false;
-    tempVisibilityFlags.remind = tempShowRemind ? tempShowRemind.checked : false;
-    tempVisibilityFlags.days = tempShowDays ? tempShowDays.checked : false;
-    tempVisibilityFlags.comment = tempShowComment ? tempShowComment.checked : false;
-    tempVisibilityFlags.note = tempShowNote ? tempShowNote.checked : false;
-    tempVisibilityFlags.hyperlink = (document.getElementById('tempShowLinks') && document.getElementById('tempShowLinks').checked) || false;
-    updateTaskModalVisibility();
-    closeTemporaryVisibilityModal();
 }
 
 function handleMelodyChange(targetId) {
@@ -708,8 +737,5 @@ window.toggleTimerInput = toggleTimerInput;
 window.requestDurationPicker = requestDurationPicker;
 window.onDurationPickerDismissed = onDurationPickerDismissed;
 window.onDurationSelected = onDurationSelected;
-window.openTemporaryVisibilityModal = openTemporaryVisibilityModal;
-window.closeTemporaryVisibilityModal = closeTemporaryVisibilityModal;
-window.applyTemporaryVisibility = applyTemporaryVisibility;
 window.updateMelodyData = updateMelodyData;
 window.startMelodyTest = startMelodyTest;
