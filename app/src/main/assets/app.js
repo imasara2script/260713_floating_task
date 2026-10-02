@@ -384,6 +384,7 @@ function checkDailyReset() {
         }
     }
 
+function checkAndSyncPendingHistory() {
     if (typeof Android !== 'undefined' && Android.getPendingHistoryItems) {
         try {
             const pendingJson = Android.getPendingHistoryItems();
@@ -396,6 +397,8 @@ function checkDailyReset() {
                             id: p.id || (Date.now() + Math.random()),
                             taskId: p.taskId,
                             text: p.text,
+                            eventName: p.eventName || "通知",
+                            type: p.type || "timer",
                             memo: p.memo || "",
                             completedAt: p.completedAt || new Date().toISOString()
                         });
@@ -413,6 +416,8 @@ function checkDailyReset() {
             console.error("Failed to get pending history items:", e);
         }
     }
+}
+window.checkAndSyncPendingHistory = checkAndSyncPendingHistory;
 
     if (typeof Android !== 'undefined' && Android.checkDailyCoinBonus) {
         if (Android.checkDailyCoinBonus()) {
@@ -446,6 +451,7 @@ function completeTaskWithMemo(taskId, memo) {
                 id: historyId,
                 taskId: t.id,
                 text: t.text,
+                eventName: "完了",
                 memo: memo,
                 completedAt: new Date().toISOString()
             });
@@ -504,6 +510,7 @@ function toggleTaskCore(taskId, onCommentRequired) {
             id: historyId,
             taskId: task.id,
             text: task.text,
+            eventName: "完了",
             memo: "",
             completedAt: new Date().toISOString()
         });
@@ -559,7 +566,8 @@ function repeatTimerCore(taskId) {
     history.unshift({
         id: Date.now(),
         taskId: task.id,
-        text: task.text + getTranslation('repeat_suffix'),
+        text: task.text,
+        eventName: "リピート",
         memo: "",
         completedAt: new Date().toISOString()
     });

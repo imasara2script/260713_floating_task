@@ -101,6 +101,7 @@ function renderTaskHistory(taskId) {
 
     historyList.innerHTML = filteredHistory.map(h => `
         <div class="history-item" onclick="editHistoryMemo(${h.id})">
+            <div style="font-weight: bold; color: #007bff; margin-bottom: 2px;">${h.eventName || '完了'}</div>
             <div>${h.text}</div>
             <div class="history-date">${new Date(h.completedAt).toLocaleString()}</div>
             ${h.memo ? `<div class="history-memo">${h.memo}</div>` : ''}
@@ -163,6 +164,8 @@ function updateHistoryQueryFilter(query) {
 }
 
 function renderHistory() {
+    if (typeof checkAndSyncPendingHistory === 'function') checkAndSyncPendingHistory();
+
     const historyList = document.getElementById('historyList');
     const historySummary = document.getElementById('history-summary');
     const calendarView = document.getElementById('calendar-view');
@@ -227,6 +230,7 @@ function renderHistory() {
 
     historyList.innerHTML = filtered.map(h => `
         <div class="history-item" onclick="editHistoryMemo(${h.id})">
+            <div style="font-weight: bold; color: #007bff; margin-bottom: 2px;">${h.eventName || '完了'}</div>
             <div>${(h.type === 'coin' || h.type === 'coin_ad' || h.type === 'coin_daily') ? '🪙 ' : ''}${h.text}</div>
             <div class="history-date">${new Date(h.completedAt).toLocaleString()}</div>
             ${h.memo ? `<div class="history-memo">${h.memo}</div>` : ''}

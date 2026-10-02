@@ -1,6 +1,6 @@
-# 経過時間・リマインド通知時の履歴自動記録 タスク一覧
+# 履歴形式の統一およびイベント名対応 タスク一覧
 
-- [x] `AlarmReceiver.kt` にタイマー・リマインド発火時の履歴キュー追加処理を実装
-- [x] `WebTaskActionHandler.kt` および `MainActivity.kt` に `getPendingHistoryItems()` ブリッジを追加
-- [x] `app.js` の起動時処理にペンディング履歴の取得・統合処理を追加
-- [x] Gradle ビルドの実行確認
+- `[/]` `AlarmReceiver.kt` の `addPendingHistory` 拡張およびスヌーズ・ストップ・リピート・通知の各イベント名設定
+- [ ] `app.js` のタスク完了履歴への `eventName: "完了"` 付与およびペンディング同期処理の更新
+- [ ] `history-manager.js` と `floating.html` の履歴レンダリング部分の統一フォーマット (`[イベント名]\n[タスク名]\n(日時)`) への改修
+- [ ] Gradle ビルドの実行確認

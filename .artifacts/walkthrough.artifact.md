@@ -1,17 +1,26 @@
-# 経過時間・リマインド通知時の履歴自動記録 完了レポート
+# 履歴形式の統一およびイベント名対応 完了レポート
 
-経過時間タイプ（タイマー終了）やリマインド通知などのタスクにおいて、予定時刻に通知・メロディが鳴った（AlarmReceiver が発火した）日時を、自動的にアプリの完了履歴（`taskHistory`）に記録する機能を実装しました。
+履歴の表示形式を「イベント名 (1行目・青字太字) \n タスク名 (2行目) \n (日時) (3行目)」に統一し、スヌーズ、ストップ、リピート、通知、完了などのイベント名を正確に記録・表示する機能を実装しました。
 
 ## 変更内容の概要
 
-### 1. ネイティブ側での履歴キュー保存 (`AlarmReceiver.kt`)
-- タイマー満了 (`ACTION_TIMER_EXPIRED`) およびリマインダー発火 (`ACTION_REMINDER`) が正常に実行された際、SharedPreferences (`pending_history_prefs`) のキューに新しい履歴エントリ（タスクID、テキスト、発生日時）を JSON 形式で追加するようにしました。
+### 1. ネイティブ側（AlarmReceiver）の拡張 (`AlarmReceiver.kt`)
+- `addPendingHistory` 関数に `eventName` および `type` パラメータを追加しました。
+- 各種アラームイベント発生時に対応するイベント名を設定して記録するようにしました：
+  - タイマー満了: `eventName = "通知"`, `type = "timer_expired"`
+  - リマインダー発火: `eventName = "リピート"`, `type = "reminder"`
+  - スヌーズ実行: `eventName = "スヌーズ(X分)"`, `type = "snooze"`
+  - アラーム停止: `eventName = "ストップ"`, `type = "stop"`
 
-### 2. JS ブリッジメソッドの提供 (`WebTaskActionHandler.kt`, `MainActivity.kt`)
-- `@JavascriptInterface` として `getPendingHistoryItems(): String` を追加し、蓄積された未処理の履歴アイテムを JSON 文字列として取得してキューをクリアする機能を提供しました。
-
-### 3. アプリ起動時の履歴統合 (`app.js`)
-- アプリ起動時の初期化処理（`checkDailyReset()` 内）で `Android.getPendingHistoryItems()` を呼び出し、未処理の履歴を `history` 配列（`taskHistory`）に自動統合して `localStorage` に永続化するようにしました。
+### 2. JavaScript 側の履歴データの統一 (`app.js`, `history-manager.js`, `floating.html`)
+- **タスク完了時**: `eventName: "完了"` を付与して履歴を作成。
+- **履歴レンダリング**:
+  - `history-manager.js` および `floating.html` において、履歴アイテムのHTML構造を統一しました：
+    ```html
+    <div style="font-weight: bold; color: #007bff; margin-bottom: 2px;">${h.eventName || '完了'}</div>
+    <div>${h.text}</div>
+    <div class="history-date">${new Date(h.completedAt).toLocaleString()}</div>
+    ```
 
 ## 検証結果
 

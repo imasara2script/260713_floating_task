@@ -1,30 +1,38 @@
-# 経過時間・リマインド通知時の履歴自動記録の実装計画
+# 履歴形式の統一およびイベント名（スヌーズ・ストップ・リピート等）対応計画
 
-経過時間タイプ（タイマー終了）やリマインド通知などのタスクにおいて、予定時刻に通知・メロディが鳴った（AlarmReceiver が発火した）日時を、自動的にアプリの完了履歴（`taskHistory`）に記録する機能を実装します。
+履歴の表示形式を「イベント名(改行)タスク名(改行)(日時)」に統一し、イベント名として「スヌーズ(X分)」「ストップ」「リピート」「通知」「完了」などを記録・表示するように刷新します。
 
 ## ユーザーレビューが必要な事項
-- バックグラウンドでタイマー終了やリマインドが発火した際、ネイティブ側（AlarmReceiver）でイベントを捕捉し、アプリ起動時に履歴データに自動統合します。
+- 履歴の表示形式を統一し、イベント名（スヌーズ、ストップ、リピート、通知、完了など）を各エントリの最上部に太字で表示します。
 
 ## オープンクエスチョン
 特になし。
 
 ## 変更内容
 
-### 1. AlarmReceiver での履歴キュー保存 (Kotlin)
+### 1. ネイティブ側（AlarmReceiver）でのイベント名付き履歴記録
 #### [MODIFY] [AlarmReceiver.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/AlarmReceiver.kt)
-- `ACTION_TIMER_EXPIRED` および `ACTION_REMINDER` が発火した際、SharedPreferences (`pending_history_prefs`) の未処理履歴キューに新しい履歴エントリ（タスクID、テキスト、タイムスタンプ）をJSON形式で追加します。
+- `addPendingHistory` 関数を拡張し、`eventName`（例: `"スヌーズ(1分)"`, `"ストップ"`, `"リピート"`, `"通知"`）を受け取るようにします。
+- `ACTION_TIMER_EXPIRED`: イベント名 `"通知"`
+- `ACTION_REMINDER`: イベント名 `"リピート"`
+- `ACTION_SNOOZE_ALARM`: イベント名 `"スヌーズ(X分)"`（スヌーズ時間反映）
+- `ACTION_STOP_ALARM`: イベント名 `"ストップ"`（停止アクションにタスクID/テキスト情報を付与）
 
-### 2. ブリッジメソッドの追加 (Kotlin)
-#### [MODIFY] [WebTaskActionHandler.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/WebTaskActionHandler.kt) & [MainActivity.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MainActivity.kt)
-- `@JavascriptInterface` として `getPendingHistoryItems(): String` を追加し、蓄積された未処理の履歴アイテムを JSON 文字列として取得してキューをクリアします。
-
-### 3. JavaScript 側での履歴統合 (JavaScript)
+### 2. JavaScript 側の履歴データ構造およびレンダリングの統一
 #### [MODIFY] [app.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/app.js)
-- アプリ起動時（`checkDailyReset()` 等）に `Android.getPendingHistoryItems()` を呼び出し、未処理履歴を `history` 配列（`taskHistory`）に統合して `localStorage` に保存します。
+- タスク完了時やその他イベント時の履歴作成において `eventName: "完了"` などを付与します。
+- ペンディング履歴の同期時に `eventName` を正しく引き継ぎます。
+
+#### [MODIFY] [history-manager.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/history-manager.js) & [floating.html](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/floating.html)
+- 履歴アイテムのHTMLレンダリングを以下の形式に統一します。
+  ```html
+  <div style="font-weight: bold; color: #007bff;">${h.eventName || '完了'}</div>
+  <div>${h.text}</div>
+  <div class="history-date">${new Date(h.completedAt).toLocaleString()}</div>
+  ```
 
 ## 検証計画
 
 ### 手動確認
-1. タイマー付きタスクまたはリマインド通知を設定する。
-2. アラームが発火して通知/メロディが鳴る。
-3. アプリを開き、履歴画面にタイマー終了・リマインド発火の日時が記録されていることを確認する。
+1. タイマー終了、リマインド通知、スヌーズ、ストップ、および通常の手動完了を実行する。
+2. 履歴画面（およびフローティング履歴）を開き、すべての履歴が「イベント名 \n タスク名 \n 日時」の形式で表示され、イベント名が「スヌーズ(X分)」「ストップ」「リピート」「通知」「完了」等になっていることを確認する。
