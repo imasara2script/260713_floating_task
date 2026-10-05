@@ -201,10 +201,12 @@ function loadFloatingSettings() {
     if (elCY) elCY.value = cY;
     if (typeof toggleFixedPositionInputs === 'function') toggleFixedPositionInputs('collapsed');
 
+    var defaults = getDefaultFloatDimensions();
+    var isCustomized = localStorage.getItem('isFloatingSizeCustomized') === 'true';
     var rawWidth = localStorage.getItem('floatWidth');
-    var eWidth = (!rawWidth || parseInt(rawWidth) === 44) ? '300' : rawWidth;
+    var eWidth = (isCustomized && rawWidth) ? rawWidth : defaults.defaultWidth;
     var rawHeight = localStorage.getItem('floatHeight');
-    var eHeight = (!rawHeight || parseInt(rawHeight) === 44) ? '130' : rawHeight;
+    var eHeight = (isCustomized && rawHeight) ? rawHeight : defaults.defaultHeight;
     var eScale = localStorage.getItem('floatExpandedScale') || '1.0';
     var expandOnUnlock = localStorage.getItem('expandOnUnlock') === 'true';
     var moveE = localStorage.getItem('alwaysMoveExpanded') === 'true';
@@ -517,8 +519,18 @@ function saveFloatingSettings(targetMode, skipStartWindow) {
                 parseInt(localStorage.getItem('floatExpandedY') || "100"),
                 parseFloat(localStorage.getItem('floatExpandedScale') || "1.0"),
                 localStorage.getItem('alwaysMoveExpanded') === 'true',
-                parseInt(localStorage.getItem('floatWidth') || "300"),
-                parseInt(localStorage.getItem('floatHeight') || "130"),
+                (function() {
+                    var defaults = getDefaultFloatDimensions();
+                    var isC = localStorage.getItem('isFloatingSizeCustomized') === 'true';
+                    var w = localStorage.getItem('floatWidth');
+                    return (isC && w) ? parseInt(w) : defaults.defaultWidth;
+                })(),
+                (function() {
+                    var defaults = getDefaultFloatDimensions();
+                    var isC = localStorage.getItem('isFloatingSizeCustomized') === 'true';
+                    var h = localStorage.getItem('floatHeight');
+                    return (isC && h) ? parseInt(h) : defaults.defaultHeight;
+                })(),
                 localStorage.getItem('showCloseButtonExpanded') === 'true',
                 dCount, sCount,
                 localStorage.getItem('showCheckedToggle') === 'true',
@@ -543,9 +555,8 @@ function saveFloatingSettings(targetMode, skipStartWindow) {
     }
 }
 
-function resetFloatingSettings() {
-    localStorage.setItem('isFloatingSizeCustomized', 'false');
-    var defaultX = 100; var defaultY = 100; var defaultWidth = 300; var defaultHeight = 130;
+function getDefaultFloatDimensions() {
+    var defaultX = 100; var defaultY = 100; var defaultWidth = 300; var defaultHeight = 180;
     if (typeof Android !== 'undefined' && Android.getDisplayMetrics) {
         try {
             var metrics = JSON.parse(Android.getDisplayMetrics());
@@ -554,9 +565,19 @@ function resetFloatingSettings() {
             defaultWidth = Math.floor(widthPx * 0.9);
             defaultX = Math.floor((widthPx - defaultWidth) / 2);
             defaultY = Math.floor(100 * density);
-            defaultHeight = Math.floor(130 * density);
+            defaultHeight = Math.floor(180 * density);
         } catch(e) {}
     }
+    return { defaultX: defaultX, defaultY: defaultY, defaultWidth: defaultWidth, defaultHeight: defaultHeight };
+}
+
+function resetFloatingSettings() {
+    localStorage.setItem('isFloatingSizeCustomized', 'false');
+    var defaults = getDefaultFloatDimensions();
+    var defaultX = defaults.defaultX;
+    var defaultY = defaults.defaultY;
+    var defaultWidth = defaults.defaultWidth;
+    var defaultHeight = defaults.defaultHeight;
     var setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val; };
     var setChecked = function(id, val) { var el = document.getElementById(id); if (el) el.checked = val; };
     setVal('floatCollapsedScale', 1.0); setChecked('showWhenEmpty', false); setChecked('alwaysMoveCollapsed', false); setChecked('allowDragCollapsed', true);
