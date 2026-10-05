@@ -1,7 +1,7 @@
-# サイズ調整フラグ導入 タスク一覧
+# 自動遷移防止および権限不足バナー追加 タスク一覧
 
-- [x] `WebSettingsHandler.kt` および `MainActivity.kt` の拡張（`isFloatingSizeCustomized` 保存対応）
-- [x] `settings-manager.js` の `saveFloatingSettings` および `resetFloatingSettings` のフラグ設定改修
-- [x] `system-handler.js` の同期キーリストへの `isFloatingSizeCustomized` 追加
-- [x] `FloatingWindowService.kt` のサイズ決定ロジック改修（フラグによるデフォルト適用・上書き制御）
+- [x] `MainActivity.kt` の `startFloatingWindow()` から自動画面遷移を削除
+- [x] `index.html` に警告バナー `#permissionWarningBanner` を追加
+- [x] `ui-core.js` / `system-handler.js` に `checkPermissionWarningBanner()` を実装
+- [x] `translations.js` にバナー用文言（日・英）を追加
 - [x] Gradle ビルドの実行確認

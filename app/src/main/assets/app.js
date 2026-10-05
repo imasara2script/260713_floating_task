@@ -31,7 +31,8 @@ function setLanguageInitial(lang) {
     if (typeof Android !== 'undefined' && Android.setAppLanguage) {
         Android.setAppLanguage(lang);
     }
-    document.getElementById('languageModal').style.display = 'none';
+    const modal = document.getElementById('languageModal');
+    if (modal) modal.style.display = 'none';
 }
 window.setLanguageInitial = setLanguageInitial;
 

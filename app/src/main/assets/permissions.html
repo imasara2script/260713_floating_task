@@ -538,6 +538,9 @@
         setInterval(updateAllStatus, 1000);
 
         document.addEventListener('DOMContentLoaded', () => {
+            if (!localStorage.getItem('appLanguage')) {
+                localStorage.setItem('appLanguage', 'system');
+            }
             applyLanguage();
 
             // 初回状態の記録

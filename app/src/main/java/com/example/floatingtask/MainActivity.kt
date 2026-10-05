@@ -409,9 +409,7 @@ class MainActivity : AppCompatActivity(),
         @JavascriptInterface
         fun startFloatingWindow() {
             if (!permissionHandler.checkOverlayPermissionGranted()) {
-                runOnUiThread {
-                    launchOverlayPermissionSettings()
-                }
+                AppLogger.log(this@MainActivity, "startFloatingWindow: Overlay permission not granted. Skipping without automatic redirect.")
             } else {
                 taskActionHandler.startFloatingWindow()
             }

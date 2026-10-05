@@ -67,12 +67,6 @@ function handleBack() {
         return true;
     }
 
-    const languageModal = document.getElementById('languageModal');
-    if (languageModal && languageModal.style.display === 'flex') {
-        languageModal.style.display = 'none';
-        return true;
-    }
-
     if (isExportMode || isDeleteMode) {
         cancelBulkMode();
         return true;
@@ -253,6 +247,25 @@ function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggl
     }
 }
 
+function checkPermissionWarningBanner() {
+    const banner = document.getElementById('permissionWarningBanner');
+    if (!banner) return;
+
+    if (typeof Android !== 'undefined') {
+        const overlay = (typeof Android.checkOverlayPermissionGranted === 'function') ? Android.checkOverlayPermissionGranted() : true;
+        const notification = (typeof Android.checkNotificationPermissionGranted === 'function') ? Android.checkNotificationPermissionGranted() : true;
+        const alarm = (typeof Android.checkExactAlarmPermission === 'function') ? Android.checkExactAlarmPermission() : true;
+        const battery = (typeof Android.checkBatteryOptimizationExempt === 'function') ? Android.checkBatteryOptimizationExempt() : true;
+
+        if (!overlay || !notification || !alarm || !battery) {
+            banner.style.display = 'flex';
+            return;
+        }
+    }
+    banner.style.display = 'none';
+}
+window.checkPermissionWarningBanner = checkPermissionWarningBanner;
+
 function initializeApp() {
     try {
         if (typeof resetFloatingSettings === 'function') {
@@ -261,16 +274,12 @@ function initializeApp() {
 
         setViewMode(mode);
         applyLanguage();
+        checkPermissionWarningBanner();
 
         // URLパラメータによる初期タブの指定
         const initialTab = urlParams.get('tab');
         if (initialTab === 'settings') {
             switchTab('settings');
-        }
-
-        if (localStorage.getItem('appLanguage') === null) {
-            const langModal = document.getElementById('languageModal');
-            if (langModal) langModal.style.display = 'flex';
         }
 
         if (typeof checkDailyReset === 'function') checkDailyReset();

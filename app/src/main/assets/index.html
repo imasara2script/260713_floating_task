@@ -17,6 +17,12 @@
 </head>
 <body>
 
+    <!-- 権限不足時の警告バナー -->
+    <div id="permissionWarningBanner" style="display: none; background: #fff3cd; color: #856404; padding: 10px 16px; border-bottom: 1px solid #ffeeba; font-size: 13px; align-items: center; justify-content: space-between; box-sizing: border-box;">
+        <span id="permissionWarningText" data-i18n="msg_permission_warning_banner">⚠️ 権限の一部が未設定のため、フローティング表示等の機能が制限されています。</span>
+        <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 10px; margin-left: 12px; white-space: nowrap; flex-shrink: 0; background: #856404; color: white; border: none;" onclick="location.href='permissions.html?from=settings'" data-i18n="btn_configure_permissions">設定する</button>
+    </div>
+
     <!-- 管理画面 (全画面) -->
     <div id="manager-view">
         <div class="tab-container">
@@ -145,21 +151,6 @@
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Language Selection Modal (Initial) -->
-    <div id="languageModal" class="modal-overlay">
-        <div class="modal-content" style="max-width: 280px; text-align: center;">
-            <div class="modal-title" style="font-size: 18px; margin-bottom: 20px;">Select Language / 言語選択</div>
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-                <button class="btn btn-primary" onclick="setLanguageInitial('ja')" style="width: 100%; padding: 14px; font-size: 16px;">日本語</button>
-                <button class="btn btn-primary" onclick="setLanguageInitial('en')" style="width: 100%; padding: 14px; font-size: 16px;">English</button>
-            </div>
-            <div style="margin-top: 16px; font-size: 12px; color: #888;">
-                You can change this later in Settings.<br>
-                設定から後で変更できます。
             </div>
         </div>
     </div>
