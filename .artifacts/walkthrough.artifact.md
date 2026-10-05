@@ -1,18 +1,17 @@
-# PendingHistoryManager 導入 完了レポート
+# フローティングウィンドウのサイズ調整フラグ (`isFloatingSizeCustomized`) 導入 完了レポート
 
-バックグラウンド履歴のキュー管理ロジックを専用のシングルトンマネージャー `PendingHistoryManager.kt` にカプセル化し、将来のコード改変時（AIエージェントによる変更など）に `commit()` の維持やブリッジメソッドの必要性が損なわれないように保護・リファクタリングを行いました。
+「値が〇〇だったら強制的に△△にする」という値ベースのハードコーディングを廃止し、ユーザーが手動でサイズを変更したかどうかを管理するフラグ `isFloatingSizeCustomized` を導入しました。
 
 ## 変更内容の概要
 
-### 1. 新規クラスの作成 (`PendingHistoryManager.kt`)
-- バックグラウンド履歴の追加 (`addPendingHistory`) および取得・フラッシュ (`getPendingHistoryItems`) を一元管理するシングルトンクラスを新規作成しました。
-- **KDoc / 警告コメントの付与**:
-  - `BroadcastReceiver` 終了時のプロセス破棄を防ぐための `commit()` 必須の理由や、両 WebView インターフェース（`MainActivity` と `FloatingWindowService`）でのブリッジ維持の重要性をコード内に強く明記しました。
-
-### 2. 各クラスのリファクタリング
-- **`AlarmReceiver.kt`**: 独自の履歴追加処理を `PendingHistoryManager.addPendingHistory(...)` 呼び出しに置き換えました。
-- **`FloatingWindowService.kt` (`FloatingWebAppInterface`)**: `getPendingHistoryItems()` を `PendingHistoryManager.getPendingHistoryItems(...)` の委譲に置き換えました。
-- **`WebTaskActionHandler.kt` (`MainActivity`)**: `getPendingHistoryItems()` を `PendingHistoryManager.getPendingHistoryItems(...)` の委譲に置き換えました。
+### 1. ユーザーサイズ調整フラグの導入 (`isFloatingSizeCustomized`)
+- **JavaScript 側 (`settings-manager.js`, `system-handler.js`)**:
+  - 設定画面でサイズを明示的に保存した際、`isFloatingSizeCustomized = true` を設定してネイティブ側に送信するようにしました。
+  - 「デフォルト値に戻す (`resetFloatingSettings()`)」を実行した際は `isFloatingSizeCustomized = false` にリセットします。
+  - 設定のバックアップ・復元（インポート/エクスポート）にも `isFloatingSizeCustomized` キーを対応させました。
+- **ネイティブ側 (`WebSettingsHandler.kt`, `MainActivity.kt`, `FloatingWindowService.kt`)**:
+  - `updateFloatingSettingsExtended` で `isFloatingSizeCustomized`（Boolean）を受け取り、SharedPreferences に永続化します。
+  - `FloatingWindowService` のサイズ決定ロジックにおいて、`isFloatingSizeCustomized` が `false`（初期状態・リセット時）の場合のみ動的デフォルトサイズ（幅：画面幅90%、高さ：180dp）を適用し、`true` の場合はユーザーが設定したサイズを無条件・無制限で遵守するようにしました（強制上書きの完全撤廃）。
 
 ## 検証結果
 

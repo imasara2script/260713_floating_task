@@ -175,9 +175,14 @@ class FloatingWindowService : Service() {
             } else {
                 prefs.getFloat("floatCollapsedScale", 1.0f)
             }
-            val density = resources.displayMetrics.density
-            val floatWidth = prefs.getInt("floatWidth", (300 * density).toInt())
-            val floatHeight = prefs.getInt("floatHeight", (44 * density).toInt())
+            val isCustomized = prefs.getBoolean("isFloatingSizeCustomized", false)
+            val displayMetrics = resources.displayMetrics
+            val density = displayMetrics.density
+            val screenWidth = displayMetrics.widthPixels
+            val defaultW = (screenWidth * 0.9).toInt()
+            val defaultH = (180 * density).toInt()
+            val floatWidth = if (isCustomized) prefs.getInt("floatWidth", defaultW) else defaultW
+            val floatHeight = if (isCustomized) prefs.getInt("floatHeight", defaultH) else defaultH
             val displayTaskCount = prefs.getInt("displayTaskCount", 1)
             val scrollTaskCount = prefs.getInt("scrollTaskCount", 1)
             val showCheckedToggle = prefs.getBoolean("showCheckedToggle", false)
@@ -218,7 +223,12 @@ class FloatingWindowService : Service() {
 
     private fun applySettingsToParams(params: WindowManager.LayoutParams) {
         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
-        val density = resources.displayMetrics.density
+        val isCustomized = prefs.getBoolean("isFloatingSizeCustomized", false)
+        val displayMetrics = resources.displayMetrics
+        val density = displayMetrics.density
+        val screenWidth = displayMetrics.widthPixels
+        val defaultW = (screenWidth * 0.9).toInt()
+        val defaultH = (180 * density).toInt()
 
         val scale = if (isExpanded) {
             prefs.getFloat("floatExpandedScale", 1.0f)
@@ -227,8 +237,8 @@ class FloatingWindowService : Service() {
         }
 
         if (isExpanded) {
-            val width = prefs.getInt("floatWidth", (300 * density).toInt())
-            val height = prefs.getInt("floatHeight", (44 * density).toInt())
+            val width = if (isCustomized) prefs.getInt("floatWidth", defaultW) else defaultW
+            val height = if (isCustomized) prefs.getInt("floatHeight", defaultH) else defaultH
             params.width = (width * scale).toInt()
             params.height = (height * scale).toInt()
         } else {
@@ -237,9 +247,9 @@ class FloatingWindowService : Service() {
         }
 
         // 画面境界内に収める
-        val displayMetrics = resources.displayMetrics
-        val screenWidth = displayMetrics.widthPixels
-        val screenHeight = displayMetrics.heightPixels
+        val displayMetricsBounds = resources.displayMetrics
+        val screenWidthBounds = displayMetricsBounds.widthPixels
+        val screenHeightBounds = displayMetricsBounds.heightPixels
 
         val xKey = if (isExpanded) "floatExpandedX" else "floatCollapsedX"
         val yKey = if (isExpanded) "floatExpandedY" else "floatCollapsedY"
@@ -250,8 +260,8 @@ class FloatingWindowService : Service() {
         val y = prefs.getInt(yKey, prefs.getInt(fallbackYKey, 100))
 
         params.gravity = Gravity.TOP or Gravity.START
-        params.x = x.coerceIn(0, (screenWidth - params.width).coerceAtLeast(0))
-        params.y = y.coerceIn(0, (screenHeight - params.height).coerceAtLeast(0))
+        params.x = x.coerceIn(0, (screenWidthBounds - params.width).coerceAtLeast(0))
+        params.y = y.coerceIn(0, (screenHeightBounds - params.height).coerceAtLeast(0))
     }
 
     private var isExpanded = false
@@ -262,7 +272,12 @@ class FloatingWindowService : Service() {
         val view = floatingView ?: return
         val params = view.layoutParams as WindowManager.LayoutParams
         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
-        val density = resources.displayMetrics.density
+        val isCustomized = prefs.getBoolean("isFloatingSizeCustomized", false)
+        val displayMetrics = resources.displayMetrics
+        val density = displayMetrics.density
+        val screenWidth = displayMetrics.widthPixels
+        val defaultW = (screenWidth * 0.9).toInt()
+        val defaultH = (180 * density).toInt()
 
         val scale = if (expanded) {
             prefs.getFloat("floatExpandedScale", 1.0f)
@@ -271,8 +286,8 @@ class FloatingWindowService : Service() {
         }
 
         if (expanded) {
-            val width = prefs.getInt("floatWidth", (300 * density).toInt())
-            val height = prefs.getInt("floatHeight", (44 * density).toInt())
+            val width = if (isCustomized) prefs.getInt("floatWidth", defaultW) else defaultW
+            val height = if (isCustomized) prefs.getInt("floatHeight", defaultH) else defaultH
             params.width = (width * scale).toInt()
             params.height = (height * scale).toInt()
         } else {
@@ -357,12 +372,12 @@ class FloatingWindowService : Service() {
         dragHandle.visibility = View.VISIBLE
 
         // 画面境界内に収める
-        val displayMetrics = resources.displayMetrics
-        val screenWidth = displayMetrics.widthPixels
-        val screenHeight = displayMetrics.heightPixels
+        val displayMetricsBounds = resources.displayMetrics
+        val screenWidthBounds = displayMetricsBounds.widthPixels
+        val screenHeightBounds = displayMetricsBounds.heightPixels
 
-        params.x = params.x.coerceIn(0, (screenWidth - params.width).coerceAtLeast(0))
-        params.y = params.y.coerceIn(0, (screenHeight - params.height).coerceAtLeast(0))
+        params.x = params.x.coerceIn(0, (screenWidthBounds - params.width).coerceAtLeast(0))
+        params.y = params.y.coerceIn(0, (screenHeightBounds - params.height).coerceAtLeast(0))
 
         windowManager.updateViewLayout(view, params)
     }

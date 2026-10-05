@@ -43,6 +43,7 @@ function getBackupData() {
         displayTaskCount: localStorage.getItem('displayTaskCount'),
         scrollTaskCount: localStorage.getItem('scrollTaskCount'),
         recheckInterval: localStorage.getItem('recheckInterval'),
+        isFloatingSizeCustomized: localStorage.getItem('isFloatingSizeCustomized') === 'true',
         bgThresholds: bgThresholds,
         keepDurationTaskOnReset: localStorage.getItem('keepDurationTaskOnReset') !== 'false'
     };
@@ -357,7 +358,7 @@ function performRestore(data, options) {
                     'displayTaskCount', 'scrollTaskCount', 'recheckInterval', 'scrollButtonType', 'navType'
                 ];
                 const boolKeys = [
-                    'showWhenEmpty', 'alwaysMoveCollapsed', 'alwaysMoveExpanded', 'showCloseButtonExpanded', 'keepServiceOnClose', 'showCheckedToggle', 'allowDrag', 'allowDragCollapsed', 'showHistoryButton'
+                    'showWhenEmpty', 'alwaysMoveCollapsed', 'alwaysMoveExpanded', 'showCloseButtonExpanded', 'keepServiceOnClose', 'showCheckedToggle', 'allowDrag', 'allowDragCollapsed', 'showHistoryButton', 'isFloatingSizeCustomized'
                 ];
                 if (data.showAllInFloating !== undefined) {
                     localStorage.setItem('showAllInFloating', data.showAllInFloating);
