@@ -260,26 +260,7 @@ class AlarmReceiver : BroadcastReceiver() {
     }
 
     private fun addPendingHistory(context: Context, taskId: Long, text: String, eventName: String, type: String) {
-        try {
-            val prefs = context.getSharedPreferences("pending_history_prefs", Context.MODE_PRIVATE)
-            val listStr = prefs.getString("history_list", "[]") ?: "[]"
-            val jsonArray = JSONArray(listStr)
-
-            val item = JSONObject().apply {
-                put("id", System.currentTimeMillis() + Math.random())
-                put("taskId", taskId)
-                put("text", text)
-                put("eventName", eventName)
-                put("type", type)
-                put("memo", "")
-                put("completedAt", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(Date()))
-            }
-            jsonArray.put(item)
-            val success = prefs.edit().putString("history_list", jsonArray.toString()).commit()
-            AppLogger.log(context, "addPendingHistory result: $success (event=$eventName, task=$text)")
-        } catch (e: Exception) {
-            AppLogger.log(context, "Error adding pending history: ${e.message}")
-        }
+        PendingHistoryManager.addPendingHistory(context, taskId, text, eventName, type)
     }
 
     private fun showReminderNotification(context: Context, taskText: String, message: String, melody: String, melodyMode: String, taskId: Long) {

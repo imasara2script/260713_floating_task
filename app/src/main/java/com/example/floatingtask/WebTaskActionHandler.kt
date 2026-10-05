@@ -81,17 +81,8 @@ class WebTaskActionHandler(
         prefs.edit { putBoolean(taskId.toString(), isCompleted) }
     }
 
-    fun getPendingHistoryItems(): String {
-        try {
-            val prefs = context.getSharedPreferences("pending_history_prefs", Context.MODE_PRIVATE)
-            val listStr = prefs.getString("history_list", "[]") ?: "[]"
-            prefs.edit { putString("history_list", "[]") }
-            return listStr
-        } catch (e: Exception) {
-            AppLogger.log(context, "Error getting pending history items: ${e.message}")
-        }
-        return "[]"
-    }
+    fun getPendingHistoryItems(): String =
+        PendingHistoryManager.getPendingHistoryItems(context)
 
     fun checkMissedAlarms(jsonTasks: String): String {
         val missedList = JSONArray()
