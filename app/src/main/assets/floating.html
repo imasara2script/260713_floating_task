@@ -84,6 +84,7 @@
         function initializeV2() {
             console.log("Floating V2 Initialized");
             applyLanguage();
+            if (typeof checkAndSyncPendingHistory === 'function') checkAndSyncPendingHistory();
             // 初期状態の反映
             toggleFloatingExpand(isFloatingExpanded, true);
         }

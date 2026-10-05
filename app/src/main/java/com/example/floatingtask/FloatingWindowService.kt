@@ -727,6 +727,19 @@ class FloatingWindowService : Service() {
         }
 
         @JavascriptInterface
+        fun getPendingHistoryItems(): String {
+            try {
+                val prefs = getSharedPreferences("pending_history_prefs", MODE_PRIVATE)
+                val listStr = prefs.getString("history_list", "[]") ?: "[]"
+                prefs.edit().putString("history_list", "[]").apply()
+                return listStr
+            } catch (e: Exception) {
+                AppLogger.log(this@FloatingWindowService, "Error in FloatingWebAppInterface getPendingHistoryItems: ${e.message}")
+            }
+            return "[]"
+        }
+
+        @JavascriptInterface
         fun openHistory() {
             AppLogger.log(this@FloatingWindowService, "JS: openHistory called")
             val handler = Handler(Looper.getMainLooper())

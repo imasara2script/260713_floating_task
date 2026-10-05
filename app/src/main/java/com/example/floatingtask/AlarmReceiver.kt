@@ -275,7 +275,8 @@ class AlarmReceiver : BroadcastReceiver() {
                 put("completedAt", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(Date()))
             }
             jsonArray.put(item)
-            prefs.edit().putString("history_list", jsonArray.toString()).apply()
+            val success = prefs.edit().putString("history_list", jsonArray.toString()).commit()
+            AppLogger.log(context, "addPendingHistory result: $success (event=$eventName, task=$text)")
         } catch (e: Exception) {
             AppLogger.log(context, "Error adding pending history: ${e.message}")
         }

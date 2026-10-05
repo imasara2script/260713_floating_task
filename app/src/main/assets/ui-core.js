@@ -274,6 +274,7 @@ function initializeApp() {
         }
 
         if (typeof checkDailyReset === 'function') checkDailyReset();
+        if (typeof checkAndSyncPendingHistory === 'function') checkAndSyncPendingHistory();
         if (typeof checkAutoBackup === 'function') checkAutoBackup();
 
         if (typeof updateAlarmStatus === 'function') updateAlarmStatus();
