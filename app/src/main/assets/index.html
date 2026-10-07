@@ -212,7 +212,7 @@
                     <input type="text" id="taskInput" placeholder="タスク名を入力..." onkeydown="if(event.key==='Enter') addTask()" aria-label="新しいタスク名" data-i18n-placeholder="placeholder_task_name">
                 </div>
                 <div class="timer-group" id="timerGroup" style="margin-bottom: 12px;">
-                    <label for="timerUnit" style="color: #666; font-size: 14px;" data-i18n="label_timer">タイマー：</label>
+                    <label style="color: #666; font-size: 14px; display: block; margin-bottom: 8px;" data-i18n="label_timer">タイプ</label>
                     <select id="timerUnit" onchange="toggleTimerInput(true)" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
                         <option value="none" data-i18n="timer_none">無し</option>
                         <option value="duration" data-i18n="timer_duration">経過時間</option>
@@ -280,7 +280,7 @@
                     <button class="btn btn-secondary" onclick="addHyperlinkItem()" style="width: 100%; font-size: 13px; margin-top: 4px;" data-i18n="btn_add_link">＋リンクを追加</button>
                 </div>
                 <div id="noteGroup" style="margin-bottom: 20px;">
-                    <label for="taskNote" style="color: #666; font-size: 14px; display: block; margin-bottom: 4px;" data-i18n="label_note">補足文章</label>
+                    <label style="color: #666; font-size: 14px; display: block; margin-bottom: 8px;" data-i18n="label_note">補足文章</label>
                     <textarea id="taskNote" placeholder="補足情報を入力..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; height: 120px; resize: none; box-sizing: border-box;" data-i18n-placeholder="placeholder_note"></textarea>
                 </div>
                 <div style="margin-bottom: 12px; text-align: center;">

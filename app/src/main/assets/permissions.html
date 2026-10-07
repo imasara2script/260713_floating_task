@@ -258,6 +258,20 @@
             font-weight: bold;
             box-shadow: 0 0 0 1px #007bff;
         }
+        .link-setting {
+            background: none !important;
+            border: none !important;
+            color: #007bff !important;
+            text-decoration: underline !important;
+            font-size: 13px !important;
+            cursor: pointer !important;
+            padding: 4px 0 !important;
+            text-align: right !important;
+            width: auto !important;
+            box-shadow: none !important;
+            font-weight: normal !important;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -320,8 +334,8 @@
         </div>
 
         <div class="start-container">
-            <button id="btn-start-app" class="btn-start" onclick="location.href='index.html'" data-i18n="btn_start_app">アプリを始める</button>
-            <button id="btn-skip-setup" class="btn-skip" onclick="location.href='index.html'" data-i18n="btn_setup_later">後で設定する</button>
+            <button id="btn-start-app" class="btn-start" onclick="proceedToNext()" data-i18n="btn_start_app">アプリを始める</button>
+            <button id="btn-skip-setup" class="btn-skip" onclick="proceedToNext()" data-i18n="btn_setup_later">後で設定する</button>
         </div>
     </div>
 
@@ -502,10 +516,15 @@
                 if (isFromSettings) {
                     startBtn.textContent = getTranslation('btn_back_to_settings');
                     startBtn.onclick = () => { location.href = 'index.html?tab=settings'; };
+                } else {
+                    startBtn.onclick = () => proceedToNext();
                 }
             } else {
                 startBtn.style.display = 'none';
-                if (skipBtn) skipBtn.style.display = 'block';
+                if (skipBtn) {
+                    skipBtn.style.display = 'block';
+                    skipBtn.onclick = () => proceedToNext();
+                }
             }
 
             // 現在表示中の詳細項目が「未許可から許可に変わった瞬間」のみ自動で閉じる
@@ -525,17 +544,27 @@
                 statusEl.textContent = getTranslation('status_enabled');
                 statusEl.style.color = 'green';
                 btnEl.textContent = getTranslation('btn_check_setting');
+                btnEl.className = 'link-setting';
                 itemEl.style.backgroundColor = 'rgba(40, 167, 69, 0.05)';
             } else {
                 statusEl.textContent = getTranslation('status_enabled').startsWith('✅') ? getTranslation('status_disabled') : '⚠️ Disabled';
                 statusEl.style.color = 'orange';
                 btnEl.textContent = getTranslation('btn_setting');
+                btnEl.className = 'btn btn-primary btn-setting';
                 itemEl.style.backgroundColor = 'transparent';
             }
         }
 
         // 定期的にチェック
         setInterval(updateAllStatus, 1000);
+
+        function proceedToNext() {
+            if (localStorage.getItem('hasSeenFloatingGuide') === 'true') {
+                location.href = 'index.html';
+            } else {
+                location.href = 'floating-guide.html';
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             if (!localStorage.getItem('appLanguage')) {

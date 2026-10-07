@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Guide</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="translations.js"></script>
+    <script src="app.js"></script>
+    <style>
+        html, body {
+            overflow-y: auto !important;
+            height: auto !important;
+            min-height: 100vh;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            margin: 0;
+            padding: 20px 16px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 24px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin: auto 0;
+        }
+        .header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #007bff;
+            text-align: center;
+            margin: 0;
+        }
+        .desc {
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+            line-height: 1.5;
+            margin: 0;
+        }
+        .guide-card {
+            background: #fdfdfe;
+            border: 1px solid #e1e8ed;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .guide-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .guide-text {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.4;
+            margin: 0;
+        }
+        .demo-box {
+            background: #eef2f7;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            min-height: 110px;
+            overflow: hidden;
+            border: 1px dashed #cbd5e1;
+        }
+        .demo-box-drag {
+            background: #eef2f7;
+            border-radius: 8px;
+            padding: 12px;
+            position: relative;
+            min-height: 120px;
+            overflow: hidden;
+            border: 1px dashed #cbd5e1;
+            touch-action: none;
+        }
+        #draggableDemo {
+            touch-action: none;
+        }
+        .simulated-floating-window {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 8px;
+            width: 220px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .simulated-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #666;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+        .simulated-body {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .simulated-icon {
+            width: 44px;
+            height: 44px;
+            background: #007bff;
+            color: white;
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 3px 8px rgba(0,123,255,0.4);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-understand {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 4px 0 #0056b3;
+            box-sizing: border-box;
+            transition: all 0.1s;
+        }
+        .btn-understand:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #0056b3;
+        }
+        .demo-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            width: 100%;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <button id="btn-back" onclick="goBack()" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px 4px 0; flex-shrink: 0;" title="戻る">←</button>
+            <h1 class="header-title" data-i18n="guide_title" style="flex-grow: 1; text-align: center; margin: 0; font-size: 18px;">フローティングウィンドウの使い方</h1>
+            <div style="width: 28px; flex-shrink: 0;"></div>
+        </div>
+        <p class="desc" data-i18n="guide_desc">画面上に常に表示され、他のアプリを開いてもタスクの確認や操作ができる便利な機能です。</p>
+
+        <!-- 重ねて表示未許可時の案内バナー -->
+        <div id="overlayPermissionNotice" style="display: none; background: #fff3cd; color: #856404; padding: 12px 16px; border-radius: 8px; border: 1px solid #ffeeba; font-size: 13px; line-height: 1.4;">
+            <div style="font-weight: bold; margin-bottom: 4px;" data-i18n="guide_overlay_notice_title">💡 重ねて表示の権限について</div>
+            <span data-i18n="guide_overlay_notice">現在「重ねて表示」の権限が有効化されていません。利用準備または設定画面で有効にすると、実際にホーム画面や他アプリの上でフローティングウィンドウが利用可能になります。</span>
+        </div>
+
+        <!-- ポイント1: 未完了タスクがあると自動表示 -->
+        <div class="guide-card">
+            <div class="guide-title">
+                <span>📌</span>
+                <span data-i18n="guide_point1_title">ポイント1: 未完了タスクがあると自動表示</span>
+            </div>
+            <p class="guide-text" data-i18n="guide_point1_desc">未完了のタスクが残っている間だけ画面に表示され、すべてのタスクを完了すると自動的に隠れます。</p>
+            <div class="demo-box" id="demoBox1">
+                <div id="simulatedWindow1" class="simulated-floating-window">
+                    <div class="simulated-header">
+                        <span>✥ 📋 (0/1)</span>
+                        <span>△</span>
+                    </div>
+                    <div class="simulated-body">
+                        <input type="checkbox" id="demoCheckbox" onchange="toggleDemoTask(this)">
+                        <span data-i18n="demo1_task_label">買い物に行く</span>
+                    </div>
+                </div>
+                <div id="demoHiddenMsg" style="display: none; color: #28a745; font-size: 13px; font-weight: bold; text-align: center;" data-i18n="demo1_hidden_msg">
+                    ✨ 全タスク完了！フローティング窓は自動的に消えます
+                </div>
+            </div>
+            <div class="demo-controls">
+                <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 10px;" onclick="setDemoCompleted(true)" data-i18n="demo1_complete_btn">タスクを完了してみる</button>
+                <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 10px;" onclick="setDemoCompleted(false)" data-i18n="demo1_uncomplete_btn">未完了に戻す</button>
+            </div>
+        </div>
+
+        <!-- ポイント2: 縮小表示と展開表示の切替 -->
+        <div class="guide-card">
+            <div class="guide-title">
+                <span>🔀</span>
+                <span data-i18n="guide_point2_title">ポイント2: 縮小表示と展開表示の切替</span>
+            </div>
+            <p class="guide-text" data-i18n="guide_point2_desc">画面の邪魔にならないアイコン表示（縮小モード）と、内容を確認・操作できるウィンドウ表示（展開モード）をワンタップで簡単に切り替えられます。</p>
+            <div class="demo-box" style="align-items: center;" id="demoBox2">
+                <div id="demoIcon" class="simulated-icon" onclick="toggleDemoMode()" title="タップして展開">
+                    📋
+                </div>
+                <div id="demoWindow" class="simulated-floating-window" style="display: none;">
+                    <div class="simulated-header" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 6px;">
+                        <div onclick="toggleDemoMode()" style="background: #e7f3ff; border: 2px dashed #007bff; padding: 2px 6px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="ここをタップして縮小">
+                            <span>✥</span> <span style="font-size: 10px; color: #007bff; font-weight: bold;">ここをタップで縮小</span>
+                        </div>
+                        <div style="color: #666; font-size: 11px;">
+                            (1/2) <span>△</span>
+                        </div>
+                    </div>
+                    <div class="simulated-body" style="padding: 6px;">
+                        <input type="checkbox" checked>
+                        <span>タスクA</span>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; font-size: 11px; color: #666;" id="demoModeLabel" data-i18n="demo2_collapsed_label">
+                縮小モード（アイコン） - タップして切替
+            </div>
+        </div>
+
+        <!-- ポイント3: 位置の移動と固定 -->
+        <div class="guide-card">
+            <div class="guide-title">
+                <span>📍</span>
+                <span data-i18n="guide_point3_title">ポイント3: 位置の移動と固定</span>
+            </div>
+            <p class="guide-text" data-i18n="guide_point3_desc">デフォルトではドラッグしてお好みの場所へ自由に移動できます。誤操作を防ぐために設定で位置を固定することもできます。</p>
+            <div class="demo-box-drag" id="demoBox3" style="position: relative; user-select: none;">
+                <div id="demoWindow3" class="simulated-floating-window" style="position: absolute; left: 20px; top: 20px; width: 220px; box-sizing: border-box;">
+                    <div class="simulated-header" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 6px;">
+                        <div id="dragHandle3" style="cursor: grab; background: #e7f3ff; border: 2px dashed #007bff; padding: 2px 6px; border-radius: 4px; display: flex; align-items: center; gap: 4px; flex-grow: 1; margin-right: 8px;" title="ここをドラッグして移動">
+                            <span>✥</span> <span style="font-size: 10px; color: #007bff; font-weight: bold;" data-i18n="demo3_drag_handle">ここをドラッグ</span>
+                        </div>
+                        <div style="color: #666; font-size: 11px; flex-shrink: 0;">
+                            (1/2) <span>△</span>
+                        </div>
+                    </div>
+                    <div class="simulated-body" style="padding: 6px;">
+                        <input type="checkbox" checked>
+                        <span>タスクA</span>
+                    </div>
+                </div>
+                <div style="position: absolute; bottom: 8px; left: 12px; font-size: 10px; color: #888;" data-i18n="demo3_drag_instruction">
+                    👇 上部バーの左側（ドラッグハンドル）をドラッグして動かしてみてください
+                </div>
+            </div>
+        </div>
+
+        <button id="btn-guide-understand" class="btn-understand" onclick="finishGuide()" data-i18n="btn_guide_understand">理解した</button>
+    </div>
+
+    <script>
+        let isFromSettings = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('appLanguage') || 'system';
+            if (savedLang === 'system') {
+                const sysLang = (typeof Android !== 'undefined' && Android.getSystemLanguage) ? Android.getSystemLanguage() : navigator.language;
+                window.currentLang = sysLang.startsWith('ja') ? 'ja' : 'en';
+            } else {
+                window.currentLang = savedLang;
+            }
+            applyLanguage();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('from') === 'settings') {
+                isFromSettings = true;
+            }
+
+            if (typeof Android !== 'undefined' && typeof Android.checkOverlayPermissionGranted === 'function') {
+                if (!Android.checkOverlayPermissionGranted()) {
+                    document.getElementById('overlayPermissionNotice').style.display = 'block';
+                }
+            }
+
+            setupDraggableDemo();
+        });
+
+        function goBack() {
+            if (isFromSettings) {
+                location.href = 'floating-settings.html';
+            } else {
+                location.href = 'permissions.html';
+            }
+        }
+
+        function toggleDemoTask(checkbox) {
+            const win = document.getElementById('simulatedWindow1');
+            const msg = document.getElementById('demoHiddenMsg');
+            if (checkbox.checked) {
+                win.style.display = 'none';
+                msg.style.display = 'block';
+            } else {
+                win.style.display = 'block';
+                msg.style.display = 'none';
+            }
+        }
+
+        function setDemoCompleted(completed) {
+            const cb = document.getElementById('demoCheckbox');
+            cb.checked = completed;
+            toggleDemoTask(cb);
+        }
+
+        let isExpandedDemo = false;
+        function toggleDemoMode() {
+            isExpandedDemo = !isExpandedDemo;
+            const icon = document.getElementById('demoIcon');
+            const win = document.getElementById('demoWindow');
+            const label = document.getElementById('demoModeLabel');
+            if (isExpandedDemo) {
+                icon.style.display = 'none';
+                win.style.display = 'block';
+                label.textContent = getTranslation('demo2_expanded_label') + ' - タップして切替';
+            } else {
+                icon.style.display = 'flex';
+                win.style.display = 'none';
+                label.textContent = getTranslation('demo2_collapsed_label') + ' - タップして切替';
+            }
+        }
+
+        function setupDraggableDemo() {
+            const el = document.getElementById('demoWindow3');
+            const handle = document.getElementById('dragHandle3');
+            const box = document.getElementById('demoBox3');
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let posX = 20, posY = 20;
+
+            el.style.position = 'absolute';
+            el.style.left = posX + 'px';
+            el.style.top = posY + 'px';
+
+            function onStart(clientX, clientY) {
+                isDragging = true;
+                startX = clientX - posX;
+                startY = clientY - posY;
+                return true;
+            }
+
+            function onMove(clientX, clientY) {
+                if (!isDragging) return;
+                posX = clientX - startX;
+                posY = clientY - startY;
+
+                const maxW = box.clientWidth - el.offsetWidth;
+                const maxH = box.clientHeight - el.offsetHeight;
+                posX = Math.max(0, Math.min(maxW > 0 ? maxW : 220, posX));
+                posY = Math.max(0, Math.min(maxH > 0 ? maxH : 80, posY));
+
+                el.style.left = posX + 'px';
+                el.style.top = posY + 'px';
+            }
+
+            function onEnd() {
+                isDragging = false;
+            }
+
+            // Mouse events on handle
+            handle.addEventListener('mousedown', (e) => {
+                if (onStart(e.clientX, e.clientY)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    onMove(e.clientX, e.clientY);
+                    e.preventDefault();
+                }
+            });
+            window.addEventListener('mouseup', () => {
+                onEnd();
+            });
+
+            // Touch events on handle
+            handle.addEventListener('touchstart', (e) => {
+                if (e.touches && e.touches.length > 0) {
+                    if (onStart(e.touches[0].clientX, e.touches[0].clientY)) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchmove', (e) => {
+                if (isDragging && e.touches && e.touches.length > 0) {
+                    onMove(e.touches[0].clientX, e.touches[0].clientY);
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchend', (e) => {
+                onEnd();
+            });
+            window.addEventListener('touchcancel', (e) => {
+                onEnd();
+            });
+        }
+
+        function finishGuide() {
+            localStorage.setItem('hasSeenFloatingGuide', 'true');
+            if (isFromSettings) {
+                location.href = 'floating-settings.html';
+            } else {
+                location.href = 'index.html';
+            }
+        }
+
+        function handleBack() {
+            goBack();
+            return true;
+        }
+        window.handleBack = handleBack;
+    </script>
+</body>
+</html>
