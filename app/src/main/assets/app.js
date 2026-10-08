@@ -46,6 +46,20 @@ function stopMelodyFromBanner() {
 }
 window.stopMelodyFromBanner = stopMelodyFromBanner;
 
+function initHistorySettingsDefaults() {
+    const keys = ['history_setting_coin', 'history_setting_repeat', 'history_setting_notification', 'history_setting_snooze', 'history_setting_stop'];
+    keys.forEach(k => {
+        const val = localStorage.getItem(k);
+        if (!val || val === 'true' || val === 'false') {
+            localStorage.setItem(k, 'show');
+            if (typeof Android !== 'undefined' && Android.setHistorySetting) {
+                Android.setHistorySetting(k, 'show');
+            }
+        }
+    });
+}
+window.initHistorySettingsDefaults = initHistorySettingsDefaults;
+
 function getHistorySettingMode(key) {
     if (typeof getHistorySettingValue === 'function') {
         return getHistorySettingValue(key);
@@ -211,6 +225,10 @@ function refreshData() {
     window.scrollTaskCount = scrollTaskCount;
     window.taskTypeFilter = taskTypeFilter;
 
+    if (typeof window.renderHistory === 'function' && document.getElementById('history-content') && document.getElementById('history-content').style.display === 'block') {
+        window.renderHistory();
+    }
+
     checkAdFree();
 
     if (typeof updateBatteryStatus === 'function') updateBatteryStatus();
@@ -356,6 +374,7 @@ function toggleShowAllInFloating() {
 window.toggleShowAllInFloating = toggleShowAllInFloating;
 
 function checkDailyReset() {
+    initHistorySettingsDefaults();
     const lastReset = localStorage.getItem('lastResetDate');
     const today = new Date().toDateString();
 
@@ -461,54 +480,6 @@ function checkDailyReset() {
         }
     }
 
-function checkAndSyncPendingHistory() {
-    if (typeof Android !== 'undefined' && Android.getPendingHistoryItems) {
-        try {
-            const pendingJson = Android.getPendingHistoryItems();
-            const pendingArray = JSON.parse(pendingJson);
-            if (pendingArray && pendingArray.length > 0) {
-                let updated = false;
-                pendingArray.forEach(p => {
-                    if (!history.some(h => h.taskId === p.taskId && h.completedAt === p.completedAt)) {
-                        if (shouldRecordHistory(p.type)) {
-                            history.unshift({
-                                id: p.id || (Date.now() + Math.random()),
-                                taskId: p.taskId,
-                                text: p.text,
-                                eventName: p.eventName || "通知",
-                                type: p.type || "timer",
-                                memo: p.memo || "",
-                                completedAt: p.completedAt || new Date().toISOString()
-                            });
-                            updated = true;
-                        }
-                    }
-                });
-                if (updated) {
-                    if (history.length > 500) history.splice(500);
-                    window.history = history;
-                    saveTasks();
-                    if (typeof render === 'function') render();
-                }
-            }
-        } catch (e) {
-            console.error("Failed to get pending history items:", e);
-        }
-    }
-}
-function shouldRecordHistory(type) {
-    let key = 'history_setting_coin';
-    if (type === 'repeat') key = 'history_setting_repeat';
-    if (type === 'notification' || type === 'timer_expired') key = 'history_setting_notification';
-    if (type === 'snooze') key = 'history_setting_snooze';
-    if (type === 'stop') key = 'history_setting_stop';
-    const val = localStorage.getItem(key);
-    return val === null ? true : val === 'true';
-}
-window.shouldRecordHistory = shouldRecordHistory;
-
-window.checkAndSyncPendingHistory = checkAndSyncPendingHistory;
-
     if (typeof Android !== 'undefined' && Android.checkDailyCoinBonus) {
         if (Android.checkDailyCoinBonus() && shouldRecordHistory('coin')) {
             history.unshift({
@@ -532,6 +503,53 @@ window.checkAndSyncPendingHistory = checkAndSyncPendingHistory;
     refreshData();
 }
 window.checkDailyReset = checkDailyReset;
+
+function checkAndSyncPendingHistory() {
+    if (typeof Android !== 'undefined' && Android.getPendingHistoryItems) {
+        try {
+            const pendingJson = Android.getPendingHistoryItems();
+            const pendingArray = JSON.parse(pendingJson);
+            if (pendingArray && pendingArray.length > 0) {
+                let updated = false;
+                pendingArray.forEach(p => {
+                    if (!history.some(h => String(h.id) === String(p.id))) {
+                        if (shouldRecordHistory(p.type)) {
+                            history.unshift({
+                                id: p.id || (Date.now() + Math.random()),
+                                taskId: p.taskId,
+                                text: p.text,
+                                eventName: p.eventName || "通知",
+                                type: p.type || "timer",
+                                memo: p.memo || "",
+                                completedAt: p.completedAt || new Date().toISOString()
+                            });
+                            updated = true;
+                        }
+                    }
+                });
+                if (updated) {
+                    if (history.length > 500) history.splice(500);
+                    window.history = history;
+                    saveTasks();
+                    if (typeof window.renderHistory === 'function') {
+                        window.renderHistory();
+                    }
+                    if (typeof render === 'function') render();
+                }
+            }
+        } catch (e) {
+            console.error("Failed to get pending history items:", e);
+        }
+    }
+}
+window.checkAndSyncPendingHistory = checkAndSyncPendingHistory;
+setInterval(checkAndSyncPendingHistory, 2000);
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        checkAndSyncPendingHistory();
+    }
+});
 
 function completeTaskWithMemo(taskId, memo) {
     if (typeof Android !== 'undefined' && Android.stopMelody) {

@@ -6,14 +6,10 @@ import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.media.RingtoneManager
 import android.os.Build
 import android.provider.Settings
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
-import org.json.JSONArray
-import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -26,12 +22,12 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
         AppLogger.log(context, "AlarmReceiver: onReceive called with action=$action")
-        
+
         if (action == Intent.ACTION_BOOT_COMPLETED || action == "android.intent.action.QUICKBOOT_POWERON") {
             // 端末起動時にアラームを再設定
             AlarmScheduler.scheduleMidnightAlarm(context)
             AlarmScheduler.scheduleNoonAlarm(context)
-            
+
             // 保存されているインターバルアラームを復元
             val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
             val minutes = prefs.getInt("recheckInterval", 0)
@@ -80,10 +76,12 @@ class AlarmReceiver : BroadcastReceiver() {
             val messageWithTime = taskText + context.getString(R.string.timer_completion_time_format, timestamp)
 
             showNotification(context, context.getString(R.string.timer_expired), messageWithTime, melody, melodyMode, taskId, taskText)
-            
+
             if (melodyMode == "loop" && !WebPermissionHandler(context).checkNotificationPermissionGranted()) {
                 val actIntent = Intent(context, MainActivity::class.java).apply {
                     this.action = "ACTION_SHOW_STOP_MELODY"
+                    putExtra("EXTRA_TASK_ID", taskId)
+                    putExtra("EXTRA_TASK_TEXT", taskText)
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                 }
                 context.startActivity(actIntent)
@@ -93,13 +91,13 @@ class AlarmReceiver : BroadcastReceiver() {
             val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
             val pendingTaskCount = prefs.getInt("pendingTaskCount", 0)
             val showWhenEmpty = prefs.getBoolean("showWhenEmpty", false)
-            
+
             AppLogger.log(context, "AlarmReceiver: Processing action=$action, pending=$pendingTaskCount, showWhenEmpty=$showWhenEmpty")
-            
+
             if (pendingTaskCount > 0 || showWhenEmpty) {
                 val isAppInForeground = prefs.getBoolean("isAppInForeground", false)
                 val isFloatingVisible = prefs.getBoolean("isFloatingVisible", false)
-                
+
                 // アプリもウィンドウも表示されていない時のみ通知
                 if (!isAppInForeground && !isFloatingVisible) {
                     showIntervalNotification(context)
@@ -123,7 +121,7 @@ class AlarmReceiver : BroadcastReceiver() {
             } else {
                 AppLogger.log(context, "AlarmReceiver: No tasks to show. Rescheduling only.")
             }
-            
+
             // 次のアラームをスケジュール
             if (action == "ACTION_NOON_CHECK") {
                 AlarmScheduler.scheduleNoonAlarm(context)
@@ -143,7 +141,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 }
                 context.startForegroundService(serviceIntent)
             }
-            
+
             // 次の日の AM0時を再スケジュール
             AlarmScheduler.scheduleMidnightAlarm(context)
         } else if (intent.action == "ACTION_REMINDER") {
@@ -170,6 +168,8 @@ class AlarmReceiver : BroadcastReceiver() {
                 if (melodyMode == "loop" && !WebPermissionHandler(context).checkNotificationPermissionGranted()) {
                     val actIntent = Intent(context, MainActivity::class.java).apply {
                         this.action = "ACTION_SHOW_STOP_MELODY"
+                        putExtra("EXTRA_TASK_ID", taskId)
+                        putExtra("EXTRA_TASK_TEXT", taskText)
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     }
                     context.startActivity(actIntent)
@@ -240,7 +240,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
         val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
         val timeStr = sdf.format(Date(triggerAt))
-        
+
         val title = context.getString(R.string.snoozing_prefix, taskText)
         val message = context.getString(R.string.renotify_at_format, timeStr)
 
@@ -279,14 +279,11 @@ class AlarmReceiver : BroadcastReceiver() {
             context.getString(R.string.reminder_body_no_msg, taskText)
         }
 
-        // 既存のタイマー通知用共通ロジックを利用して音色を反映させる
         showNotification(context, title, body, melody, melodyMode, taskId, taskText)
     }
 
     private fun showNotification(context: Context, title: String, message: String, melody: String, melodyMode: String = "once", taskId: Long = -1L, rawTaskText: String = "") {
         if (melody == "none") {
-            // 通知は出すが音は出さない、または通知自体出さないか検討が必要。
-            // ここでは音なし通知とする。
             showSilentNotification(context, title, message)
             return
         }
@@ -296,7 +293,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val notificationId = System.currentTimeMillis().toInt()
         val channelId = "timer_notifications_${melody.hashCode()}_$melodyMode"
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channelName = when {
                 melody == "alarm" -> context.getString(R.string.channel_timer_alarm)
@@ -307,7 +304,6 @@ class AlarmReceiver : BroadcastReceiver() {
             val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH).apply {
                 setSound(null, null)
                 if (melodyMode == "loop") {
-                    // ループ設定時はバイブレーションも強めにする
                     enableVibration(true)
                 }
             }
@@ -340,41 +336,39 @@ class AlarmReceiver : BroadcastReceiver() {
         MelodyPlayer.play(context, melody, melodyMode == "loop")
 
         if (melodyMode == "loop") {
-            builder.setOngoing(true) // 簡単に消されないようにする
-            // builder.setFullScreenIntent(null, true) // 削除
-            // FLAG_INSISTENT を追加（MediaPlayer管理にするので不要だが、一応OS側の挙動として削除）
+            builder.setOngoing(true)
             builder.setSubText(if (Locale.getDefault().language == "ja") "停止するまで鳴り続けます" else "Playing until stopped")
+        }
 
-            // 停止ボタン
-            val stopIntent = Intent(context, AlarmReceiver::class.java).apply {
-                action = "ACTION_STOP_ALARM"
+        // 停止ボタン（すべてのモードで表示）
+        val stopIntent = Intent(context, AlarmReceiver::class.java).apply {
+            action = "ACTION_STOP_ALARM"
+            putExtra("EXTRA_NOTIFICATION_ID", notificationId)
+            putExtra("EXTRA_TASK_ID", taskId)
+            putExtra("EXTRA_TASK_TEXT", taskName)
+        }
+        val stopPendingIntent = android.app.PendingIntent.getBroadcast(
+            context, notificationId + 1, stopIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        builder.addAction(0, context.getString(R.string.btn_stop), stopPendingIntent)
+
+        // スヌーズボタン（melodyMode が "once" 以外、かつ taskId が有効な場合のみ表示）
+        if (taskId != -1L && melodyMode != "once") {
+            val snoozeIntent = Intent(context, AlarmReceiver::class.java).apply {
+                action = "ACTION_SNOOZE_ALARM"
                 putExtra("EXTRA_NOTIFICATION_ID", notificationId)
                 putExtra("EXTRA_TASK_ID", taskId)
                 putExtra("EXTRA_TASK_TEXT", taskName)
+                putExtra("EXTRA_MELODY", melody)
+                putExtra("EXTRA_MELODY_MODE", melodyMode)
             }
-            val stopPendingIntent = android.app.PendingIntent.getBroadcast(
-                context, notificationId + 1, stopIntent,
+            val snoozePendingIntent = android.app.PendingIntent.getBroadcast(
+                context, notificationId + 2, snoozeIntent,
                 android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
             )
-            builder.addAction(0, context.getString(R.string.btn_stop), stopPendingIntent)
-
-            // スヌーズボタン
-            if (taskId != -1L) {
-                val snoozeIntent = Intent(context, AlarmReceiver::class.java).apply {
-                    action = "ACTION_SNOOZE_ALARM"
-                    putExtra("EXTRA_NOTIFICATION_ID", notificationId)
-                    putExtra("EXTRA_TASK_ID", taskId)
-                    putExtra("EXTRA_TASK_TEXT", taskName)
-                    putExtra("EXTRA_MELODY", melody)
-                    putExtra("EXTRA_MELODY_MODE", melodyMode)
-                }
-                val snoozePendingIntent = android.app.PendingIntent.getBroadcast(
-                    context, notificationId + 2, snoozeIntent,
-                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-                )
-                val snoozeMinutes = context.getSharedPreferences("prefs", Context.MODE_PRIVATE).getInt("snoozeDuration", 5)
-                builder.addAction(0, context.getString(R.string.btn_snooze, snoozeMinutes), snoozePendingIntent)
-            }
+            val snoozeMinutes = context.getSharedPreferences("prefs", Context.MODE_PRIVATE).getInt("snoozeDuration", 5)
+            builder.addAction(0, context.getString(R.string.btn_snooze, snoozeMinutes), snoozePendingIntent)
         }
 
         val notification = builder.build()
@@ -421,7 +415,6 @@ class AlarmReceiver : BroadcastReceiver() {
             manager.createNotificationChannel(channel)
         }
 
-        // 通知タップで MainActivity を起動し、フローティングウィンドウを表示させるフラグを渡す
         val intent = Intent(context, MainActivity::class.java).apply {
             action = "ACTION_SHOW_FLOATING"
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

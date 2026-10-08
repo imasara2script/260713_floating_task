@@ -732,12 +732,17 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun showStopMelodyDialog() {
+        val taskId = intent.getLongExtra("EXTRA_TASK_ID", -1L)
+        val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: ""
         runOnUiThread {
             androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("アラーム再生中")
                 .setMessage("メロディが再生されています。停止しますか？")
                 .setPositiveButton("⏹ 停止") { _, _ ->
                     MelodyPlayer.stop()
+                    if (taskId != -1L) {
+                        PendingHistoryManager.addPendingHistory(this, taskId, taskText, "ストップ", "stop")
+                    }
                 }
                 .setCancelable(false)
                 .show()

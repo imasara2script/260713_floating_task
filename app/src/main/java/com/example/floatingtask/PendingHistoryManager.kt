@@ -56,7 +56,7 @@ object PendingHistoryManager {
             val jsonArray = JSONArray(listStr)
 
             val item = JSONObject().apply {
-                put("id", System.currentTimeMillis() + Math.random())
+                put("id", System.currentTimeMillis() + (1000..9999).random())
                 put("taskId", taskId)
                 put("text", text)
                 put("eventName", eventName)
