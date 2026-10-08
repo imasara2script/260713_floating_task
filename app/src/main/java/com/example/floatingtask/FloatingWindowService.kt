@@ -742,6 +742,25 @@ class FloatingWindowService : Service() {
         }
 
         @JavascriptInterface
+        fun isMelodyPlaying(): Boolean = MelodyPlayer.isPlaying()
+
+        @JavascriptInterface
+        fun checkNotificationPermissionGranted(): Boolean =
+            WebPermissionHandler(this@FloatingWindowService).checkNotificationPermissionGranted()
+
+        @JavascriptInterface
+        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String = "default", melodyMode: String = "once") {
+            AppLogger.log(this@FloatingWindowService, "FloatingWebAppInterface: setTimerAlarm for task $taskId ($taskText) duration=$durationMs, melody=$melody, mode=$melodyMode")
+            AlarmScheduler.scheduleTimerAlarm(this@FloatingWindowService, taskId, taskText, durationMs, melody, melodyMode)
+        }
+
+        @JavascriptInterface
+        fun updateTaskCompletionState(taskId: Long, isCompleted: Boolean) {
+            val prefs = getSharedPreferences("task_completion_prefs", MODE_PRIVATE)
+            prefs.edit().putBoolean(taskId.toString(), isCompleted).apply()
+        }
+
+        @JavascriptInterface
         fun getPendingHistoryItems(): String =
             PendingHistoryManager.getPendingHistoryItems(this@FloatingWindowService)
 

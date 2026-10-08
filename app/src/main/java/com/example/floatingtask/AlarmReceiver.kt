@@ -81,11 +81,12 @@ class AlarmReceiver : BroadcastReceiver() {
 
             showNotification(context, context.getString(R.string.timer_expired), messageWithTime, melody, melodyMode, taskId, taskText)
             
-            if (Settings.canDrawOverlays(context)) {
-                val serviceIntent = Intent(context, FloatingWindowService::class.java).apply {
-                    this.action = "ACTION_SHOW"
+            if (melodyMode == "loop" && !WebPermissionHandler(context).checkNotificationPermissionGranted()) {
+                val actIntent = Intent(context, MainActivity::class.java).apply {
+                    this.action = "ACTION_SHOW_STOP_MELODY"
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                 }
-                context.startForegroundService(serviceIntent)
+                context.startActivity(actIntent)
             }
         } else if (action == "ACTION_NOON_CHECK" || action == "ACTION_INTERVAL_CHECK") {
             // 正午またはインターバルチェック: 未完了タスクがある場合のみ表示
@@ -166,6 +167,13 @@ class AlarmReceiver : BroadcastReceiver() {
             if (!isCompleted) {
                 showReminderNotification(context, taskText, message, melody, melodyMode, taskId)
                 addPendingHistory(context, taskId, taskText + if (message.isNotEmpty()) " ($message)" else "", "リピート", "reminder")
+                if (melodyMode == "loop" && !WebPermissionHandler(context).checkNotificationPermissionGranted()) {
+                    val actIntent = Intent(context, MainActivity::class.java).apply {
+                        this.action = "ACTION_SHOW_STOP_MELODY"
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    }
+                    context.startActivity(actIntent)
+                }
             }
 
             // 翌日のアラームを再スケジュール

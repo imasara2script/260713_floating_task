@@ -222,6 +222,10 @@ class MainActivity : AppCompatActivity(),
             webView.loadUrl("file:///android_asset/permissions.html")
         }
 
+        if (intent?.action == "ACTION_SHOW_STOP_MELODY") {
+            showStopMelodyDialog()
+        }
+
         // AdMobの初期化
         MobileAds.initialize(this) {
             AppLogger.log(this, "AdMob initialized")
@@ -674,6 +678,9 @@ class MainActivity : AppCompatActivity(),
         fun getSystemLanguage(): String = settingsHandler.getSystemLanguage()
 
         @JavascriptInterface
+        fun setHistorySetting(key: String, value: String) = settingsHandler.setHistorySetting(key, value)
+
+        @JavascriptInterface
         fun playMelody(melody: String, looping: Boolean = false) = mediaHandler.playMelody(melody, looping)
 
         @JavascriptInterface
@@ -718,6 +725,22 @@ class MainActivity : AppCompatActivity(),
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error opening URL: $url", e)
             }
+        }
+
+        @JavascriptInterface
+        fun isMelodyPlaying(): Boolean = MelodyPlayer.isPlaying()
+    }
+
+    private fun showStopMelodyDialog() {
+        runOnUiThread {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("アラーム再生中")
+                .setMessage("メロディが再生されています。停止しますか？")
+                .setPositiveButton("⏹ 停止") { _, _ ->
+                    MelodyPlayer.stop()
+                }
+                .setCancelable(false)
+                .show()
         }
     }
 

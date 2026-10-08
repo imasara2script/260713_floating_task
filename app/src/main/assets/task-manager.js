@@ -102,6 +102,10 @@ function addTask() {
             targetTask.melodyName = selectedCustomName;
         }
 
+        if (typeof checkAndWarnNotificationPermission === 'function') {
+            checkAndWarnNotificationPermission();
+        }
+
         if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
             Android.setTimerAlarm(targetTask.id, targetTask.text, durationMs, targetTask.melody || 'default', targetTask.melodyMode || 'once');
         }

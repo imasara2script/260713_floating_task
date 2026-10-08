@@ -85,6 +85,7 @@
             console.log("Floating V2 Initialized");
             applyLanguage();
             if (typeof checkAndSyncPendingHistory === 'function') checkAndSyncPendingHistory();
+            setInterval(checkMelodyStatus, 1000);
             // 初期状態の反映
             toggleFloatingExpand(isFloatingExpanded, true);
         }
@@ -569,10 +570,11 @@
 
                 if (floatingViewMode === 'history') {
                     // 履歴モードの描画
-                    const historyHtml = history.length === 0 ?
+                    const filteredFloatingHistory = history.filter(h => !window.shouldShowHistoryItem || window.shouldShowHistoryItem(h));
+                    const historyHtml = filteredFloatingHistory.length === 0 ?
                         `<div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; padding: 2px 4px;"><span style="color:#888; font-size:12px;">${getTranslation('msg_history_no_data')}</span></div>` :
                         `<div id="floating-history-container" style="flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 4px;">
-                            ${history.slice(0, 50).map(h => `
+                            ${filteredFloatingHistory.slice(0, 50).map(h => `
                                 <div style="font-size: 12px; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1px solid rgba(0,0,0,0.05);">
                                     <div style="font-weight: bold; color: #007bff; margin-bottom: 1px;">${h.eventName || '完了'}</div>
                                     <div style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${(h.type === 'coin' || h.type === 'coin_ad' || h.type === 'coin_daily') ? '🪙 ' : ''}${h.text}</div>
@@ -660,6 +662,10 @@
 
                     floatingContent.innerHTML = `
                         <div style="display: flex; flex-direction: column; width: 100%; height: 100%; box-sizing: border-box;">
+                            <div id="floatingMelodyBanner" style="display: none; background: #f8d7da; color: #721c24; padding: 4px 8px; font-size: 11px; align-items: center; justify-content: space-between; border-bottom: 1px solid #f5c6cb; flex-shrink: 0;">
+                                <span>🎵 <span data-i18n="msg_melody_playing">メロディ再生中</span></span>
+                                <button style="font-size: 10px; padding: 2px 6px; background: #dc3545; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;" onclick="stopMelodyFromBanner()" data-i18n="btn_stop">停止</button>
+                            </div>
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: inherit; padding: 4px ${headerPaddingRight} 4px 0; border-bottom: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); flex-shrink: 0;">
                                 <div id="expanded-drag-handle" style="flex-grow: 1; display: flex; align-items: center; justify-content: center; height: 24px; border-right: 1px solid rgba(0,0,0,0.2); background: rgba(0,0,0,0.05); flex-shrink: 0; margin-right: 8px; opacity: 0.8;">
                                     ${localStorage.getItem('allowDrag') !== 'false' ? `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="opacity: 0.7;"><path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/></svg>` : `<span style="font-size: 10px; font-weight: bold;">${getTranslation('label_collapse')}</span>`}

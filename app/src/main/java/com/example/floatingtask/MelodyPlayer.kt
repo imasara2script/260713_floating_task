@@ -67,4 +67,6 @@ object MelodyPlayer {
             mediaPlayer = null
         }
     }
+
+    fun isPlaying(): Boolean = mediaPlayer?.isPlaying == true
 }

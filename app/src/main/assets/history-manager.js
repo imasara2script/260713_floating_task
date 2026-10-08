@@ -83,7 +83,7 @@ function renderTaskHistory(taskId) {
 
     const historyList = document.getElementById('historyList');
     const historySummary = document.getElementById('history-summary');
-    const filteredHistory = history.filter(h => h.taskId === taskId);
+    const filteredHistory = history.filter(h => h.taskId === taskId && (!window.shouldShowHistoryItem || window.shouldShowHistoryItem(h)));
 
     if (typeof switchTab === 'function') switchTab('history', { skipRenderHistory: true });
     renderCalendar(taskId);
@@ -183,7 +183,7 @@ function renderHistory() {
     if (backBtn) backBtn.style.display = 'none';
     if (filterGroup) filterGroup.style.display = 'block';
 
-    let filtered = history;
+    let filtered = history.filter(h => !window.shouldShowHistoryItem || window.shouldShowHistoryItem(h));
 
     // タスク名でフィルタリング (スペース区切りでの AND 検索に対応)
     if (historyFilterQuery) {

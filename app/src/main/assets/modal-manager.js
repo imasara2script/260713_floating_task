@@ -626,6 +626,9 @@ function stopMelodyTest() {
 window.stopMelodyTest = stopMelodyTest;
 
 function addReminderItem(time, message) {
+    if (typeof checkAndWarnNotificationPermission === 'function') {
+        checkAndWarnNotificationPermission();
+    }
     if (time === undefined) time = "";
     if (message === undefined) message = "";
     var id = Date.now() + Math.random();

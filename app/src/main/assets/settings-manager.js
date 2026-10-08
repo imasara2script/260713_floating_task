@@ -62,6 +62,10 @@ function openMelodySettings() {
     location.href = 'melody-settings.html';
 }
 
+function openHistorySettings() {
+    location.href = 'history-settings.html';
+}
+
 function openPermissionsScreen() {
     location.href = 'permissions.html?from=settings';
 }
@@ -683,7 +687,73 @@ window.openDataManagementScreen = openDataManagementScreen;
 window.openRewardsScreen = openRewardsScreen;
 window.openDeveloperSettings = openDeveloperSettings;
 window.unlockPremium = unlockPremium;
-window.loadNewTaskSettings = loadNewTaskSettings;
+function getHistorySettingValue(key) {
+    const val = localStorage.getItem(key);
+    if (val === 'hide') return 'hide';
+    if (val === 'delete') return 'delete';
+    return 'show';
+}
+window.getHistorySettingValue = getHistorySettingValue;
+
+function loadHistorySettings() {
+    const setSelected = (id, key) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.value = getHistorySettingValue(key);
+        }
+    };
+    setSelected('historyCoin', 'history_setting_coin');
+    setSelected('historyRepeat', 'history_setting_repeat');
+    setSelected('historyNotification', 'history_setting_notification');
+    setSelected('historySnooze', 'history_setting_snooze');
+    setSelected('historyStop', 'history_setting_stop');
+}
+window.loadHistorySettings = loadHistorySettings;
+
+function purgeAutoDeletedHistory() {
+    if (typeof history === 'undefined' || !Array.isArray(history)) return;
+    const initialLen = history.length;
+    history = history.filter(h => {
+        const type = h.type || '';
+        const eventName = h.eventName || '';
+
+        if ((type.includes('coin') || eventName.includes('コイン')) && getHistorySettingValue('history_setting_coin') === 'delete') return false;
+        if ((type === 'reminder' || type === 'repeat' || eventName.includes('リピート')) && getHistorySettingValue('history_setting_repeat') === 'delete') return false;
+        if ((type === 'timer_expired' || eventName.includes('通知')) && getHistorySettingValue('history_setting_notification') === 'delete') return false;
+        if ((type === 'snooze' || eventName.includes('スヌーズ')) && getHistorySettingValue('history_setting_snooze') === 'delete') return false;
+        if ((type === 'stop' || eventName.includes('ストップ')) && getHistorySettingValue('history_setting_stop') === 'delete') return false;
+        return true;
+    });
+    if (history.length !== initialLen) {
+        window.history = history;
+        if (typeof saveTasks === 'function') saveTasks();
+        if (typeof renderHistory === 'function') renderHistory();
+    }
+}
+window.purgeAutoDeletedHistory = purgeAutoDeletedHistory;
+
+function saveHistorySettings() {
+    const getSelected = (id, key) => {
+        const el = document.getElementById(id);
+        if (el) {
+            const val = el.value || 'show';
+            localStorage.setItem(key, val);
+            if (typeof Android !== 'undefined' && Android.setHistorySetting) {
+                Android.setHistorySetting(key, val);
+            }
+        }
+    };
+    getSelected('historyCoin', 'history_setting_coin');
+    getSelected('historyRepeat', 'history_setting_repeat');
+    getSelected('historyNotification', 'history_setting_notification');
+    getSelected('historySnooze', 'history_setting_snooze');
+    getSelected('historyStop', 'history_setting_stop');
+
+    purgeAutoDeletedHistory();
+}
+window.saveHistorySettings = saveHistorySettings;
+
+window.openHistorySettings = openHistorySettings;
 window.updateNewTaskSettings = updateNewTaskSettings;
 window.loadMelodySettings = loadMelodySettings;
 window.updateSnoozeDuration = updateSnoozeDuration;

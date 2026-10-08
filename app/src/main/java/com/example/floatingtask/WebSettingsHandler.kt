@@ -138,6 +138,11 @@ class WebSettingsHandler(
         return java.util.Locale.getDefault().language
     }
 
+    fun setHistorySetting(key: String, value: String) {
+        val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        prefs.edit { putString(key, value) }
+    }
+
     private fun sha256(input: String): String {
         val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
         return bytes.joinToString("") { "%02x".format(it) }

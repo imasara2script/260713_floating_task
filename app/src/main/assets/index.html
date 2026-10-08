@@ -17,6 +17,12 @@
 </head>
 <body>
 
+    <!-- メロディ再生中の停止バナー -->
+    <div id="melodyPlayingBanner" style="display: none; background: #f8d7da; color: #721c24; padding: 10px 16px; border-bottom: 1px solid #f5c6cb; font-size: 13px; align-items: center; justify-content: space-between; box-sizing: border-box;">
+        <span>🎵 <span data-i18n="msg_melody_playing">メロディ再生中</span></span>
+        <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 12px; margin-left: 12px; white-space: nowrap; flex-shrink: 0; background: #dc3545; color: white; border: none; font-weight: bold; cursor: pointer;" onclick="stopMelodyFromBanner()" data-i18n="btn_stop">停止</button>
+    </div>
+
     <!-- 権限不足時の警告バナー -->
     <div id="permissionWarningBanner" style="display: none; background: #fff3cd; color: #856404; padding: 10px 16px; border-bottom: 1px solid #ffeeba; font-size: 13px; align-items: center; justify-content: space-between; box-sizing: border-box;">
         <span id="permissionWarningText" data-i18n="msg_permission_warning_banner">⚠️ 権限の一部が未設定のため、フローティング表示等の機能が制限されています。</span>
@@ -136,6 +142,10 @@
                         <button class="setting-tile tile-melody" onclick="openMelodySettings()">
                             <span class="tile-icon">🎵</span>
                             <span class="tile-label" data-i18n="btn_melody_settings">通知音</span>
+                        </button>
+                        <button class="setting-tile tile-history" onclick="openHistorySettings()">
+                            <span class="tile-icon">📖</span>
+                            <span class="tile-label" data-i18n="btn_history_settings">履歴</span>
                         </button>
                         <button class="setting-tile tile-reward" onclick="openRewardsScreen()">
                             <span class="tile-icon">🎁</span>

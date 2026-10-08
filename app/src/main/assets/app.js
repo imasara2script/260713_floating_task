@@ -14,6 +14,82 @@ function getTranslation(key, ...args) {
 }
 window.getTranslation = getTranslation;
 
+function checkMelodyStatus() {
+    if (typeof Android !== 'undefined' && typeof Android.isMelodyPlaying === 'function') {
+        const playing = Android.isMelodyPlaying();
+        const banner = document.getElementById('melodyPlayingBanner');
+        const fBanner = document.getElementById('floatingMelodyBanner');
+        if (banner) {
+            banner.style.display = playing ? 'flex' : 'none';
+            if (playing && typeof getTranslation === 'function') {
+                const stopBtn = banner.querySelector('button');
+                if (stopBtn) stopBtn.textContent = getTranslation('btn_stop');
+            }
+        }
+        if (fBanner) {
+            fBanner.style.display = playing ? 'flex' : 'none';
+            if (playing && typeof getTranslation === 'function') {
+                const fStopBtn = fBanner.querySelector('button');
+                if (fStopBtn) fStopBtn.textContent = getTranslation('btn_stop');
+            }
+        }
+    }
+}
+window.checkMelodyStatus = checkMelodyStatus;
+setInterval(checkMelodyStatus, 1000);
+
+function stopMelodyFromBanner() {
+    if (typeof Android !== 'undefined' && typeof Android.stopMelody === 'function') {
+        Android.stopMelody();
+    }
+    checkMelodyStatus();
+}
+window.stopMelodyFromBanner = stopMelodyFromBanner;
+
+function getHistorySettingMode(key) {
+    if (typeof getHistorySettingValue === 'function') {
+        return getHistorySettingValue(key);
+    }
+    const val = localStorage.getItem(key);
+    if (val === 'hide') return 'hide';
+    if (val === 'delete') return 'delete';
+    return 'show';
+}
+window.getHistorySettingMode = getHistorySettingMode;
+
+function shouldShowHistoryItem(h) {
+    const type = h.type || '';
+    const eventName = h.eventName || '';
+
+    if (type.includes('coin') || eventName.includes('コイン')) {
+        return getHistorySettingMode('history_setting_coin') === 'show';
+    }
+    if (type === 'reminder' || type === 'repeat' || eventName.includes('リピート')) {
+        return getHistorySettingMode('history_setting_repeat') === 'show';
+    }
+    if (type === 'timer_expired' || eventName.includes('通知')) {
+        return getHistorySettingMode('history_setting_notification') === 'show';
+    }
+    if (type === 'snooze' || eventName.includes('スヌーズ')) {
+        return getHistorySettingMode('history_setting_snooze') === 'show';
+    }
+    if (type === 'stop' || eventName.includes('ストップ')) {
+        return getHistorySettingMode('history_setting_stop') === 'show';
+    }
+    return true;
+}
+window.shouldShowHistoryItem = shouldShowHistoryItem;
+
+function shouldRecordHistory(type) {
+    let key = 'history_setting_coin';
+    if (type === 'repeat' || type === 'reminder') key = 'history_setting_repeat';
+    if (type === 'notification' || type === 'timer_expired') key = 'history_setting_notification';
+    if (type === 'snooze') key = 'history_setting_snooze';
+    if (type === 'stop') key = 'history_setting_stop';
+    return getHistorySettingMode(key) !== 'delete';
+}
+window.shouldRecordHistory = shouldRecordHistory;
+
 function updateLanguagePreference() {
     const select = document.getElementById('languageSelect');
     const lang = select.value;
@@ -394,16 +470,18 @@ function checkAndSyncPendingHistory() {
                 let updated = false;
                 pendingArray.forEach(p => {
                     if (!history.some(h => h.taskId === p.taskId && h.completedAt === p.completedAt)) {
-                        history.unshift({
-                            id: p.id || (Date.now() + Math.random()),
-                            taskId: p.taskId,
-                            text: p.text,
-                            eventName: p.eventName || "通知",
-                            type: p.type || "timer",
-                            memo: p.memo || "",
-                            completedAt: p.completedAt || new Date().toISOString()
-                        });
-                        updated = true;
+                        if (shouldRecordHistory(p.type)) {
+                            history.unshift({
+                                id: p.id || (Date.now() + Math.random()),
+                                taskId: p.taskId,
+                                text: p.text,
+                                eventName: p.eventName || "通知",
+                                type: p.type || "timer",
+                                memo: p.memo || "",
+                                completedAt: p.completedAt || new Date().toISOString()
+                            });
+                            updated = true;
+                        }
                     }
                 });
                 if (updated) {
@@ -418,13 +496,25 @@ function checkAndSyncPendingHistory() {
         }
     }
 }
+function shouldRecordHistory(type) {
+    let key = 'history_setting_coin';
+    if (type === 'repeat') key = 'history_setting_repeat';
+    if (type === 'notification' || type === 'timer_expired') key = 'history_setting_notification';
+    if (type === 'snooze') key = 'history_setting_snooze';
+    if (type === 'stop') key = 'history_setting_stop';
+    const val = localStorage.getItem(key);
+    return val === null ? true : val === 'true';
+}
+window.shouldRecordHistory = shouldRecordHistory;
+
 window.checkAndSyncPendingHistory = checkAndSyncPendingHistory;
 
     if (typeof Android !== 'undefined' && Android.checkDailyCoinBonus) {
-        if (Android.checkDailyCoinBonus()) {
+        if (Android.checkDailyCoinBonus() && shouldRecordHistory('coin')) {
             history.unshift({
                 id: Date.now(),
                 type: 'coin_daily',
+                eventName: 'コイン獲得',
                 text: getTranslation('history_coin_daily'),
                 memo: "",
                 completedAt: new Date().toISOString()
@@ -444,6 +534,9 @@ window.checkAndSyncPendingHistory = checkAndSyncPendingHistory;
 window.checkDailyReset = checkDailyReset;
 
 function completeTaskWithMemo(taskId, memo) {
+    if (typeof Android !== 'undefined' && Android.stopMelody) {
+        Android.stopMelody();
+    }
     tasks = tasks.map(t => {
         if (t.id === taskId) {
             // 履歴の作成
@@ -505,6 +598,9 @@ function toggleTaskCore(taskId, onCommentRequired) {
     }
 
     if (newState) {
+        if (typeof Android !== 'undefined' && Android.stopMelody) {
+            Android.stopMelody();
+        }
         // 完了処理
         const historyId = Date.now();
         history.unshift({
@@ -551,12 +647,25 @@ function toggleTaskCore(taskId, onCommentRequired) {
 }
 window.toggleTaskCore = toggleTaskCore;
 
+function checkAndWarnNotificationPermission() {
+    if (typeof Android !== 'undefined' && typeof Android.checkNotificationPermissionGranted === 'function') {
+        if (!Android.checkNotificationPermissionGranted()) {
+            if (typeof showModal === 'function') {
+                showModal(getTranslation('msg_notification_permission_missing'), { hideCancel: true });
+            }
+        }
+    }
+}
+window.checkAndWarnNotificationPermission = checkAndWarnNotificationPermission;
+
 /**
  * タイマーリピートの共通ロジック
  */
 function repeatTimerCore(taskId) {
     const task = tasks.find(t => t.id === taskId);
     if (!task || !task.durationMs) return;
+
+    checkAndWarnNotificationPermission();
 
     const melody = task.melody || 'default';
     const melodyMode = task.melodyMode || 'once';

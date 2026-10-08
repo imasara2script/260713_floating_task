@@ -560,15 +560,18 @@ function onRewardEarned(type, remaining) {
     }
 
     if (type === 'coin') {
-        history.unshift({
-            id: Date.now(),
-            type: 'coin_ad',
-            text: getTranslation('history_coin_ad'),
-            memo: "",
-            completedAt: new Date().toISOString()
-        });
-        if (history.length > 500) history.pop();
-        saveTasks();
+        if (!window.shouldRecordHistory || window.shouldRecordHistory('coin')) {
+            history.unshift({
+                id: Date.now(),
+                type: 'coin_ad',
+                eventName: 'コイン獲得',
+                text: getTranslation('history_coin_ad'),
+                memo: "",
+                completedAt: new Date().toISOString()
+            });
+            if (history.length > 500) history.pop();
+            saveTasks();
+        }
         showModal(getTranslation('msg_coin_earned', remaining), { hideCancel: true });
         return;
     }

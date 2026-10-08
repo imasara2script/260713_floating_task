@@ -31,6 +31,26 @@ object PendingHistoryManager {
 
     fun addPendingHistory(context: Context, taskId: Long, text: String, eventName: String, type: String) {
         try {
+            val settingsPrefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            val settingKey = when (type) {
+                "timer_expired" -> "history_setting_notification"
+                "reminder", "repeat" -> "history_setting_repeat"
+                "snooze" -> "history_setting_snooze"
+                "stop" -> "history_setting_stop"
+                else -> null
+            }
+            if (settingKey != null) {
+                val mode = try {
+                    settingsPrefs.getString(settingKey, "show") ?: "show"
+                } catch (_: Exception) {
+                    "show"
+                }
+                if (mode == "delete") {
+                    AppLogger.log(context, "PendingHistoryManager: Skipping history for type=$type (mode=$mode in settings)")
+                    return
+                }
+            }
+
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val listStr = prefs.getString(KEY_HISTORY_LIST, "[]") ?: "[]"
             val jsonArray = JSONArray(listStr)
