@@ -169,6 +169,7 @@ class MainActivity : AppCompatActivity(),
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        CrashHandler.init(this)
         AppLogger.log(this, "MainActivity onCreate")
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
@@ -717,6 +718,12 @@ class MainActivity : AppCompatActivity(),
             prefs.edit().putInt("maxMelodyDuration", seconds).apply()
             MelodyPlayer.setMaxMelodyDuration(seconds)
         }
+
+        @JavascriptInterface
+        fun getLastNativeError(): String = CrashHandler.getLastNativeError(mContext) ?: ""
+
+        @JavascriptInterface
+        fun clearLastNativeError() = CrashHandler.clearLastNativeError(mContext)
 
         @JavascriptInterface
         fun saveAutoBackup(jsonData: String) = mediaHandler.saveAutoBackup(jsonData)

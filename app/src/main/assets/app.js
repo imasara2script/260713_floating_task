@@ -6,14 +6,25 @@ let currentLang = 'ja';
 window.currentLang = currentLang;
 
 // デバッグモード用エラーキャッチ
-function showDebugErrorOverlay(errorMsg, source, lineno, colno) {
+function checkNativeError() {
+    if (localStorage.getItem('debugMode') !== 'true') return;
+    if (typeof Android !== 'undefined' && typeof Android.getLastNativeError === 'function') {
+        const err = Android.getLastNativeError();
+        if (err && err.trim().length > 0) {
+            showDebugErrorOverlay(err, 'Android Native', 0, 0, true);
+        }
+    }
+}
+
+function showDebugErrorOverlay(errorMsg, source, lineno, colno, isNative = false) {
     if (localStorage.getItem('debugMode') !== 'true') return;
 
     // 既存のオーバーレイがあれば削除
     const existing = document.getElementById('debugErrorOverlay');
     if (existing) existing.remove();
 
-    const details = `Message: ${errorMsg}\nSource: ${source || 'Unknown'}\nLine: ${lineno || '?'}, Col: ${colno || '?'}\nTime: ${new Date().toLocaleTimeString()}`;
+    const details = isNative ? errorMsg : `Message: ${errorMsg}\nSource: ${source || 'Unknown'}\nLine: ${lineno || '?'}, Col: ${colno || '?'}\nTime: ${new Date().toLocaleTimeString()}`;
+    const titleText = isNative ? '⚠️ Android Native Error (Debug Mode)' : '⚠️ WebView Error (Debug Mode)';
 
     const overlay = document.createElement('div');
     overlay.id = 'debugErrorOverlay';
@@ -22,9 +33,9 @@ function showDebugErrorOverlay(errorMsg, source, lineno, colno) {
     overlay.innerHTML = `
         <div style="background:#fff; color:#333; width:100%; max-width:500px; border-radius:8px; padding:20px; box-sizing:border-box; display:flex; flex-direction:column; max-height:80vh;">
             <div style="font-weight:bold; color:#dc3545; font-size:16px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-                <span>⚠️ WebView Error (Debug Mode)</span>
+                <span>${titleText}</span>
             </div>
-            <textarea id="debugErrorText" readonly style="flex-grow:1; width:100%; height:200px; padding:10px; border:1px solid #ddd; border-radius:4px; font-family:monospace; font-size:12px; background:#f8f9fa; resize:none; box-sizing:border-box; margin-bottom:16px;">${details}</textarea>
+            <textarea id="debugErrorText" readonly style="flex-grow:1; width:100%; height:220px; padding:10px; border:1px solid #ddd; border-radius:4px; font-family:monospace; font-size:12px; background:#f8f9fa; resize:none; box-sizing:border-box; margin-bottom:16px;">${details}</textarea>
             <div style="display:flex; gap:8px; justify-content:flex-end;">
                 <button id="debugCopyBtn" class="btn btn-primary" style="padding:8px 16px; font-size:14px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer;" data-i18n="btn_copy_error">エラーをコピー</button>
                 <button id="debugCloseBtn" class="btn btn-secondary" style="padding:8px 16px; font-size:14px; background:#6c757d; color:white; border:none; border-radius:4px; cursor:pointer;" data-i18n="btn_close">閉じる</button>
@@ -64,6 +75,9 @@ function showDebugErrorOverlay(errorMsg, source, lineno, colno) {
         closeBtn.textContent = typeof getTranslation === 'function' ? getTranslation('btn_close') : 'Close';
         closeBtn.onclick = function() {
             overlay.remove();
+            if (isNative && typeof Android !== 'undefined' && typeof Android.clearLastNativeError === 'function') {
+                Android.clearLastNativeError();
+            }
         };
     }
 }
@@ -141,6 +155,7 @@ function checkMelodyStatus() {
 }
 window.checkMelodyStatus = checkMelodyStatus;
 setInterval(checkMelodyStatus, 1000);
+setInterval(checkNativeError, 2000);
 
 function stopMelodyFromBanner() {
     if (typeof Android !== 'undefined' && typeof Android.stopMelody === 'function') {

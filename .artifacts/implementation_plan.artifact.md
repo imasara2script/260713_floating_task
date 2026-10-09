@@ -1,18 +1,29 @@
-# メロディ再生の不具合修正および再生時間表示機能の実装計画
+# Androidネイティブ側のエラー表示・コピー機能の実装計画
 
-メロディが「1回のみ」設定時にエンドレスになってしまう不具合の修正と、ユーザーからのご提案に基づく「選択したメロディの長さ（秒数）と現在の再生時間の表示」機能を追加します。
+デバッグモードにおいて、WebView内のJavaScriptエラーだけでなく、Androidネイティブ側（Kotlin/Java）で発生したエラーや未捕捉の例外（クラッシュ原因）も画面上にエラーメッセージとして表示し、クリップボードにコピーできるようにする機能を追加します。
+
+## User Review Required
+
+> [!IMPORTANT]
+> - **未捕捉例外のフック**: `Thread.setDefaultUncaughtExceptionHandler` を設定し、ネイティブ側でアプリクラッシュや例外が発生した際に例外情報（スタックトレース）を追跡・保存します。
+> - **デバッグ表示 & コピー**: デバッグモードが有効な場合、ネイティブ例外が発生した際（次回起動時またはエラー直後）に画面上にエラーポップアップを表示し、「エラーをコピー」ボタンでスタックトレースをクリップボードにコピー可能にします。
 
 ## Proposed Changes
 
-### 1. 「1回のみ」設定時の単発再生の修正 (Kotlin)
-- **[MelodyPlayer.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MelodyPlayer.kt)**:
-  - `looping == false`（1回のみ）の場合、アラーム音 (`TYPE_ALARM`) や着信音 (`TYPE_RINGTONE`) の音源URIが持つループ特性により鳴り続けてしまうのを防ぐため、単発再生時は短尺の通知音 (`TYPE_NOTIFICATION`) の音源URIを使用するか、あるいは `setOnCompletionListener` で確実に停止するように修正します。
+### Native (Kotlin)
 
-### 2. 再生時間（経過時間 / 総秒数）の取得・表示機能 (Kotlin & JS)
-- **[MelodyPlayer.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MelodyPlayer.kt)**:
-  - 現在の再生位置 (`getCurrentPosition()`) と総再生時間 (`getDuration()`) を取得するメソッドを追加し、JSブリッジ (`MainActivity` / `FloatingWindowService`) 経由で呼び出せるようにします。
-- **[app.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/app.js)** / **[modal-manager.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/modal-manager.js)**:
-  - テスト再生中やメロディ再生バナーに「再生時間 / 総秒数」をリアルタイムで表示する UI 要素を追加します。
+#### [NEW] [CrashHandler.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/CrashHandler.kt)
+- ネイティブ側の未捕捉例外を捕捉するハンドラークラスを追加。
+- 例外発生時にスタックトレース、時刻、デバイス情報を取り出し、SharedPreferences またはファイルに保存。
+
+#### [MODIFY] [MainActivity.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MainActivity.kt)
+- アプリ起動時（`onCreate`）に `CrashHandler` を初期化。
+- デバッグモードが有効で保存された未捕捉例外・ネイティブエラーがある場合、それを画面上（WebViewまたはネイティブダイアログ）に表示し、コピーボタンを提供するブリッジメソッドを追加。
+
+### UI & JavaScript
+
+#### [MODIFY] [app.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/app.js)
+- アプリ起動時および定期チェック時に、保存されたネイティブ側のエラー情報があるかをブリッジ経由で確認し、あれば既存のエラーオーバーレイ（またはダイアログ）で「Android Native Error」として表示・コピーできるように連携。
 
 ## Verification Plan
 
@@ -20,5 +31,5 @@
 - Gradle ビルド (`app:assembleDebug`) が正常に通ることを確認。
 
 ### Manual Verification
-- 「アラーム音」や「チャイム」を「1回のみ」でテスト再生し、エンドレスにならずに1回で停止することを確認。
-- テスト再生中やバナー表示中に、現在の再生時間とメロディの総秒数が正しく表示されることを確認。
+- 開発者設定で「デバッグモード」を有効化。
+- ネイティブ側でテスト用の例外（NullPointerException等）を発生させるか疑似例外を発火させ、エラーメッセージとスタックトレースが画面上に表示され、「コピー」ボタンでクリップボードにコピーできることを確認。

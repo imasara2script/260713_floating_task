@@ -66,6 +66,7 @@ class FloatingWindowService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        CrashHandler.init(this)
         val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
         MelodyPlayer.setMaxMelodyDuration(prefs.getInt("maxMelodyDuration", 5))
         AppLogger.log(this, "FloatingWindowService onCreate")
@@ -967,6 +968,12 @@ class FloatingWindowService : Service() {
             prefs.edit().putInt("maxMelodyDuration", seconds).apply()
             MelodyPlayer.setMaxMelodyDuration(seconds)
         }
+
+        @JavascriptInterface
+        fun getLastNativeError(): String = CrashHandler.getLastNativeError(this@FloatingWindowService) ?: ""
+
+        @JavascriptInterface
+        fun clearLastNativeError() = CrashHandler.clearLastNativeError(this@FloatingWindowService)
 
         @JavascriptInterface
         fun getCurrentPosition(): Int = MelodyPlayer.getCurrentPosition()
