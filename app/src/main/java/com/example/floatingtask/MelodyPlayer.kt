@@ -11,10 +11,19 @@ import android.os.PowerManager
 
 object MelodyPlayer {
     private var mediaPlayer: MediaPlayer? = null
+    var currentTaskId: Long = -1L
+    var currentTaskText: String = ""
+    var currentMelody: String = "default"
+    var currentMelodyMode: String = "once"
 
-    fun play(context: Context, melody: String, looping: Boolean = false) {
-        Log.d("MelodyPlayer", "play: $melody, looping: $looping")
+    fun play(context: Context, melody: String, looping: Boolean = false, taskId: Long = -1L, taskText: String = "") {
+        Log.d("MelodyPlayer", "play: $melody, looping: $looping, taskId: $taskId")
         stop() // 既に再生中の場合は停止
+
+        currentTaskId = taskId
+        currentTaskText = taskText
+        currentMelody = melody
+        currentMelodyMode = if (looping) "loop" else "once"
 
         try {
             val soundUri: Uri = when {
@@ -65,8 +74,12 @@ object MelodyPlayer {
             Log.e("MelodyPlayer", "Error stopping melody: ${e.message}")
         } finally {
             mediaPlayer = null
+            currentTaskId = -1L
+            currentTaskText = ""
         }
     }
 
     fun isPlaying(): Boolean = mediaPlayer?.isPlaying == true
+
+    fun isLooping(): Boolean = mediaPlayer?.isLooping == true
 }

@@ -20,7 +20,11 @@
     <!-- メロディ再生中の停止バナー -->
     <div id="melodyPlayingBanner" style="display: none; background: #f8d7da; color: #721c24; padding: 10px 16px; border-bottom: 1px solid #f5c6cb; font-size: 13px; align-items: center; justify-content: space-between; box-sizing: border-box;">
         <span>🎵 <span data-i18n="msg_melody_playing">メロディ再生中</span></span>
-        <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 12px; margin-left: 12px; white-space: nowrap; flex-shrink: 0; background: #dc3545; color: white; border: none; font-weight: bold; cursor: pointer;" onclick="stopMelodyFromBanner()" data-i18n="btn_stop">停止</button>
+        <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+            <!-- エンドレス再生時のみ表示するスヌーズボタン -->
+            <button id="snoozeMelodyBtn" class="btn btn-secondary" style="display: none; font-size: 12px; padding: 4px 12px; white-space: nowrap; background: #ffc107; color: #212529; border: none; font-weight: bold; cursor: pointer;" onclick="snoozeMelodyFromBanner()" data-i18n="btn_snooze">スヌーズ</button>
+            <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 12px; white-space: nowrap; background: #dc3545; color: white; border: none; font-weight: bold; cursor: pointer;" onclick="stopMelodyFromBanner()" data-i18n="btn_stop">停止</button>
+        </div>
     </div>
 
     <!-- 権限不足時の警告バナー -->

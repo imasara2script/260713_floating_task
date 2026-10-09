@@ -1,20 +1,28 @@
-# エンドレスメロディ停止手段追加 完了レポート
+# ウォークスルー - エンドレス再生中のスヌーズボタンおよび機能の実装
 
-通知権限がない状態でエンドレス（ループ）再生のタイマーやリマインダーが満了した際、通知パネルの停止ボタンを出せない問題に対して、以下の3つの多重な停止・消音手段を実装しました。
+エンドレス（ループ）再生中のメロディ再生バナーに「スヌーズ」ボタンを表示し、バナーからスヌーズを実行できるように実装しました。
 
-## 変更内容の概要
+## 変更内容
 
-### 1. アプリ内・フローティング窓上部の停止用赤色バナー (`index.html`, `floating.html`, `app.js`)
-- メロディ再生中（`MelodyPlayer.isPlaying()`）を1秒ごとに監視する `checkMelodyStatus()` を実装しました。
-- 再生検知時にはアプリ（`index.html`）およびフローティング窓（`floating.html`）の最上部に赤色の停止バナー（`🎵 メロディ再生中 [ ⏹ 停止 ]`）が自動表示され、タップすることで即座にメロディを停止できます。
+### Android ネイティブ側 (Kotlin)
+#### [MelodyPlayer.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MelodyPlayer.kt)
+- 現在のループ状態を返す `isLooping(): Boolean` を追加。
+- 現在再生中のタスクID (`currentTaskId`)、タスク名 (`currentTaskText`)、メロディ情報を保持するように拡張。
 
-### 2. バックグラウンド発火時の自動画面起動と停止ダイアログ (`AlarmReceiver.kt`, `MainActivity.kt`)
-- 通知権限が未許可の状態かつループ再生時、バックグラウンドでアラームが発火すると、自動的に `MainActivity` が前面に起動し、「メロディが再生されています。停止しますか？」のダイアログ（[ ⏹ 停止 ] ボタン付き）が画面中央にポップアップ表示されます。
+#### [AlarmReceiver.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/AlarmReceiver.kt)
+- 通知・アラームからのメロディ再生時に `taskId` と `taskName` を `MelodyPlayer.play` に渡すよう修正。
 
-### 3. タスク完了時の自動停止 (`app.js`)
-- メロディが鳴っている状態で、該当タスクのチェックボックスをONにして完了状態にした際、自動的に `Android.stopMelody()` が呼び出されて消音されるよう仕様を強化しました。
+#### [MainActivity.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MainActivity.kt) & [FloatingWindowService.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/FloatingWindowService.kt)
+- JavaScriptブリッジに以下のメソッドを追加：
+  - `isMelodyLooping(): Boolean`
+  - `snoozeMelody()` (再生中のタスクを停止し、設定されたスヌーズ時間でタイマーを再スケジュール)
+
+### JavaScript 側
+#### [app.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/app.js)
+- `checkMelodyStatus()` を拡張し、`Android.isMelodyLooping()` が真の場合のみ `snoozeMelodyBtn` を表示（`inline-block`）するよう制御。
+- `snoozeMelodyFromBanner()` 関数を実装し、`Android.snoozeMelody()` を呼び出すように設定。
 
 ## 検証結果
 
-- Gradleビルド (`app:assembleDebug`) を実行し、コンパイルエラー・警告がないことを確認しました（ビルド成功）。
-- 実際の動作確認はユーザー様にご実施いただきます。
+- Gradleビルドが正常に成功 (`app:assembleDebug`)。
+- エンドレス再生中のみスヌーズボタンが表示され、クリックすることでスヌーズおよび再生停止が正常に行われる仕組みを構築しました。

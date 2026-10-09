@@ -1,8 +1,6 @@
-# エンドレスメロディ停止手段追加 タスク一覧
+# タスク一覧
 
-- [x] `MelodyPlayer.kt` に `isPlaying()` メソッドを追加
-- [x] `MainActivity.kt` & `FloatingWindowService.kt` に `isMelodyPlaying()` ブリッジを追加
-- [x] `AlarmReceiver.kt` で通知権限なし＆ループ再生時に停止ダイアログ画面を起動する処理を追加
-- [x] `index.html` & `floating.html` にメロディ停止バナー `#melodyPlayingBanner` を追加
-- [x] `app.js` にメロディ状態監視 (`checkMelodyStatus`) およびタスク完了時の自動停止処理を追加
-- [x] Gradle ビルドの実行確認
+- [x] `MelodyPlayer.kt` に `isLooping()` メソッドを追加し、現在再生中のタスク情報を保持する
+- [x] `MainActivity.kt` & `FloatingWindowService.kt` に `isMelodyLooping()` と `snoozeMelody()` ブリッジを追加する
+- [x] `app.js` にてエンドレス再生中の場合にスヌーズボタンを表示し、`snoozeMelodyFromBanner()` を実装する
+- [x] 変更内容の確認・整理

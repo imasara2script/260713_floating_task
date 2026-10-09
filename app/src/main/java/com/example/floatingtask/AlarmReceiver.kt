@@ -333,7 +333,7 @@ class AlarmReceiver : BroadcastReceiver() {
         builder.setFullScreenIntent(fullScreenPendingIntent, true)
 
         // MelodyPlayerで再生開始
-        MelodyPlayer.play(context, melody, melodyMode == "loop")
+        MelodyPlayer.play(context, melody, melodyMode == "loop", taskId, taskName)
 
         if (melodyMode == "loop") {
             builder.setOngoing(true)

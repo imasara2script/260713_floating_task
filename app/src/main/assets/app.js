@@ -17,20 +17,32 @@ window.getTranslation = getTranslation;
 function checkMelodyStatus() {
     if (typeof Android !== 'undefined' && typeof Android.isMelodyPlaying === 'function') {
         const playing = Android.isMelodyPlaying();
+        const isLooping = (typeof Android.isMelodyLooping === 'function') ? Android.isMelodyLooping() : false;
+        const snoozeDuration = localStorage.getItem('snoozeDuration') || '5';
         const banner = document.getElementById('melodyPlayingBanner');
         const fBanner = document.getElementById('floatingMelodyBanner');
         if (banner) {
             banner.style.display = playing ? 'flex' : 'none';
             if (playing && typeof getTranslation === 'function') {
-                const stopBtn = banner.querySelector('button');
+                const stopBtn = banner.querySelector('button:last-child');
                 if (stopBtn) stopBtn.textContent = getTranslation('btn_stop');
+                const snoozeBtn = document.getElementById('snoozeMelodyBtn');
+                if (snoozeBtn) {
+                    snoozeBtn.style.display = isLooping ? 'inline-block' : 'none';
+                    snoozeBtn.textContent = getTranslation('btn_snooze', snoozeDuration);
+                }
             }
         }
         if (fBanner) {
             fBanner.style.display = playing ? 'flex' : 'none';
             if (playing && typeof getTranslation === 'function') {
-                const fStopBtn = fBanner.querySelector('button');
+                const fStopBtn = fBanner.querySelector('button:last-child');
                 if (fStopBtn) fStopBtn.textContent = getTranslation('btn_stop');
+                const fSnoozeBtn = document.getElementById('floatingSnoozeMelodyBtn');
+                if (fSnoozeBtn) {
+                    fSnoozeBtn.style.display = isLooping ? 'inline-block' : 'none';
+                    fSnoozeBtn.textContent = getTranslation('btn_snooze', snoozeDuration);
+                }
             }
         }
     }
@@ -45,6 +57,14 @@ function stopMelodyFromBanner() {
     checkMelodyStatus();
 }
 window.stopMelodyFromBanner = stopMelodyFromBanner;
+
+function snoozeMelodyFromBanner() {
+    if (typeof Android !== 'undefined' && typeof Android.snoozeMelody === 'function') {
+        Android.snoozeMelody();
+    }
+    checkMelodyStatus();
+}
+window.snoozeMelodyFromBanner = snoozeMelodyFromBanner;
 
 function initHistorySettingsDefaults() {
     const keys = ['history_setting_coin', 'history_setting_repeat', 'history_setting_notification', 'history_setting_snooze', 'history_setting_stop'];

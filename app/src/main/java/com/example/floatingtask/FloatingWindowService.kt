@@ -745,6 +745,27 @@ class FloatingWindowService : Service() {
         fun isMelodyPlaying(): Boolean = MelodyPlayer.isPlaying()
 
         @JavascriptInterface
+        fun isMelodyLooping(): Boolean = MelodyPlayer.isLooping()
+
+        @JavascriptInterface
+        fun snoozeMelody() {
+            val taskId = MelodyPlayer.currentTaskId
+            val taskText = MelodyPlayer.currentTaskText
+            val melody = MelodyPlayer.currentMelody
+            val melodyMode = MelodyPlayer.currentMelodyMode
+
+            MelodyPlayer.stop()
+
+            if (taskId != -1L) {
+                val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+                val snoozeMinutes = prefs.getInt("snoozeDuration", 5)
+
+                AlarmScheduler.scheduleTimerAlarm(this@FloatingWindowService, taskId, taskText, snoozeMinutes * 60 * 1000L, melody, melodyMode)
+                PendingHistoryManager.addPendingHistory(this@FloatingWindowService, taskId, taskText, "スヌーズ(${snoozeMinutes}分)", "snooze")
+            }
+        }
+
+        @JavascriptInterface
         fun checkNotificationPermissionGranted(): Boolean =
             WebPermissionHandler(this@FloatingWindowService).checkNotificationPermissionGranted()
 
