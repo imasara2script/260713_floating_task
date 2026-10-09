@@ -16,14 +16,22 @@ function checkNativeError() {
     }
 }
 
-function showDebugErrorOverlay(errorMsg, source, lineno, colno, isNative = false) {
+function showDebugErrorOverlay(errorMsg, source, lineno, colno, isNative = false, stackTrace = '') {
     if (localStorage.getItem('debugMode') !== 'true') return;
 
     // 既存のオーバーレイがあれば削除
     const existing = document.getElementById('debugErrorOverlay');
     if (existing) existing.remove();
 
-    const details = isNative ? errorMsg : `Message: ${errorMsg}\nSource: ${source || 'Unknown'}\nLine: ${lineno || '?'}, Col: ${colno || '?'}\nTime: ${new Date().toLocaleTimeString()}`;
+    let details = "";
+    if (isNative) {
+        details = errorMsg;
+    } else {
+        details = `Message: ${errorMsg}\nSource: ${source || 'Unknown'}\nLine: ${lineno || '?'}, Col: ${colno || '?'}\nTime: ${new Date().toLocaleTimeString()}`;
+        if (stackTrace) {
+            details += `\n\nStack Trace:\n${stackTrace}`;
+        }
+    }
     const titleText = isNative ? '⚠️ Android Native Error (Debug Mode)' : '⚠️ WebView Error (Debug Mode)';
 
     const overlay = document.createElement('div');
@@ -83,12 +91,16 @@ function showDebugErrorOverlay(errorMsg, source, lineno, colno, isNative = false
 }
 
 window.onerror = function(msg, source, lineno, colno, error) {
-    showDebugErrorOverlay(msg, source, lineno, colno);
+    const stack = (error && error.stack) ? error.stack : '';
+    showDebugErrorOverlay(msg, source, lineno, colno, false, stack);
     return false;
 };
 
 window.addEventListener('unhandledrejection', function(event) {
-    showDebugErrorOverlay(event.reason ? event.reason.toString() : 'Unhandled Promise Rejection', 'Promise', 0, 0);
+    const reason = event.reason;
+    const msg = reason ? (reason.message || reason.toString()) : 'Unhandled Promise Rejection';
+    const stack = (reason && reason.stack) ? reason.stack : '';
+    showDebugErrorOverlay(msg, 'Promise', 0, 0, false, stack);
 });
 
 function getTranslation(key, ...args) {
@@ -670,12 +682,14 @@ function checkAndSyncPendingHistory() {
     }
 }
 window.checkAndSyncPendingHistory = checkAndSyncPendingHistory;
-setInterval(checkAndSyncPendingHistory, 2000);
 
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
         checkAndSyncPendingHistory();
     }
+});
+window.addEventListener('focus', () => {
+    checkAndSyncPendingHistory();
 });
 
 function completeTaskWithMemo(taskId, memo) {
