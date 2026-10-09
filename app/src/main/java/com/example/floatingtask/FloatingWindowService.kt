@@ -66,6 +66,8 @@ class FloatingWindowService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+        MelodyPlayer.setMaxMelodyDuration(prefs.getInt("maxMelodyDuration", 5))
         AppLogger.log(this, "FloatingWindowService onCreate")
         startForegroundService()
         val filter = IntentFilter("com.example.floatingtask.DATA_CHANGED")
@@ -770,9 +772,14 @@ class FloatingWindowService : Service() {
             WebPermissionHandler(this@FloatingWindowService).checkNotificationPermissionGranted()
 
         @JavascriptInterface
-        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String = "default", melodyMode: String = "once") {
-            AppLogger.log(this@FloatingWindowService, "FloatingWebAppInterface: setTimerAlarm for task $taskId ($taskText) duration=$durationMs, melody=$melody, mode=$melodyMode")
-            AlarmScheduler.scheduleTimerAlarm(this@FloatingWindowService, taskId, taskText, durationMs, melody, melodyMode)
+        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String, melodyMode: String) {
+            setTimerAlarm(taskId, taskText, durationMs, melody, melodyMode, "alarm")
+        }
+
+        @JavascriptInterface
+        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String, melodyMode: String, audioAttribute: String) {
+            AppLogger.log(this@FloatingWindowService, "FloatingWebAppInterface: setTimerAlarm for task $taskId ($taskText) duration=$durationMs, melody=$melody, mode=$melodyMode, audioAttr=$audioAttribute")
+            AlarmScheduler.scheduleTimerAlarm(this@FloatingWindowService, taskId, taskText, durationMs, melody, melodyMode, audioAttribute)
         }
 
         @JavascriptInterface
@@ -939,14 +946,33 @@ class FloatingWindowService : Service() {
         }
 
         @JavascriptInterface
-        fun playMelody(melody: String, looping: Boolean = false) {
-            MelodyPlayer.play(this@FloatingWindowService, melody, looping)
+        fun playMelody(melody: String, looping: Boolean = false, audioAttribute: String = "alarm") {
+            MelodyPlayer.play(this@FloatingWindowService, melody, looping, audioAttribute = audioAttribute)
         }
 
         @JavascriptInterface
         fun stopMelody() {
             MelodyPlayer.stop()
         }
+
+        @JavascriptInterface
+        fun setMelodyAudioAttribute(attr: String) {
+            val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            prefs.edit().putString("melodyAudioAttribute", attr).apply()
+        }
+
+        @JavascriptInterface
+        fun setMaxMelodyDuration(seconds: Int) {
+            val prefs = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            prefs.edit().putInt("maxMelodyDuration", seconds).apply()
+            MelodyPlayer.setMaxMelodyDuration(seconds)
+        }
+
+        @JavascriptInterface
+        fun getCurrentPosition(): Int = MelodyPlayer.getCurrentPosition()
+
+        @JavascriptInterface
+        fun getDuration(): Int = MelodyPlayer.getDuration()
 
         @JavascriptInterface
         fun saveAutoBackup(jsonData: String) {

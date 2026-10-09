@@ -15,15 +15,22 @@ object MelodyPlayer {
     var currentTaskText: String = ""
     var currentMelody: String = "default"
     var currentMelodyMode: String = "once"
+    var currentAudioAttribute: String = "alarm"
+    var maxMelodyDurationSec: Int = 5
 
-    fun play(context: Context, melody: String, looping: Boolean = false, taskId: Long = -1L, taskText: String = "") {
-        Log.d("MelodyPlayer", "play: $melody, looping: $looping, taskId: $taskId")
+    fun setMaxMelodyDuration(seconds: Int) {
+        maxMelodyDurationSec = if (seconds < 0) 0 else seconds
+    }
+
+    fun play(context: Context, melody: String, looping: Boolean = false, taskId: Long = -1L, taskText: String = "", audioAttribute: String = "alarm") {
+        Log.d("MelodyPlayer", "play: $melody, looping: $looping, taskId: $taskId, audioAttr: $audioAttribute")
         stop() // 既に再生中の場合は停止
 
         currentTaskId = taskId
         currentTaskText = taskText
         currentMelody = melody
         currentMelodyMode = if (looping) "loop" else "once"
+        currentAudioAttribute = audioAttribute
 
         try {
             val soundUri: Uri = when {
@@ -37,9 +44,11 @@ object MelodyPlayer {
                 setWakeMode(context, PowerManager.PARTIAL_WAKE_LOCK)
                 setDataSource(context, soundUri)
                 
-                // ループ設定時はアラーム、単発時は通知の属性を使用する
-                // 一部の端末で USAGE_ALARM を指定すると強制的にループされるのを防ぐため
-                val usage = if (looping) AudioAttributes.USAGE_ALARM else AudioAttributes.USAGE_NOTIFICATION
+                val usage = when (audioAttribute) {
+                    "notification" -> AudioAttributes.USAGE_NOTIFICATION
+                    "media" -> AudioAttributes.USAGE_MEDIA
+                    else -> AudioAttributes.USAGE_ALARM
+                }
                 
                 setAudioAttributes(
                     AudioAttributes.Builder()
@@ -56,6 +65,23 @@ object MelodyPlayer {
                 
                 prepare()
                 start()
+
+                if (!looping) {
+                    val dur = try { duration } catch (e: Exception) { 0 }
+                    val timeoutMs = when {
+                        maxMelodyDurationSec > 0 -> maxMelodyDurationSec * 1000L
+                        dur > 0 -> dur.toLong()
+                        else -> 0L
+                    }
+
+                    if (timeoutMs > 0) {
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            if (mediaPlayer == this) {
+                                stop()
+                            }
+                        }, timeoutMs)
+                    }
+                }
             }
         } catch (e: Exception) {
             Log.e("MelodyPlayer", "Error playing melody: ${e.message}")
@@ -82,4 +108,8 @@ object MelodyPlayer {
     fun isPlaying(): Boolean = mediaPlayer?.isPlaying == true
 
     fun isLooping(): Boolean = mediaPlayer?.isLooping == true
+
+    fun getCurrentPosition(): Int = try { mediaPlayer?.currentPosition ?: 0 } catch (e: Exception) { 0 }
+
+    fun getDuration(): Int = try { mediaPlayer?.duration ?: 0 } catch (e: Exception) { 0 }
 }

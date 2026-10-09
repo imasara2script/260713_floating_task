@@ -23,6 +23,11 @@ function addTask() {
         return;
     }
 
+    const audioAttrSelect = document.getElementById('taskAudioAttribute');
+    const applyMode = localStorage.getItem('melodyAudioApplyMode') || 'global';
+    const defaultAttr = localStorage.getItem('melodyAudioAttribute') || 'alarm';
+    const audioAttr = (applyMode === 'per_task' && audioAttrSelect) ? audioAttrSelect.value : defaultAttr;
+
     let targetTask;
     if (editingTaskId) {
         targetTask = tasks.find(t => t.id === editingTaskId);
@@ -34,6 +39,7 @@ function addTask() {
             targetTask.showCommentOnCheck = document.getElementById('showCommentOnCheck').checked;
             targetTask.selectedDays = Array.from(document.querySelectorAll('.reset-day-check:checked')).map(el => parseInt(el.value));
             targetTask.melodyMode = melodyModeSelect ? melodyModeSelect.value : "once";
+            targetTask.audioAttribute = audioAttr;
         }
     } else {
         const id = Date.now();
@@ -46,7 +52,8 @@ function addTask() {
             completed: false,
             showCommentOnCheck: document.getElementById('showCommentOnCheck').checked,
             selectedDays: Array.from(document.querySelectorAll('.reset-day-check:checked')).map(el => parseInt(el.value)),
-            melodyMode: melodyModeSelect ? melodyModeSelect.value : "once"
+            melodyMode: melodyModeSelect ? melodyModeSelect.value : "once",
+            audioAttribute: audioAttr
         };
     }
 
@@ -107,7 +114,7 @@ function addTask() {
         }
 
         if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-            Android.setTimerAlarm(targetTask.id, targetTask.text, durationMs, targetTask.melody || 'default', targetTask.melodyMode || 'once');
+            Android.setTimerAlarm(targetTask.id, targetTask.text, durationMs, targetTask.melody || 'default', targetTask.melodyMode || 'once', targetTask.audioAttribute || 'alarm');
         }
     } else {
         targetTask.durationMs = 0;

@@ -1,28 +1,20 @@
-# ウォークスルー - エンドレス再生中のスヌーズボタンおよび機能の実装
+# ウォークスルー - メロディ再生の不具合修正と再生時間（秒数）表示機能の実装
 
-エンドレス（ループ）再生中のメロディ再生バナーに「スヌーズ」ボタンを表示し、バナーからスヌーズを実行できるように実装しました。
+メロディの種類が「デフォルト」以外で「1回のみ」に設定していてもエンドレス再生されてしまう不具合の修正と、ご提案いただいた「選択したメロディの長さと現在の再生時間（経過時間 / 総秒数）の表示」機能を実装しました。
 
 ## 変更内容
 
-### Android ネイティブ側 (Kotlin)
-#### [MelodyPlayer.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MelodyPlayer.kt)
-- 現在のループ状態を返す `isLooping(): Boolean` を追加。
-- 現在再生中のタスクID (`currentTaskId`)、タスク名 (`currentTaskText`)、メロディ情報を保持するように拡張。
+### 1. 「1回のみ」設定時の単発再生の修正 (Kotlin)
+- **`MelodyPlayer.kt`**:
+  - `looping == false`（1回のみ）に設定されている場合、ループ特性を持つ「アラーム音 (`TYPE_ALARM`)」や「チャイム (`TYPE_RINGTONE`)」が選択されていても、短尺の「通知音 (`TYPE_NOTIFICATION`)」URIに安全にフォールバックすることで、確実に1回のみで停止するように修正しました。
 
-#### [AlarmReceiver.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/AlarmReceiver.kt)
-- 通知・アラームからのメロディ再生時に `taskId` と `taskName` を `MelodyPlayer.play` に渡すよう修正。
-
-#### [MainActivity.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MainActivity.kt) & [FloatingWindowService.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/FloatingWindowService.kt)
-- JavaScriptブリッジに以下のメソッドを追加：
-  - `isMelodyLooping(): Boolean`
-  - `snoozeMelody()` (再生中のタスクを停止し、設定されたスヌーズ時間でタイマーを再スケジュール)
-
-### JavaScript 側
-#### [app.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/app.js)
-- `checkMelodyStatus()` を拡張し、`Android.isMelodyLooping()` が真の場合のみ `snoozeMelodyBtn` を表示（`inline-block`）するよう制御。
-- `snoozeMelodyFromBanner()` 関数を実装し、`Android.snoozeMelody()` を呼び出すように設定。
+### 2. 再生時間（経過時間 / 総秒数）の取得・表示機能 (Kotlin & JS)
+- **`MelodyPlayer.kt`**:
+  - `getCurrentPosition()` および `getDuration()` メソッドを追加。
+- **`MainActivity.kt` & `FloatingWindowService.kt`**:
+  - JavaScript ブリッジに `getCurrentPosition()` と `getDuration()` を追加。
+- **`app.js` (`checkMelodyStatus`)**:
+  - メロディ再生中のバナー（メイン画面およびフローティングウィンドウ）に、現在の再生時間と総秒数を `(0:03 / 0:05)` のような形式でリアルタイム表示するようにしました。これにより、エンドレスになってしまっているか一目で判別可能です。
 
 ## 検証結果
-
-- Gradleビルドが正常に成功 (`app:assembleDebug`)。
-- エンドレス再生中のみスヌーズボタンが表示され、クリックすることでスヌーズおよび再生停止が正常に行われる仕組みを構築しました。
+- Gradle ビルド (`app:assembleDebug`) が正常に成功しました。

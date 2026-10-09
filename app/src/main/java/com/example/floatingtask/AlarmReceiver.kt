@@ -67,6 +67,7 @@ class AlarmReceiver : BroadcastReceiver() {
             val taskText = intent.getStringExtra("EXTRA_TASK_TEXT") ?: context.getString(R.string.timer_expired)
             val melody = intent.getStringExtra("EXTRA_MELODY") ?: "default"
             val melodyMode = intent.getStringExtra("EXTRA_MELODY_MODE") ?: "once"
+            val audioAttribute = intent.getStringExtra("EXTRA_AUDIO_ATTRIBUTE") ?: context.getSharedPreferences("prefs", Context.MODE_PRIVATE).getString("melodyAudioAttribute", "alarm") ?: "alarm"
 
             addPendingHistory(context, taskId, taskText, "通知", "timer_expired")
 
@@ -75,7 +76,7 @@ class AlarmReceiver : BroadcastReceiver() {
             val timestamp = sdf.format(Date())
             val messageWithTime = taskText + context.getString(R.string.timer_completion_time_format, timestamp)
 
-            showNotification(context, context.getString(R.string.timer_expired), messageWithTime, melody, melodyMode, taskId, taskText)
+            showNotification(context, context.getString(R.string.timer_expired), messageWithTime, melody, melodyMode, taskId, taskText, audioAttribute)
 
             if (melodyMode == "loop" && !WebPermissionHandler(context).checkNotificationPermissionGranted()) {
                 val actIntent = Intent(context, MainActivity::class.java).apply {
@@ -282,7 +283,7 @@ class AlarmReceiver : BroadcastReceiver() {
         showNotification(context, title, body, melody, melodyMode, taskId, taskText)
     }
 
-    private fun showNotification(context: Context, title: String, message: String, melody: String, melodyMode: String = "once", taskId: Long = -1L, rawTaskText: String = "") {
+    private fun showNotification(context: Context, title: String, message: String, melody: String, melodyMode: String = "once", taskId: Long = -1L, rawTaskText: String = "", audioAttribute: String = "alarm") {
         if (melody == "none") {
             showSilentNotification(context, title, message)
             return
@@ -333,7 +334,7 @@ class AlarmReceiver : BroadcastReceiver() {
         builder.setFullScreenIntent(fullScreenPendingIntent, true)
 
         // MelodyPlayerで再生開始
-        MelodyPlayer.play(context, melody, melodyMode == "loop", taskId, taskName)
+        MelodyPlayer.play(context, melody, melodyMode == "loop", taskId, taskName, audioAttribute)
 
         if (melodyMode == "loop") {
             builder.setOngoing(true)

@@ -128,6 +128,17 @@
             <h1 data-i18n="developer_title">開発者設定</h1>
         </div>
 
+        <div class="section-title" data-i18n="label_debug_mode">デバッグモード</div>
+        <div class="settings-card">
+            <div class="setting-item">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 8px;">
+                    <input type="checkbox" id="debugModeToggle" onchange="toggleDebugMode()" style="width: 20px; height: 20px; margin: 0;">
+                    <span data-i18n="label_debug_mode" style="font-weight: bold;">デバッグモード</span>
+                </label>
+                <div class="desc-text" style="font-size: 12px; color: #666; line-height: 1.4;" data-i18n="desc_debug_mode">有効化すると、WebView画面内でエラーが発生した際にエラー内容を画面上にポップアップ表示し、コピーできるようになります。</div>
+            </div>
+        </div>
+
         <div class="section-title" data-i18n="label_logging">ログ出力</div>
         <div class="settings-card">
             <div class="setting-item">
@@ -211,6 +222,7 @@
                 if (section) section.style.display = isEnabled ? 'block' : 'none';
                 if (isEnabled && typeof updateLogSize === 'function') updateLogSize();
             }
+            if (typeof loadDebugModeSettings === 'function') loadDebugModeSettings();
 
             // 通知権限の確認
             const statusEl = document.getElementById('notifStatus');

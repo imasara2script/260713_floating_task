@@ -257,9 +257,15 @@ function openTaskModal(taskId) {
             }
             var melody = task.melody || 'default';
             var melodyMode = task.melodyMode || 'once';
+            var audioAttr = task.audioAttribute || localStorage.getItem('melodyAudioAttribute') || 'alarm';
+            var applyMode = localStorage.getItem('melodyAudioApplyMode') || 'global';
             var select = document.getElementById('melodySelect');
             var modeSelect = document.getElementById('melodyMode');
+            var attrSelect = document.getElementById('taskAudioAttribute');
+            var attrGroup = document.getElementById('taskAudioAttributeGroup');
             var nameEl = document.getElementById('customMelodyName');
+            if (attrGroup) attrGroup.style.display = (applyMode === 'per_task') ? 'block' : 'none';
+            if (attrSelect) attrSelect.value = audioAttr;
             if (melody.startsWith('content://')) {
                 if (select) select.value = 'custom';
                 selectedCustomUri = melody;
@@ -317,6 +323,12 @@ function openTaskModal(taskId) {
         if (timerUnit) timerUnit.value = 'none';
         if (melodySelect) melodySelect.value = 'default';
         if (melodyModeSelect) melodyModeSelect.value = 'once';
+        var attrSelect = document.getElementById('taskAudioAttribute');
+        var attrGroup = document.getElementById('taskAudioAttributeGroup');
+        var applyMode = localStorage.getItem('melodyAudioApplyMode') || 'global';
+        var defaultAttr = localStorage.getItem('melodyAudioAttribute') || 'alarm';
+        if (attrGroup) attrGroup.style.display = (applyMode === 'per_task') ? 'block' : 'none';
+        if (attrSelect) attrSelect.value = defaultAttr;
         var checks = document.querySelectorAll('.reset-day-check');
         for(var i=0; i<checks.length; i++) checks[i].checked = false;
         currentDuration = { h: "0", m: "0", s: "0" };
@@ -602,8 +614,10 @@ window.toggleMelodyTest = toggleMelodyTest;
 
 function startMelodyTest(melody, targetId, looping) {
     if (looping === undefined) looping = false;
+    var applyMode = localStorage.getItem('melodyAudioApplyMode') || 'global';
+    var audioAttr = (applyMode === 'per_task' && targetId === 'main') ? (document.getElementById('taskAudioAttribute') ? document.getElementById('taskAudioAttribute').value : 'alarm') : (localStorage.getItem('melodyAudioAttribute') || 'alarm');
     if (typeof Android !== 'undefined' && Android.playMelody) {
-        Android.playMelody(melody, looping);
+        Android.playMelody(melody, looping, audioAttr);
         isMelodyTesting = true;
         var btnId = targetId === 'main' ? 'btn-test-melody' : 'btn-test-' + targetId;
         var btn = document.getElementById(btnId);

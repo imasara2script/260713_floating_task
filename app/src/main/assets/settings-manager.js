@@ -157,6 +157,48 @@ function loadMelodySettings() {
     var snoozeDuration = localStorage.getItem('snoozeDuration') || '5';
     var elSnooze = document.getElementById('snoozeDuration');
     if (elSnooze) elSnooze.value = snoozeDuration;
+
+    var maxDuration = localStorage.getItem('maxMelodyDuration');
+    if (maxDuration === null) maxDuration = '5';
+    var elMaxDuration = document.getElementById('maxMelodyDuration');
+    if (elMaxDuration) elMaxDuration.value = maxDuration;
+
+    var audioAttr = localStorage.getItem('melodyAudioAttribute') || 'alarm';
+    var audioMode = localStorage.getItem('melodyAudioApplyMode') || 'global';
+    var elAudioAttr = document.getElementById('audioAttributeSelect');
+    var elAudioMode = document.getElementById('audioApplyModeSelect');
+    if (elAudioAttr) elAudioAttr.value = audioAttr;
+    if (elAudioMode) elAudioMode.value = audioMode;
+}
+
+function updateMelodyAudioSettings() {
+    var elAudioAttr = document.getElementById('audioAttributeSelect');
+    var elAudioMode = document.getElementById('audioApplyModeSelect');
+    if (elAudioAttr) localStorage.setItem('melodyAudioAttribute', elAudioAttr.value);
+    if (elAudioMode) localStorage.setItem('melodyAudioApplyMode', elAudioMode.value);
+}
+
+function updateMaxMelodyDuration() {
+    var elMax = document.getElementById('maxMelodyDuration');
+    if (!elMax) return;
+    var val = parseInt(elMax.value);
+    if (isNaN(val) || val < 0) val = 0;
+    val = Math.min(300, val);
+    elMax.value = val;
+    localStorage.setItem('maxMelodyDuration', val.toString());
+    if (typeof Android !== 'undefined' && Android.setMaxMelodyDuration) {
+        Android.setMaxMelodyDuration(val);
+    }
+}
+
+function adjustMaxMelodyDuration(delta) {
+    var elMax = document.getElementById('maxMelodyDuration');
+    if (!elMax) return;
+    var val = parseInt(elMax.value);
+    if (isNaN(val) || val < 0) val = 0;
+    val = Math.max(0, Math.min(300, val + delta));
+    elMax.value = val;
+    updateMaxMelodyDuration();
 }
 
 function updateSnoozeDuration() {
@@ -756,7 +798,21 @@ window.saveHistorySettings = saveHistorySettings;
 window.openHistorySettings = openHistorySettings;
 window.updateNewTaskSettings = updateNewTaskSettings;
 window.loadMelodySettings = loadMelodySettings;
+window.updateMaxMelodyDuration = updateMaxMelodyDuration;
+window.adjustMaxMelodyDuration = adjustMaxMelodyDuration;
+window.updateMelodyAudioSettings = updateMelodyAudioSettings;
 window.updateSnoozeDuration = updateSnoozeDuration;
+window.loadDebugModeSettings = function() {
+    var isDebug = localStorage.getItem('debugMode') === 'true';
+    var toggle = document.getElementById('debugModeToggle');
+    if (toggle) toggle.checked = isDebug;
+};
+window.toggleDebugMode = function() {
+    var toggle = document.getElementById('debugModeToggle');
+    if (toggle) {
+        localStorage.setItem('debugMode', toggle.checked.toString());
+    }
+};
 window.adjustSnoozeDuration = adjustSnoozeDuration;
 window.loadFloatingSettings = loadFloatingSettings;
 window.updateFloatingSettingsVisibility = updateFloatingSettingsVisibility;

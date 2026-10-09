@@ -188,6 +188,9 @@ class MainActivity : AppCompatActivity(),
 
         webView.settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         
+        val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+        MelodyPlayer.setMaxMelodyDuration(prefs.getInt("maxMelodyDuration", 5))
+
         adCoinHandler = WebAdCoinHandler(this, webView)
         val permissionHandler = WebPermissionHandler(this)
         taskActionHandler = WebTaskActionHandler(this, permissionHandler, this)
@@ -574,8 +577,12 @@ class MainActivity : AppCompatActivity(),
         fun setIntervalAlarm(minutes: Int) = taskActionHandler.setIntervalAlarm(minutes)
 
         @JavascriptInterface
-        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String, melodyMode: String = "once") =
-            taskActionHandler.setTimerAlarm(taskId, taskText, durationMs, melody, melodyMode)
+        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String, melodyMode: String) =
+            taskActionHandler.setTimerAlarm(taskId, taskText, durationMs, melody, melodyMode, "alarm")
+
+        @JavascriptInterface
+        fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String, melodyMode: String, audioAttribute: String) =
+            taskActionHandler.setTimerAlarm(taskId, taskText, durationMs, melody, melodyMode, audioAttribute)
 
         @JavascriptInterface
         fun pickRingtone() = mediaHandler.pickRingtone()
@@ -681,15 +688,34 @@ class MainActivity : AppCompatActivity(),
         fun setHistorySetting(key: String, value: String) = settingsHandler.setHistorySetting(key, value)
 
         @JavascriptInterface
-        fun playMelody(melody: String, looping: Boolean = false) = mediaHandler.playMelody(melody, looping)
+        fun playMelody(melody: String, looping: Boolean = false, audioAttribute: String = "alarm") = mediaHandler.playMelody(melody, looping, audioAttribute)
 
         @JavascriptInterface
         fun stopMelody() = mediaHandler.stopMelody()
 
         @JavascriptInterface
+        fun setMelodyAudioAttribute(attr: String) {
+            val prefs = mContext.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            prefs.edit().putString("melodyAudioAttribute", attr).apply()
+        }
+
+        @JavascriptInterface
+        fun getCurrentPosition(): Int = MelodyPlayer.getCurrentPosition()
+
+        @JavascriptInterface
+        fun getDuration(): Int = MelodyPlayer.getDuration()
+
+        @JavascriptInterface
         fun setSnoozeDuration(minutes: Int) {
             val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
             prefs.edit { putInt("snoozeDuration", minutes) }
+        }
+
+        @JavascriptInterface
+        fun setMaxMelodyDuration(seconds: Int) {
+            val prefs = mContext.getSharedPreferences("prefs", MODE_PRIVATE)
+            prefs.edit().putInt("maxMelodyDuration", seconds).apply()
+            MelodyPlayer.setMaxMelodyDuration(seconds)
         }
 
         @JavascriptInterface

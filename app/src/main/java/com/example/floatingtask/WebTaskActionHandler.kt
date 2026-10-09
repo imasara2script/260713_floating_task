@@ -227,7 +227,7 @@ class WebTaskActionHandler(
         }
     }
 
-    fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String, melodyMode: String = "once") {
-        AlarmScheduler.scheduleTimerAlarm(context, taskId, taskText, durationMs, melody, melodyMode)
+    fun setTimerAlarm(taskId: Long, taskText: String, durationMs: Long, melody: String, melodyMode: String = "once", audioAttribute: String = "alarm") {
+        AlarmScheduler.scheduleTimerAlarm(context, taskId, taskText, durationMs, melody, melodyMode, audioAttribute)
     }
 }

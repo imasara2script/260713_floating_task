@@ -58,7 +58,7 @@ object AlarmScheduler {
         alarmManager.cancel(pendingIntent)
     }
 
-    fun scheduleTimerAlarm(context: Context, taskId: Long, taskText: String, durationMs: Long, melody: String, melodyMode: String = "once") {
+    fun scheduleTimerAlarm(context: Context, taskId: Long, taskText: String, durationMs: Long, melody: String, melodyMode: String = "once", audioAttribute: String = "alarm") {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = "ACTION_TIMER_EXPIRED"
@@ -66,6 +66,7 @@ object AlarmScheduler {
             putExtra("EXTRA_TASK_TEXT", taskText)
             putExtra("EXTRA_MELODY", melody)
             putExtra("EXTRA_MELODY_MODE", melodyMode)
+            putExtra("EXTRA_AUDIO_ATTRIBUTE", audioAttribute)
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,

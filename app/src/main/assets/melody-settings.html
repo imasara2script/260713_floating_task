@@ -112,7 +112,7 @@
             <h1 data-i18n="melody_settings_title">通知音・メロディ</h1>
         </div>
 
-        <div class="section-title">スヌーズ設定</div>
+        <div class="section-title">スヌーズ・通知時間設定</div>
         <div class="settings-card">
             <div class="setting-item">
                 <label class="label-text" for="snoozeDuration" data-i18n="label_snooze_duration">スヌーズの待機時間 (分):</label>
@@ -123,6 +123,62 @@
                     <button class="btn btn-secondary" onclick="adjustSnoozeDuration(1)" style="padding: 10px 16px; font-weight: bold;">+</button>
                 </div>
             </div>
+            <div class="setting-item" style="margin-top: 16px; border-top: 1px solid #eee; padding-top: 16px;">
+                <label class="label-text" for="maxMelodyDuration" data-i18n="label_max_melody_duration">1回のみ再生時の最大再生時間 (秒):</label>
+                <div class="desc-text" data-i18n="desc_max_melody_duration">鳴らし方が「1回のみ」の時、指定秒数経過後に自動停止します。0にすると時間制限なし（ファイル長さに依存）になります。</div>
+                <div class="input-control">
+                    <button class="btn btn-secondary" onclick="adjustMaxMelodyDuration(-1)" style="padding: 10px 16px; font-weight: bold;">-</button>
+                    <input type="number" id="maxMelodyDuration" class="number-input" min="0" max="300" onchange="updateMaxMelodyDuration()">
+                    <button class="btn btn-secondary" onclick="adjustMaxMelodyDuration(1)" style="padding: 10px 16px; font-weight: bold;">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title" data-i18n="section_audio_attributes">オーディオ属性</div>
+        <div class="settings-card">
+            <div class="setting-item" style="margin-bottom: 16px;">
+                <label class="label-text" for="audioAttributeSelect" data-i18n="label_audio_attribute">オーディオ属性:</label>
+                <select id="audioAttributeSelect" onchange="updateMelodyAudioSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                    <option value="alarm" data-i18n="audio_attr_alarm">アラーム</option>
+                    <option value="notification" data-i18n="audio_attr_notification">通知</option>
+                    <option value="media" data-i18n="audio_attr_media">メディア</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label class="label-text" for="audioApplyModeSelect" data-i18n="label_audio_apply_mode">適用方法:</label>
+                <select id="audioApplyModeSelect" onchange="updateMelodyAudioSettings()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;">
+                    <option value="global" data-i18n="audio_mode_global">すべてのタスクに共通で反映</option>
+                    <option value="per_task" data-i18n="audio_mode_per_task">タスク毎に選択できるようにする</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="section-title" data-i18n="section_audio_comparison">オーディオ属性の比較</div>
+        <div class="settings-card" style="overflow-x: auto; padding: 12px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                        <th style="padding: 8px; border: 1px solid #dee2e6;" data-i18n="comp_header_item">比較項目</th>
+                        <th style="padding: 8px; border: 1px solid #dee2e6;" data-i18n="audio_attr_alarm">アラーム</th>
+                        <th style="padding: 8px; border: 1px solid #dee2e6;" data-i18n="audio_attr_notification">通知</th>
+                        <th style="padding: 8px; border: 1px solid #dee2e6;" data-i18n="audio_attr_media">メディア</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6; font-weight: bold;" data-i18n="comp_linked_volume">連動する音量</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;" data-i18n="comp_vol_alarm">アラーム音量</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;" data-i18n="comp_vol_notification">通知音量（着信音量）</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;" data-i18n="comp_vol_media">メディア音量</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6; font-weight: bold;" data-i18n="comp_manner_behavior">マナーモード時の挙動</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;" data-i18n="comp_manner_alarm">必ず音が鳴る</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;" data-i18n="comp_manner_notification">消音される（バイブまたは無音）</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;" data-i18n="comp_manner_media">マナーモードでも音量が上がっていれば鳴る</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <button class="btn btn-secondary" style="width: 100%;" onclick="goBack()" data-i18n="btn_close">閉じる</button>

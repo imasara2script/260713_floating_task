@@ -5,6 +5,78 @@ window.mode = mode;
 let currentLang = 'ja';
 window.currentLang = currentLang;
 
+// デバッグモード用エラーキャッチ
+function showDebugErrorOverlay(errorMsg, source, lineno, colno) {
+    if (localStorage.getItem('debugMode') !== 'true') return;
+
+    // 既存のオーバーレイがあれば削除
+    const existing = document.getElementById('debugErrorOverlay');
+    if (existing) existing.remove();
+
+    const details = `Message: ${errorMsg}\nSource: ${source || 'Unknown'}\nLine: ${lineno || '?'}, Col: ${colno || '?'}\nTime: ${new Date().toLocaleTimeString()}`;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'debugErrorOverlay';
+    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; font-family:monospace;';
+
+    overlay.innerHTML = `
+        <div style="background:#fff; color:#333; width:100%; max-width:500px; border-radius:8px; padding:20px; box-sizing:border-box; display:flex; flex-direction:column; max-height:80vh;">
+            <div style="font-weight:bold; color:#dc3545; font-size:16px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                <span>⚠️ WebView Error (Debug Mode)</span>
+            </div>
+            <textarea id="debugErrorText" readonly style="flex-grow:1; width:100%; height:200px; padding:10px; border:1px solid #ddd; border-radius:4px; font-family:monospace; font-size:12px; background:#f8f9fa; resize:none; box-sizing:border-box; margin-bottom:16px;">${details}</textarea>
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+                <button id="debugCopyBtn" class="btn btn-primary" style="padding:8px 16px; font-size:14px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer;" data-i18n="btn_copy_error">エラーをコピー</button>
+                <button id="debugCloseBtn" class="btn btn-secondary" style="padding:8px 16px; font-size:14px; background:#6c757d; color:white; border:none; border-radius:4px; cursor:pointer;" data-i18n="btn_close">閉じる</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const copyBtn = overlay.querySelector('#debugCopyBtn');
+    if (copyBtn) {
+        copyBtn.textContent = typeof getTranslation === 'function' ? getTranslation('btn_copy_error') : 'Copy Error';
+        copyBtn.onclick = function() {
+            const ta = overlay.querySelector('#debugErrorText');
+            ta.select();
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(ta.value).then(() => {
+                        alert(typeof getTranslation === 'function' ? getTranslation('msg_error_copied') : 'Error copied to clipboard');
+                    }).catch(() => {
+                        document.execCommand('copy');
+                        alert(typeof getTranslation === 'function' ? getTranslation('msg_error_copied') : 'Error copied to clipboard');
+                    });
+                } else {
+                    document.execCommand('copy');
+                    alert(typeof getTranslation === 'function' ? getTranslation('msg_error_copied') : 'Error copied to clipboard');
+                }
+            } catch (e) {
+                document.execCommand('copy');
+                alert(typeof getTranslation === 'function' ? getTranslation('msg_error_copied') : 'Error copied to clipboard');
+            }
+        };
+    }
+
+    const closeBtn = overlay.querySelector('#debugCloseBtn');
+    if (closeBtn) {
+        closeBtn.textContent = typeof getTranslation === 'function' ? getTranslation('btn_close') : 'Close';
+        closeBtn.onclick = function() {
+            overlay.remove();
+        };
+    }
+}
+
+window.onerror = function(msg, source, lineno, colno, error) {
+    showDebugErrorOverlay(msg, source, lineno, colno);
+    return false;
+};
+
+window.addEventListener('unhandledrejection', function(event) {
+    showDebugErrorOverlay(event.reason ? event.reason.toString() : 'Unhandled Promise Rejection', 'Promise', 0, 0);
+});
+
 function getTranslation(key, ...args) {
     let text = (translations[currentLang] && translations[currentLang][key]) || translations['en'][key] || key;
     args.forEach((arg, i) => {
@@ -19,11 +91,29 @@ function checkMelodyStatus() {
         const playing = Android.isMelodyPlaying();
         const isLooping = (typeof Android.isMelodyLooping === 'function') ? Android.isMelodyLooping() : false;
         const snoozeDuration = localStorage.getItem('snoozeDuration') || '5';
+
+        let posStr = "";
+        if (playing && typeof Android.getCurrentPosition === 'function' && typeof Android.getDuration === 'function') {
+            const pos = Android.getCurrentPosition();
+            const dur = Android.getDuration();
+            if (dur > 0) {
+                const formatTime = (ms) => {
+                    const sec = Math.floor(ms / 1000);
+                    const m = Math.floor(sec / 60);
+                    const s = sec % 60;
+                    return m + ":" + (s < 10 ? "0" : "") + s;
+                };
+                posStr = ` (${formatTime(pos)} / ${formatTime(dur)})`;
+            }
+        }
+
         const banner = document.getElementById('melodyPlayingBanner');
         const fBanner = document.getElementById('floatingMelodyBanner');
         if (banner) {
             banner.style.display = playing ? 'flex' : 'none';
             if (playing && typeof getTranslation === 'function') {
+                const msgSpan = banner.querySelector('span > span');
+                if (msgSpan) msgSpan.textContent = getTranslation('msg_melody_playing') + posStr;
                 const stopBtn = banner.querySelector('button:last-child');
                 if (stopBtn) stopBtn.textContent = getTranslation('btn_stop');
                 const snoozeBtn = document.getElementById('snoozeMelodyBtn');
@@ -36,6 +126,8 @@ function checkMelodyStatus() {
         if (fBanner) {
             fBanner.style.display = playing ? 'flex' : 'none';
             if (playing && typeof getTranslation === 'function') {
+                const fMsgSpan = fBanner.querySelector('span > span');
+                if (fMsgSpan) fMsgSpan.textContent = getTranslation('msg_melody_playing') + posStr;
                 const fStopBtn = fBanner.querySelector('button:last-child');
                 if (fStopBtn) fStopBtn.textContent = getTranslation('btn_stop');
                 const fSnoozeBtn = document.getElementById('floatingSnoozeMelodyBtn');
@@ -708,7 +800,7 @@ function repeatTimerCore(taskId) {
     const melody = task.melody || 'default';
     const melodyMode = task.melodyMode || 'once';
     if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-        Android.setTimerAlarm(task.id, task.text, task.durationMs, melody, melodyMode);
+        Android.setTimerAlarm(task.id, task.text, task.durationMs, melody, melodyMode, task.audioAttribute || localStorage.getItem('melodyAudioAttribute') || 'alarm');
     }
 
     history.unshift({
@@ -742,6 +834,10 @@ function repeatTimerCore(taskId) {
 
     if (typeof Android !== 'undefined' && Android.updateTaskCompletionState) {
         Android.updateTaskCompletionState(task.id, false);
+    }
+
+    if (typeof render === 'function') {
+        render();
     }
 
     saveTasks();
