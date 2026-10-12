@@ -614,8 +614,10 @@ window.toggleMelodyTest = toggleMelodyTest;
 
 function startMelodyTest(melody, targetId, looping) {
     if (looping === undefined) looping = false;
-    var applyMode = localStorage.getItem('melodyAudioApplyMode') || 'global';
-    var audioAttr = (applyMode === 'per_task' && targetId === 'main') ? (document.getElementById('taskAudioAttribute') ? document.getElementById('taskAudioAttribute').value : 'alarm') : (localStorage.getItem('melodyAudioAttribute') || 'alarm');
+    var audioAttr = (typeof getEffectiveAudioAttribute === 'function') ? getEffectiveAudioAttribute(editingTaskId ? tasks.find(function(t) { return t.id === editingTaskId; }) : null) : (localStorage.getItem('melodyAudioAttribute') || 'alarm');
+    if (targetId === 'main' && document.getElementById('taskAudioAttribute') && localStorage.getItem('melodyAudioApplyMode') === 'per_task') {
+        audioAttr = document.getElementById('taskAudioAttribute').value;
+    }
     if (typeof Android !== 'undefined' && Android.playMelody) {
         Android.playMelody(melody, looping, audioAttr);
         isMelodyTesting = true;

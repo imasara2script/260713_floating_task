@@ -169,12 +169,21 @@ function loadMelodySettings() {
     var elAudioMode = document.getElementById('audioApplyModeSelect');
     if (elAudioAttr) elAudioAttr.value = audioAttr;
     if (elAudioMode) elAudioMode.value = audioMode;
+
+    if (typeof Android !== 'undefined' && Android.setMelodyAudioAttribute) {
+        Android.setMelodyAudioAttribute(audioAttr);
+    }
 }
 
 function updateMelodyAudioSettings() {
     var elAudioAttr = document.getElementById('audioAttributeSelect');
     var elAudioMode = document.getElementById('audioApplyModeSelect');
-    if (elAudioAttr) localStorage.setItem('melodyAudioAttribute', elAudioAttr.value);
+    if (elAudioAttr) {
+        localStorage.setItem('melodyAudioAttribute', elAudioAttr.value);
+        if (typeof Android !== 'undefined' && Android.setMelodyAudioAttribute) {
+            Android.setMelodyAudioAttribute(elAudioAttr.value);
+        }
+    }
     if (elAudioMode) localStorage.setItem('melodyAudioApplyMode', elAudioMode.value);
 }
 

@@ -24,6 +24,7 @@ object MelodyPlayer {
 
     fun play(context: Context, melody: String, looping: Boolean = false, taskId: Long = -1L, taskText: String = "", audioAttribute: String = "alarm") {
         Log.d("MelodyPlayer", "play: $melody, looping: $looping, taskId: $taskId, audioAttr: $audioAttribute")
+        AppLogger.log(context, "MelodyPlayer.play: melody=$melody, looping=$looping, audioAttribute=$audioAttribute, taskId=$taskId")
         stop() // 既に再生中の場合は停止
 
         currentTaskId = taskId

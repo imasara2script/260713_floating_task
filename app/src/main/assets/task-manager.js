@@ -114,7 +114,8 @@ function addTask() {
         }
 
         if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-            Android.setTimerAlarm(targetTask.id, targetTask.text, durationMs, targetTask.melody || 'default', targetTask.melodyMode || 'once', targetTask.audioAttribute || 'alarm');
+            const currentAudioAttr = (typeof getEffectiveAudioAttribute === 'function') ? getEffectiveAudioAttribute(targetTask) : (targetTask.audioAttribute || localStorage.getItem('melodyAudioAttribute') || 'alarm');
+            Android.setTimerAlarm(targetTask.id, targetTask.text, durationMs, targetTask.melody || 'default', targetTask.melodyMode || 'once', currentAudioAttr);
         }
     } else {
         targetTask.durationMs = 0;

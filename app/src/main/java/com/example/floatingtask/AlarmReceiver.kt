@@ -69,7 +69,17 @@ class AlarmReceiver : BroadcastReceiver() {
             val melodyMode = intent.getStringExtra("EXTRA_MELODY_MODE") ?: "once"
             val audioAttribute = intent.getStringExtra("EXTRA_AUDIO_ATTRIBUTE") ?: context.getSharedPreferences("prefs", Context.MODE_PRIVATE).getString("melodyAudioAttribute", "alarm") ?: "alarm"
 
-            addPendingHistory(context, taskId, taskText, "通知", "timer_expired")
+            val isJa = Locale.getDefault().language == "ja"
+            val attrLabel = when (audioAttribute) {
+                "notification" -> if (isJa) "通知" else "Notification"
+                "media" -> if (isJa) "メディア" else "Media"
+                else -> if (isJa) "アラーム" else "Alarm"
+            }
+            val eventTitle = if (isJa) "通知(オーディオ属性:$attrLabel)" else "Notification (Audio attr: $attrLabel)"
+
+            AppLogger.log(context, "AlarmReceiver: Timer expired, taskText=$taskText, audioAttribute=$audioAttribute, eventTitle=$eventTitle")
+
+            addPendingHistory(context, taskId, taskText, eventTitle, "timer_expired")
 
             // 完了日時を取得
             val sdf = SimpleDateFormat("MM/dd (E) HH:mm", Locale.getDefault())

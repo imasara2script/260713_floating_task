@@ -112,6 +112,16 @@ function getTranslation(key, ...args) {
 }
 window.getTranslation = getTranslation;
 
+function getEffectiveAudioAttribute(task) {
+    const applyMode = localStorage.getItem('melodyAudioApplyMode') || 'global';
+    if (applyMode === 'per_task') {
+        return (task && task.audioAttribute) ? task.audioAttribute : (localStorage.getItem('melodyAudioAttribute') || 'alarm');
+    } else {
+        return localStorage.getItem('melodyAudioAttribute') || 'alarm';
+    }
+}
+window.getEffectiveAudioAttribute = getEffectiveAudioAttribute;
+
 function checkMelodyStatus() {
     if (typeof Android !== 'undefined' && typeof Android.isMelodyPlaying === 'function') {
         const playing = Android.isMelodyPlaying();
@@ -583,7 +593,8 @@ function checkDailyReset() {
             const remaining = (t.startTime + t.durationMs) - Date.now();
             if (remaining > 0) {
                 if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-                    Android.setTimerAlarm(t.id, t.text, remaining, t.melody || 'default');
+                    const audioAttr = getEffectiveAudioAttribute(t);
+                    Android.setTimerAlarm(t.id, t.text, remaining, t.melody || 'default', t.melodyMode || 'once', audioAttr);
                 }
             }
         }
@@ -829,7 +840,7 @@ function repeatTimerCore(taskId) {
     const melody = task.melody || 'default';
     const melodyMode = task.melodyMode || 'once';
     if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-        Android.setTimerAlarm(task.id, task.text, task.durationMs, melody, melodyMode, task.audioAttribute || localStorage.getItem('melodyAudioAttribute') || 'alarm');
+        Android.setTimerAlarm(task.id, task.text, task.durationMs, melody, melodyMode, getEffectiveAudioAttribute(task));
     }
 
     history.unshift({
