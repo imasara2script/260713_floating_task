@@ -34,16 +34,68 @@ function showModal(title, options) {
     cancelBtn.style.display = options.hideCancel ? 'none' : 'inline-block';
     confirmBtn.textContent = options.confirmText || 'OK';
     cancelBtn.textContent = options.cancelText || getTranslation('btn_cancel');
-    if (neutralBtn) {
-        if (options.neutralText) {
-            neutralBtn.style.display = 'inline-block';
-            neutralBtn.textContent = options.neutralText;
-            neutralBtn.onclick = function() {
-                closeModal();
-                if (options.onNeutral) options.onNeutral();
-            };
-        } else {
-            neutralBtn.style.display = 'none';
+
+    var existingCards = document.getElementById('customChoiceCardsContainer');
+    if (existingCards) existingCards.remove();
+
+    var isChoiceCardMode = options.neutralText && options.confirmText && !options.showInput && !options.showTextarea;
+    if (isChoiceCardMode) {
+        confirmBtn.style.display = 'none';
+        if (neutralBtn) neutralBtn.style.display = 'none';
+
+        var choiceContainer = document.createElement('div');
+        choiceContainer.id = 'customChoiceCardsContainer';
+        choiceContainer.style.cssText = 'display: flex; gap: 12px; margin: 20px 0; justify-content: center;';
+
+        // 左カード (広告視聴 / onNeutral)
+        var cardLeft = document.createElement('div');
+        cardLeft.style.cssText = 'flex: 1; border: 2px solid #333; border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.05); transition: background 0.2s;';
+        cardLeft.innerHTML = `
+            <div style="margin-bottom: 8px; display: flex; justify-content: center;">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="#007bff"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+            </div>
+            <div style="font-weight: bold; font-size: 14px; color: #333;">${options.neutralText}</div>
+        `;
+        cardLeft.onmouseover = function() { cardLeft.style.background = '#f8f9fa'; };
+        cardLeft.onmouseout = function() { cardLeft.style.background = '#fff'; };
+        cardLeft.onclick = function() {
+            closeModal();
+            if (options.onNeutral) options.onNeutral();
+        };
+
+        // 右カード (コイン使用 / onConfirm)
+        var cardRight = document.createElement('div');
+        cardRight.style.cssText = 'flex: 1; border: 2px solid #333; border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.05); transition: background 0.2s;';
+        cardRight.innerHTML = `
+            <div style="margin-bottom: 8px; display: flex; justify-content: center;">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="#ffc107"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-13c-2.38 0-4.31 1.93-4.31 4.31 0 1.16.45 2.22 1.19 3.01l-1.42 1.42c-.93-1.07-1.5-2.48-1.5-4.03 0-3.31 2.69-6 6-6 1.55 0 2.96.57 4.03 1.5l-1.42 1.42c-.79-.74-1.85-1.19-3.01-1.19z"/></svg>
+            </div>
+            <div style="font-weight: bold; font-size: 14px; color: #333;">${options.confirmText}</div>
+        `;
+        cardRight.onmouseover = function() { cardRight.style.background = '#f8f9fa'; };
+        cardRight.onmouseout = function() { cardRight.style.background = '#fff'; };
+        cardRight.onclick = function() {
+            closeModal();
+            var val = options.showTextarea ? textareaEl.value : inputEl.value;
+            if (options.onConfirm) options.onConfirm(val);
+        };
+
+        choiceContainer.appendChild(cardLeft);
+        choiceContainer.appendChild(cardRight);
+
+        textareaEl.parentNode.insertBefore(choiceContainer, textareaEl.nextSibling);
+    } else {
+        if (neutralBtn) {
+            if (options.neutralText) {
+                neutralBtn.style.display = 'inline-block';
+                neutralBtn.textContent = options.neutralText;
+                neutralBtn.onclick = function() {
+                    closeModal();
+                    if (options.onNeutral) options.onNeutral();
+                };
+            } else {
+                neutralBtn.style.display = 'none';
+            }
         }
     }
     confirmBtn.onclick = function() {
@@ -88,6 +140,8 @@ function showModal(title, options) {
 function closeModal() {
     var modal = document.getElementById('customModal');
     if (modal) modal.style.display = 'none';
+    var existingCards = document.getElementById('customChoiceCardsContainer');
+    if (existingCards) existingCards.remove();
 }
 
 function switchToViewMode() {

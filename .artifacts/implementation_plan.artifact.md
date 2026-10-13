@@ -1,18 +1,26 @@
-# タスクのチェック状態変更ディレイ中のキャンセル機能の実装計画
+# 広告視聴・コイン使用選択モーダルの新レイアウト実装計画
 
-タスクのチェック状態（完了/未完了）を変更した際のディレイ（遅延タイマー）待機中に、ユーザーが再度チェック状態を戻した場合に、対象タスクの保留中の並び順変更タイマーをキャンセルする機能を実装します。
+「広告を視聴するかコインを使用するか」を選択する問い合わせモーダルについて、添付画像に示されたデザイン（上部説明文、横並びの大きな角丸アイコン付き2ボタン、下部キャンセルリンク）のレイアウトに刷新します。
+
+## User Review Required
+
+> [!IMPORTANT]
+> - **レイアウト要件**:
+>   - 上部: 説明テキスト（メッセージ）
+>   - 中央: 横並びの大きな角丸枠ボタン2つ（左側に「アイコン＋広告視聴」、右側に「アイコン＋コイン使用」）
+>   - 下部: 「キャンセル」ボタン/リンク
+> - **適用範囲**: コインが残っており、広告視聴とコイン使用の両方が選択可能な確認モーダル (`showModal` で `neutralText` と `confirmText` が両方指定されている場合、または専用フラグ指定時)。
 
 ## Proposed Changes
 
-### JavaScript
+### UI & Modal Logic (JavaScript / HTML)
 
-#### [MODIFY] [app.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/app.js)
-- タスクIDごとの保留中タイムアウトIDを保持するマップ（`window.activeHideTimeouts = window.activeHideTimeouts || {}`）を導入します。
-- `completeTaskWithMemo`, `toggleTaskCore`, `repeatTimerCore` 等で `setTimeout` をスケジュールする際、同タスクに対する既存のタイマーがあれば `clearTimeout` でクリアします。
-- これにより、ディレイ中に状態が元に戻された場合、並び順変更がキャンセルされるようになります。
+#### [MODIFY] [modal-manager.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/modal-manager.js)
+- `showModal` 関数を拡張し、`neutralText`（広告視聴）と `confirmText`（コイン使用）の両方が存在する場合に、標準のボタン領域の代わりに横並びの大きな角丸カードボタン（アイコン付き）を描画するようにします。
+- カードをクリックした際に、それぞれ対応するアクション（`onNeutral` または `onConfirm`）が実行されるようにします。
 
 ## Verification Plan
 
 ### Manual Verification
-- ユーザーによるビルドおよび動作確認（API利用制限のため、コード修正のみ行いビルドはユーザーにお任せします）。
-- タスクにチェックを入れ、ディレイ時間（例: 2秒）の間に再度チェックを外した場合に、並び順が変化しないことを確認。
+- コインを1枚以上持った状態で、タスク制限解除やバックガード確定などの「広告視聴 or コイン使用」モーダルを開き、添付画像のような2カラムのカード型レイアウトになっていることを確認。
+- それぞれのボタンおよびキャンセルが正しく機能することを確認。
