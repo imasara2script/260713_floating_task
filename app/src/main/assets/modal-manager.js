@@ -311,7 +311,7 @@ function openTaskModal(taskId) {
             }
             var melody = task.melody || 'default';
             var melodyMode = task.melodyMode || 'once';
-            var audioAttr = task.audioAttribute || localStorage.getItem('melodyAudioAttribute') || 'alarm';
+            var audioAttr = task.audioAttribute || 'default';
             var applyMode = localStorage.getItem('melodyAudioApplyMode') || 'global';
             var select = document.getElementById('melodySelect');
             var modeSelect = document.getElementById('melodyMode');
@@ -380,7 +380,7 @@ function openTaskModal(taskId) {
         var attrSelect = document.getElementById('taskAudioAttribute');
         var attrGroup = document.getElementById('taskAudioAttributeGroup');
         var applyMode = localStorage.getItem('melodyAudioApplyMode') || 'global';
-        var defaultAttr = localStorage.getItem('melodyAudioAttribute') || 'alarm';
+        var defaultAttr = 'default';
         if (attrGroup) attrGroup.style.display = (applyMode === 'per_task') ? 'block' : 'none';
         if (attrSelect) attrSelect.value = defaultAttr;
         var checks = document.querySelectorAll('.reset-day-check');

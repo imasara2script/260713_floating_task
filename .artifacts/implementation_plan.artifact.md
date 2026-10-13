@@ -1,26 +1,37 @@
-# 広告視聴・コイン使用選択モーダルの新レイアウト実装計画
+# タスク毎のオーディオ属性選択肢への「デフォルト」追加実装計画
 
-「広告を視聴するかコインを使用するか」を選択する問い合わせモーダルについて、添付画像に示されたデザイン（上部説明文、横並びの大きな角丸アイコン付き2ボタン、下部キャンセルリンク）のレイアウトに刷新します。
+タスク毎のオーディオ属性選択 (`per_task` モード) において、選択肢に「デフォルト」を追加し、「デフォルト」が選択された場合は設定画面で指定されている共通のオーディオ属性の設定に従う（フォールバックする）ように実装します。
 
 ## User Review Required
 
 > [!IMPORTANT]
-> - **レイアウト要件**:
->   - 上部: 説明テキスト（メッセージ）
->   - 中央: 横並びの大きな角丸枠ボタン2つ（左側に「アイコン＋広告視聴」、右側に「アイコン＋コイン使用」）
->   - 下部: 「キャンセル」ボタン/リンク
-> - **適用範囲**: コインが残っており、広告視聴とコイン使用の両方が選択可能な確認モーダル (`showModal` で `neutralText` と `confirmText` が両方指定されている場合、または専用フラグ指定時)。
+> - **選択肢の追加**: タスク追加・編集モーダルのオーディオ属性ドロップダウンに「デフォルト」 (`default`) を追加。
+> - **評価ロジック (`getEffectiveAudioAttribute`)**:
+>   - 「タスク毎に選択 (`per_task`)」モード時：
+>     - タスク固有のオーディオ属性が `"default"`（または未指定）の場合、設定画面の共通オーディオ属性（`melodyAudioAttribute`）に従う。
+>     - それ以外の場合はタスク固有の属性を優先する。
+   - 翻訳文字列（`audio_attr_default`）を追加。
 
 ## Proposed Changes
 
-### UI & Modal Logic (JavaScript / HTML)
+### Translations
 
-#### [MODIFY] [modal-manager.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/modal-manager.js)
-- `showModal` 関数を拡張し、`neutralText`（広告視聴）と `confirmText`（コイン使用）の両方が存在する場合に、標準のボタン領域の代わりに横並びの大きな角丸カードボタン（アイコン付き）を描画するようにします。
-- カードをクリックした際に、それぞれ対応するアクション（`onNeutral` または `onConfirm`）が実行されるようにします。
+#### [MODIFY] [translations.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/translations.js)
+- `audio_attr_default` ("デフォルト" / "Default (Follow Settings)") の翻訳文字列を追加。
+
+### UI & Settings (HTML / JS)
+
+#### [MODIFY] [index.html](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/index.html)
+- タスクモーダルの `taskAudioAttribute` セレクトボックスに `<option value="default" data-i18n="audio_attr_default">デフォルト</option>` を最初（または適切な位置）に追加。
+
+#### [MODIFY] [app.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/app.js)
+- `getEffectiveAudioAttribute(task)` 関数を更新：
+  - `per_task` モード時、`task.audioAttribute` が有効かつ `"default"` でない場合はその値を使用。
+  - そうでない場合（`"default"` または未設定、あるいは `global` モード）は共通設定（`localStorage.getItem('melodyAudioAttribute') || 'alarm'`）を使用する。
 
 ## Verification Plan
 
 ### Manual Verification
-- コインを1枚以上持った状態で、タスク制限解除やバックガード確定などの「広告視聴 or コイン使用」モーダルを開き、添付画像のような2カラムのカード型レイアウトになっていることを確認。
-- それぞれのボタンおよびキャンセルが正しく機能することを確認。
+- 設定画面で「タスク毎に選択」にする。
+- タスクの追加・編集モーダルでオーディオ属性に「デフォルト」を選択して保存する。
+- 設定画面の共通オーディオ属性を変更した際、「デフォルト」に設定されたタスクがその共通設定に正しく従うことを確認する。

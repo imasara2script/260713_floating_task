@@ -114,10 +114,15 @@ window.getTranslation = getTranslation;
 
 function getEffectiveAudioAttribute(task) {
     const applyMode = localStorage.getItem('melodyAudioApplyMode') || 'global';
+    const globalAttr = localStorage.getItem('melodyAudioAttribute') || 'alarm';
     if (applyMode === 'per_task') {
-        return (task && task.audioAttribute) ? task.audioAttribute : (localStorage.getItem('melodyAudioAttribute') || 'alarm');
+        const attr = task ? task.audioAttribute : null;
+        if (attr && attr !== 'default') {
+            return attr;
+        }
+        return globalAttr;
     } else {
-        return localStorage.getItem('melodyAudioAttribute') || 'alarm';
+        return globalAttr;
     }
 }
 window.getEffectiveAudioAttribute = getEffectiveAudioAttribute;
