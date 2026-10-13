@@ -122,6 +122,37 @@ function getEffectiveAudioAttribute(task) {
 }
 window.getEffectiveAudioAttribute = getEffectiveAudioAttribute;
 
+window.activeHideTimeouts = window.activeHideTimeouts || {};
+
+function scheduleTaskRenderDelay(task, newState) {
+    if (window.activeHideTimeouts[task.id]) {
+        clearTimeout(window.activeHideTimeouts[task.id]);
+        delete window.activeHideTimeouts[task.id];
+
+        if (task.completed === task.initialCompletedBeforeDelay) {
+            delete task.justCompletedUntil;
+            delete task.justUncompletedUntil;
+            return;
+        }
+    } else {
+        task.initialCompletedBeforeDelay = !newState;
+    }
+
+    if (task.completed === task.initialCompletedBeforeDelay) {
+        delete task.justCompletedUntil;
+        delete task.justUncompletedUntil;
+        return;
+    }
+
+    window.activeHideTimeouts[task.id] = setTimeout(() => {
+        delete window.activeHideTimeouts[task.id];
+        delete task.justCompletedUntil;
+        delete task.justUncompletedUntil;
+        if (typeof render === 'function') render();
+    }, checkedHideDelay * 1000);
+}
+window.scheduleTaskRenderDelay = scheduleTaskRenderDelay;
+
 function checkMelodyStatus() {
     if (typeof Android !== 'undefined' && typeof Android.isMelodyPlaying === 'function') {
         const playing = Android.isMelodyPlaying();
@@ -722,9 +753,8 @@ function completeTaskWithMemo(taskId, memo) {
             if (history.length > 500) history.pop();
 
             t.justCompletedUntil = Date.now() + (checkedHideDelay * 1000);
-            setTimeout(() => {
-                if (typeof render === 'function') render();
-            }, checkedHideDelay * 1000);
+            delete t.justUncompletedUntil;
+            scheduleTaskRenderDelay(t, true);
 
             // 連続実行回数の更新 (タイマーなしタスクのみ)
             if (!t.durationMs) {
@@ -809,9 +839,7 @@ function toggleTaskCore(taskId, onCommentRequired) {
         Android.updateTaskCompletionState(task.id, task.completed);
     }
 
-    setTimeout(() => {
-        if (typeof render === 'function') render();
-    }, checkedHideDelay * 1000);
+    scheduleTaskRenderDelay(task, newState);
 
     saveTasks();
 }
