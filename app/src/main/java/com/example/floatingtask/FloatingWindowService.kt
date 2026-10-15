@@ -970,6 +970,11 @@ class FloatingWindowService : Service() {
         }
 
         @JavascriptInterface
+        fun schedulePendingTaskNotifications(jsonStr: String) {
+            AlarmScheduler.schedulePendingTaskNotifications(this@FloatingWindowService, jsonStr)
+        }
+
+        @JavascriptInterface
         fun getLastNativeError(): String = CrashHandler.getLastNativeError(this@FloatingWindowService) ?: ""
 
         @JavascriptInterface

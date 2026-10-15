@@ -720,6 +720,9 @@ class MainActivity : AppCompatActivity(),
         }
 
         @JavascriptInterface
+        fun schedulePendingTaskNotifications(jsonStr: String) = settingsHandler.schedulePendingTaskNotifications(jsonStr)
+
+        @JavascriptInterface
         fun getLastNativeError(): String = CrashHandler.getLastNativeError(mContext) ?: ""
 
         @JavascriptInterface

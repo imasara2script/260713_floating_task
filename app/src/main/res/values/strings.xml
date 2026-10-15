@@ -34,4 +34,6 @@
     <string name="snoozing_prefix">スヌーズ中: %1$s</string>
     <string name="renotify_at_format">再通知予定時刻: %1$s</string>
     <string name="btn_cancel_snooze">スヌーズをキャンセル</string>
+    <string name="pending_tasks_notification_title">未完了タスクの通知</string>
+    <string name="pending_tasks_notification_body">未完了のタスクが残っています。確認してください。</string>
 </resources>

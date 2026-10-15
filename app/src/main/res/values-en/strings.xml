@@ -34,4 +34,6 @@
     <string name="snoozing_prefix">Snoozing: %1$s</string>
     <string name="renotify_at_format">Renotify at: %1$s</string>
     <string name="btn_cancel_snooze">Cancel Snooze</string>
+    <string name="pending_tasks_notification_title">Pending Tasks Notification</string>
+    <string name="pending_tasks_notification_body">You have pending tasks. Please check your task list.</string>
 </resources>

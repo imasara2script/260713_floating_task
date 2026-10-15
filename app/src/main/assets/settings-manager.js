@@ -153,6 +153,83 @@ function updateNewTaskSettings() {
     if (chkKeepDuration) localStorage.setItem('keepDurationTaskOnReset', keepDuration);
 }
 
+var pendingTaskNotifications = [];
+
+function loadPendingTaskNotificationSettings() {
+    try {
+        pendingTaskNotifications = JSON.parse(localStorage.getItem('pendingTaskNotifications') || '[]');
+    } catch(e) {
+        pendingTaskNotifications = [];
+    }
+    renderPendingTaskNotificationList();
+}
+
+function renderPendingTaskNotificationList() {
+    var container = document.getElementById('pendingTaskNotificationList');
+    if (!container) return;
+
+    if (!pendingTaskNotifications || pendingTaskNotifications.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    var html = '';
+    pendingTaskNotifications.forEach(function(item, index) {
+        var idStr = String(item.id || index);
+        html += '<div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 12px; position: relative;">';
+        html += '  <button class="btn btn-secondary" onclick="deletePendingTaskNotificationItem(' + index + ')" style="position: absolute; top: 8px; right: 8px; padding: 2px 8px; font-size: 12px; background: #fff5f5; color: #dc3545; border: 1px solid #ffdada;">🗑️</button>';
+        html += '  <div style="margin-bottom: 8px;">';
+        html += '    <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;" data-i18n="label_notification_time">通知時刻:</label>';
+        html += '    <input type="time" value="' + (item.time || '20:00') + '" onchange="updatePendingTaskNotificationItem(' + index + ', \'time\', this.value)" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px; width: 100%; box-sizing: border-box;">';
+        html += '  </div>';
+        html += '  <div>';
+        html += '    <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;" data-i18n="label_notification_message">通知文章:</label>';
+        html += '    <input type="text" value="' + (item.message || '') + '" placeholder="' + (getTranslation('placeholder_notification_message') || '例: 未完了のタスクが残っています！') + '" oninput="updatePendingTaskNotificationItem(' + index + ', \'message\', this.value)" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px; width: 100%; box-sizing: border-box;">';
+        html += '  </div>';
+        html += '</div>';
+    });
+
+    container.innerHTML = html;
+    if (typeof applyLanguage === 'function') applyLanguage();
+}
+
+function addPendingTaskNotificationItem() {
+    if (!pendingTaskNotifications) pendingTaskNotifications = [];
+    pendingTaskNotifications.push({
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        time: '20:00',
+        message: ''
+    });
+    savePendingTaskNotificationSettings();
+    renderPendingTaskNotificationList();
+}
+
+function updatePendingTaskNotificationItem(index, field, value) {
+    if (!pendingTaskNotifications || !pendingTaskNotifications[index]) return;
+    pendingTaskNotifications[index][field] = value;
+    savePendingTaskNotificationSettings();
+}
+
+function deletePendingTaskNotificationItem(index) {
+    if (!pendingTaskNotifications || !pendingTaskNotifications[index]) return;
+    pendingTaskNotifications.splice(index, 1);
+    savePendingTaskNotificationSettings();
+    renderPendingTaskNotificationList();
+}
+
+function savePendingTaskNotificationSettings() {
+    localStorage.setItem('pendingTaskNotifications', JSON.stringify(pendingTaskNotifications));
+    if (typeof Android !== 'undefined' && Android.schedulePendingTaskNotifications) {
+        Android.schedulePendingTaskNotifications(JSON.stringify(pendingTaskNotifications));
+    }
+}
+
+window.loadPendingTaskNotificationSettings = loadPendingTaskNotificationSettings;
+window.addPendingTaskNotificationItem = addPendingTaskNotificationItem;
+window.updatePendingTaskNotificationItem = updatePendingTaskNotificationItem;
+window.deletePendingTaskNotificationItem = deletePendingTaskNotificationItem;
+window.savePendingTaskNotificationSettings = savePendingTaskNotificationSettings;
+
 function loadMelodySettings() {
     var snoozeDuration = localStorage.getItem('snoozeDuration') || '5';
     var elSnooze = document.getElementById('snoozeDuration');
@@ -274,8 +351,8 @@ function loadFloatingSettings() {
     var navType = localStorage.getItem('navType') || 'button';
     var menuActionDelay = localStorage.getItem('menuActionDelay') || '0';
     var allowDrag = localStorage.getItem('allowDrag') !== 'false';
-    var scrollButtonType = localStorage.getItem('scrollButtonType') || 'both';
-    var dCount = localStorage.getItem('displayTaskCount') || '1';
+    var scrollButtonType = localStorage.getItem('scrollButtonType') || 'scroll';
+    var dCount = localStorage.getItem('displayTaskCount') || '3';
     var sCount = localStorage.getItem('scrollTaskCount') || '1';
     var hDelay = localStorage.getItem('checkedHideDelay') || '2';
     var retryInterval = localStorage.getItem('adRetryBaseInterval') || '5';
@@ -518,7 +595,7 @@ function saveFloatingSettings(targetMode, skipStartWindow) {
     var retryInput = document.getElementById('adRetryBaseInterval');
     var recheckInput = document.getElementById('recheckInterval');
 
-    var dCount = parseInt(localStorage.getItem('displayTaskCount') || "1");
+    var dCount = parseInt(localStorage.getItem('displayTaskCount') || "3");
     var sCount = parseInt(localStorage.getItem('scrollTaskCount') || "1");
     var hDelay = parseInt(localStorage.getItem('checkedHideDelay') || "2");
     var retryInterval = parseInt(localStorage.getItem('adRetryBaseInterval') || "5");
@@ -589,7 +666,7 @@ function saveFloatingSettings(targetMode, skipStartWindow) {
                 localStorage.getItem('showCloseButtonExpanded') === 'true',
                 dCount, sCount,
                 localStorage.getItem('showCheckedToggle') === 'true',
-                localStorage.getItem('scrollButtonType') || 'both',
+                localStorage.getItem('scrollButtonType') || 'scroll',
                 localStorage.getItem('allowDrag') !== 'false',
                 localStorage.getItem('allowDragCollapsed') !== 'false',
                 localStorage.getItem('showHistoryButton') === 'true',
@@ -641,7 +718,7 @@ function resetFloatingSettings() {
     setChecked('alwaysMoveExpanded', false); setVal('floatExpandedX', defaultX); setVal('floatExpandedY', defaultY);
     setChecked('showCloseButtonExpanded', false); setChecked('keepServiceOnClose', false); setChecked('showCheckedToggle', false); setChecked('showHistoryButton', false);
     setVal('navType', 'button'); setVal('menuActionDelay', 0); setChecked('allowDrag', true);
-    setVal('scrollButtonType', 'both'); setVal('displayTaskCount', 1); setVal('scrollTaskCount', 1); setVal('checkedHideDelay', 2);
+    setVal('scrollButtonType', 'scroll'); setVal('displayTaskCount', 1); setVal('scrollTaskCount', 1); setVal('checkedHideDelay', 2);
     setVal('adRetryBaseInterval', 5); setVal('recheckInterval', 0);
     updateFloatingSettingsVisibility(); updateStorageUsage(); saveFloatingSettings();
 }

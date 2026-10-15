@@ -153,6 +153,15 @@
                 </div>
             </div>
         </div>
+
+        <div class="section-title" data-i18n="section_pending_task_notifications">未完了タスクが残っている場合の通知</div>
+        <div class="settings-card">
+            <div style="font-size: 13px; color: #666; margin-bottom: 16px; line-height: 1.4;" data-i18n="desc_pending_task_notifications">
+                指定時刻に未完了のタスクが存在する場合に通知します。（※「経過時間」タイプのタスクは対象外です）
+            </div>
+            <div id="pendingTaskNotificationList" style="margin-bottom: 12px;"></div>
+            <button class="btn btn-secondary" onclick="addPendingTaskNotificationItem()" style="width: 100%; font-size: 13px;" data-i18n="btn_add_pending_notification">＋ 通知時刻を追加</button>
+        </div>
     </div>
 
     <!-- Custom Modal -->
@@ -188,6 +197,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             applyLanguage();
             if (typeof loadNewTaskSettings === 'function') loadNewTaskSettings();
+            if (typeof loadPendingTaskNotificationSettings === 'function') loadPendingTaskNotificationSettings();
 
             // loadFloatingSettings を呼んで checkedHideDelay などの数値を反映させる
             const hDelay = localStorage.getItem('checkedHideDelay') || '2';

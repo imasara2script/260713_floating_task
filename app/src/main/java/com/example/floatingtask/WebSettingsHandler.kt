@@ -110,6 +110,10 @@ class WebSettingsHandler(
         return json.toString()
     }
 
+    fun schedulePendingTaskNotifications(jsonStr: String) {
+        AlarmScheduler.schedulePendingTaskNotifications(context, jsonStr)
+    }
+
     fun submitUnlockCode(code: String): Boolean {
         val salt = BuildConfig.PREMIUM_CODE_SALT
         val expectedHash = BuildConfig.PREMIUM_CODE_HASH

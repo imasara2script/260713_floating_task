@@ -376,7 +376,7 @@ if (bgThresholds.length === 0 && localStorage.getItem('bgThresholds') === null) 
 }
 
 let showAllInFloating = localStorage.getItem('showAllInFloating') === 'true';
-let displayTaskCount = parseInt(localStorage.getItem('displayTaskCount') || '1');
+let displayTaskCount = parseInt(localStorage.getItem('displayTaskCount') || '3');
 let scrollTaskCount = parseInt(localStorage.getItem('scrollTaskCount') || '1');
 let checkedHideDelay = parseInt(localStorage.getItem('checkedHideDelay') || '2');
 let taskTypeFilter = localStorage.getItem('taskTypeFilter') || 'all'; // 'all', 'task', 'timer'
@@ -401,7 +401,7 @@ window.saveTasks = saveTasks;
 function refreshData() {
     tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
     history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
-    displayTaskCount = parseInt(localStorage.getItem('displayTaskCount') || '1');
+    displayTaskCount = parseInt(localStorage.getItem('displayTaskCount') || '3');
     scrollTaskCount = parseInt(localStorage.getItem('scrollTaskCount') || '1');
     taskTypeFilter = localStorage.getItem('taskTypeFilter') || 'all';
     window.tasks = tasks;

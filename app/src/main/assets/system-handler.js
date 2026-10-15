@@ -38,7 +38,7 @@ function getBackupData() {
         showCheckedToggle: localStorage.getItem('showCheckedToggle') === 'true',
         showHistoryButton: localStorage.getItem('showHistoryButton') === 'true',
         allowDrag: localStorage.getItem('allowDrag') !== 'false',
-        scrollButtonType: localStorage.getItem('scrollButtonType') || 'both',
+        scrollButtonType: localStorage.getItem('scrollButtonType') || 'scroll',
         navType: localStorage.getItem('navType') || 'button',
         displayTaskCount: localStorage.getItem('displayTaskCount'),
         scrollTaskCount: localStorage.getItem('scrollTaskCount'),

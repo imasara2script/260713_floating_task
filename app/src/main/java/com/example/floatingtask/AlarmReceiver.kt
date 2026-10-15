@@ -35,6 +35,12 @@ class AlarmReceiver : BroadcastReceiver() {
                 AlarmScheduler.scheduleIntervalAlarm(context, minutes)
             }
 
+            // 未完了タスク通知アラームを復元
+            val pendingTaskNotificationsJson = prefs.getString("pendingTaskNotificationsJson", "[]") ?: "[]"
+            if (pendingTaskNotificationsJson != "[]") {
+                AlarmScheduler.schedulePendingTaskNotifications(context, pendingTaskNotificationsJson)
+            }
+
             // タイマーの復元は WebView 起動時の checkDailyReset() で行われるため、
             // ここで FloatingWindowService を起動して WebView をロードさせる
             if (Settings.canDrawOverlays(context)) {
@@ -142,6 +148,45 @@ class AlarmReceiver : BroadcastReceiver() {
                     AlarmScheduler.scheduleIntervalAlarm(context, minutes)
                 }
             }
+        } else if (action == "ACTION_PENDING_TASKS_CHECK") {
+            val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            val customMessage = intent.getStringExtra("EXTRA_MESSAGE") ?: ""
+            val showWhenEmpty = prefs.getBoolean("showWhenEmpty", false)
+
+            // 「経過時間 (duration)」タイプを除外した未完了タスクの有無を判定
+            var hasPendingTasks = false
+            try {
+                val tasksJson = prefs.getString("tasks", "[]") ?: "[]"
+                val jsonArray = org.json.JSONArray(tasksJson)
+                for (i in 0 until jsonArray.length()) {
+                    val taskObj = jsonArray.getJSONObject(i)
+                    val type = taskObj.optString("type", "none")
+                    val completed = taskObj.optBoolean("completed", false)
+                    if (type != "duration" && !completed) {
+                        hasPendingTasks = true
+                        break
+                    }
+                }
+            } catch (e: Exception) {
+                AppLogger.log(context, "AlarmReceiver: Error checking pending tasks: ${e.message}")
+            }
+
+            AppLogger.log(context, "AlarmReceiver: ACTION_PENDING_TASKS_CHECK fired. hasPendingTasks=$hasPendingTasks, msg=$customMessage")
+
+            if (hasPendingTasks || showWhenEmpty) {
+                val isAppInForeground = prefs.getBoolean("isAppInForeground", false)
+                val isFloatingVisible = prefs.getBoolean("isFloatingVisible", false)
+
+                if (!isAppInForeground && !isFloatingVisible) {
+                    val title = context.getString(R.string.pending_tasks_notification_title)
+                    val body = if (customMessage.isNotEmpty()) customMessage else context.getString(R.string.pending_tasks_notification_body)
+                    showSilentNotification(context, title, body)
+                }
+            }
+
+            // 次回（翌日）の定刻アラームを再スケジュール
+            val notificationsJson = prefs.getString("pendingTaskNotificationsJson", "[]") ?: "[]"
+            AlarmScheduler.schedulePendingTaskNotifications(context, notificationsJson)
         } else if (action == "ACTION_MIDNIGHT_RESET") {
             AppLogger.log(context, "AlarmReceiver: Midnight reset triggered")
             // AM0時の処理: フローティングサービスを開始してリセットを実行

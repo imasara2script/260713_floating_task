@@ -16,6 +16,60 @@ object AlarmScheduler {
         scheduleAlarmAt(context, 12, 0, "ACTION_NOON_CHECK", 1)
     }
 
+    fun schedulePendingTaskNotifications(context: Context, jsonStr: String) {
+        AppLogger.log(context, "AlarmScheduler: schedulePendingTaskNotifications jsonStr=$jsonStr")
+        val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString("pendingTaskNotificationsJson", jsonStr).apply()
+
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        try {
+            val jsonArray = org.json.JSONArray(jsonStr)
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.getJSONObject(i)
+                val id = item.optLong("id", i.toLong())
+                val timeStr = item.optString("time", "20:00")
+                val message = item.optString("message", "")
+
+                val parts = timeStr.split(":")
+                if (parts.size == 2) {
+                    val hour = parts[0].toIntOrNull() ?: 20
+                    val minute = parts[1].toIntOrNull() ?: 0
+
+                    val intent = Intent(context, AlarmReceiver::class.java).apply {
+                        action = "ACTION_PENDING_TASKS_CHECK"
+                        putExtra("EXTRA_NOTIFICATION_ID", id)
+                        putExtra("EXTRA_MESSAGE", message)
+                        putExtra("EXTRA_TIME", timeStr)
+                    }
+
+                    val requestCode = (id % Int.MAX_VALUE).toInt() + 200000
+                    val pendingIntent = PendingIntent.getBroadcast(
+                        context,
+                        requestCode,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+
+                    val calendar = Calendar.getInstance().apply {
+                        timeInMillis = System.currentTimeMillis()
+                        set(Calendar.HOUR_OF_DAY, hour)
+                        set(Calendar.MINUTE, minute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                        if (before(Calendar.getInstance())) {
+                            add(Calendar.DAY_OF_MONTH, 1)
+                        }
+                    }
+
+                    setExactAlarm(alarmManager, calendar.timeInMillis, pendingIntent)
+                }
+            }
+        } catch (e: Exception) {
+            AppLogger.log(context, "AlarmScheduler: Error scheduling pending task notifications: ${e.message}")
+        }
+    }
+
     fun scheduleIntervalAlarm(context: Context, minutes: Int) {
         AppLogger.log(context, "AlarmScheduler: Scheduling interval alarm. minutes=$minutes")
         // 設定を保存
