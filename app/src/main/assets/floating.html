@@ -450,12 +450,16 @@
                 collapsedEl.style.color = appliedTextColor;
             }
             if (expandedEl) {
-                expandedEl.style.backgroundColor = appliedBgColor;
-                expandedEl.style.color = appliedTextColor;
+                expandedEl.style.backgroundColor = '#ffffff';
+                expandedEl.style.color = '#333333';
             }
 
             if (typeof Android !== 'undefined' && Android.updateFloatingColors) {
-                Android.updateFloatingColors(appliedBgColor, appliedTextColor);
+                if (isFloatingExpanded) {
+                    Android.updateFloatingColors('#ffffff', '#333333');
+                } else {
+                    Android.updateFloatingColors(appliedBgColor, appliedTextColor);
+                }
             }
             return activeTimers;
         }
@@ -648,11 +652,26 @@
                         const isTimer = !!t.durationMs;
                         const timerDisplay = isTimer ? (timerDisplayMode === 'countdown' ? `${getRemainingTimeTextDetailed(t)} / ${getTotalTimeText(t)}` : getEndTimeText(t)) : '';
                         const isExpired = isTimer && (t.startTime + t.durationMs <= Date.now());
+
+                        let taskRowStyle = '';
+                        let taskTextStyle = '';
+                        if (isTimer && !t.completed) {
+                            const remainingSec = Math.max(0, (t.startTime + t.durationMs) - Date.now()) / 1000;
+                            if (remainingSec > 0) {
+                                const sortedRules = [...bgThresholds].sort((a, b) => a.threshold - b.threshold);
+                                const rule = sortedRules.find(r => remainingSec <= r.threshold);
+                                if (rule) {
+                                    taskRowStyle = `background-color: ${rule.bgColor}; padding: 2px 4px; border-radius: 4px;`;
+                                    taskTextStyle = `color: ${rule.textColor};`;
+                                }
+                            }
+                        }
+
                         tasksHtml += `
-                            <div style="display: flex; align-items: center; min-width: 0; margin-bottom: 2px; padding-left: 2px;">
+                            <div class="floating-task-item-row" data-task-id="${t.id}" style="display: flex; align-items: center; min-width: 0; margin-bottom: 2px; padding-left: 2px; ${taskRowStyle}">
                                 ${t.showCommentOnCheck && !t.completed ? `<span onclick="toggleTask(${t.id})" style="cursor:pointer; margin-right:6px; font-size:14px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px;">✏️</span>` : `<input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})" style="width: 16px; height: 16px; margin-right: 6px; flex-shrink: 0;">`}
                                 ${isTimer ? `<div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-right: 6px; opacity: 0.9;">${!t.completed ? `<span class="floating-timer-badge ${isExpired ? 'timer-expired' : ''}" data-task-id="${t.id}" onclick="toggleTimerDisplayMode()" style="font-variant-numeric: tabular-nums; cursor:pointer; background: #ffc107; padding: 1px 4px; border-radius: 3px; font-weight: bold; font-size: 10px; white-space: nowrap;">${timerDisplay}</span>` : ''}<button class="btn-icon" onclick="repeatTimer(${t.id})" style="font-size: 12px; padding: 0; background: none; border: none; cursor: pointer;">🔄</button></div>` : ''}
-                                <span class="floating-task-text" style="font-size: 14px; font-weight: bold; margin: 0; flex-grow: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; ${t.completed ? 'text-decoration: line-through; color: #888;' : ''}">${t.text}</span>
+                                <span class="floating-task-text" style="font-size: 14px; font-weight: bold; margin: 0; flex-grow: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; ${t.completed ? 'text-decoration: line-through; color: #888;' : taskTextStyle}">${t.text}</span>
                             </div>
                         `;
                     });
@@ -719,6 +738,30 @@
                         if (el.textContent !== timerDisplay) el.textContent = timerDisplay;
                         el.classList.toggle('timer-expired', isExpired);
                     });
+
+                    if (isFloatingExpanded) {
+                        const remainingSec = Math.max(0, (t.startTime + t.durationMs) - Date.now()) / 1000;
+                        let appliedBg = '';
+                        let appliedText = '';
+                        if (remainingSec > 0) {
+                            const sortedRules = [...bgThresholds].sort((a, b) => a.threshold - b.threshold);
+                            const rule = sortedRules.find(r => remainingSec <= r.threshold);
+                            if (rule) {
+                                appliedBg = rule.bgColor;
+                                appliedText = rule.textColor;
+                            }
+                        }
+                        const rowEl = document.querySelector(`.floating-task-item-row[data-task-id="${t.id}"]`);
+                        if (rowEl) {
+                            rowEl.style.backgroundColor = appliedBg;
+                            rowEl.style.borderRadius = appliedBg ? '4px' : '';
+                            rowEl.style.padding = appliedBg ? '2px 4px' : '0 0 0 2px';
+                            const textEl = rowEl.querySelector('.floating-task-text');
+                            if (textEl && !t.completed) {
+                                textEl.style.color = appliedText || '';
+                            }
+                        }
+                    }
                 }
             });
 
