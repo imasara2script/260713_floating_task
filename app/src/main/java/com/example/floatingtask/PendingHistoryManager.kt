@@ -3,9 +3,6 @@ package com.example.floatingtask
 import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /**
  * =====================================================================================
@@ -62,7 +59,7 @@ object PendingHistoryManager {
                 put("eventName", eventName)
                 put("type", type)
                 put("memo", "")
-                put("completedAt", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(Date()))
+                put("completedAt", java.time.Instant.now().toString())
             }
             jsonArray.put(item)
             
