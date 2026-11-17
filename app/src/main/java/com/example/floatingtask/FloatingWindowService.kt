@@ -198,9 +198,10 @@ class FloatingWindowService : Service() {
             val scrollButtonType = prefs.getString("scrollButtonType", "both") ?: "both"
             val allowDrag = prefs.getBoolean("allowDrag", true)
             val allowDragCollapsed = prefs.getBoolean("allowDragCollapsed", true)
+            val collapsedTimerFormat = prefs.getString("collapsedTimerFormat", "default") ?: "default"
             
             val webView: WebView = view.findViewById(R.id.floatingWebView)
-            webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount, $showCheckedToggle, '$scrollButtonType', $allowDrag, $allowDragCollapsed, $showHistoryButton, '$navType', $floatWidth, $floatHeight, $showCloseButtonExpanded, $keepServiceOnClose, $menuActionDelay, $checkedHideDelay);", null)
+            webView.evaluateJavascript("applyFloatingSettings($scale, $isExpanded, $displayTaskCount, $scrollTaskCount, $showCheckedToggle, '$scrollButtonType', $allowDrag, $allowDragCollapsed, $showHistoryButton, '$navType', $floatWidth, $floatHeight, $showCloseButtonExpanded, $keepServiceOnClose, $menuActionDelay, $checkedHideDelay, '$collapsedTimerFormat');", null)
         }
     }
 

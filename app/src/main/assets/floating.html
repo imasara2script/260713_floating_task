@@ -138,7 +138,7 @@
             isDragging = dragging;
         }
 
-        function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragCollapsed, showHistoryButton, navType, widthPx, heightPx, showCloseButtonExpanded, keepServiceOnClose, menuActionDelay, hDelay) {
+        function applyFloatingSettings(scale, expanded, dCount, sCount, showCheckedToggle, scrollButtonType, allowDrag, allowDragCollapsed, showHistoryButton, navType, widthPx, heightPx, showCloseButtonExpanded, keepServiceOnClose, menuActionDelay, hDelay, collapsedTimerFormat) {
             updateScale(scale);
             if (isFloatingExpanded !== expanded) {
                 toggleFloatingExpand(expanded, true);
@@ -190,6 +190,9 @@
             if (hDelay !== undefined) {
                 checkedHideDelay = parseInt(hDelay);
                 localStorage.setItem('checkedHideDelay', hDelay.toString());
+            }
+            if (collapsedTimerFormat !== undefined) {
+                localStorage.setItem('collapsedTimerFormat', collapsedTimerFormat);
             }
             if (heightPx !== undefined) {
                 originalHeightPx = heightPx;

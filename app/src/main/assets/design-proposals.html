@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Task - デザイン・レイアウト案確認</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 480px;
+            margin: 0 auto 16px auto;
+        }
+        .btn-back {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .btn-back:hover {
+            background: #f8fafc;
+        }
+        .page-title-badge {
+            font-size: 13px;
+            font-weight: 700;
+            background: #e2e8f0;
+            color: #475569;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        /* デザイン案切り替えコントロール */
+        .proposal-selector-card {
+            max-width: 480px;
+            margin: 0 auto 20px auto;
+            background: #ffffff;
+            padding: 16px;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .category-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: #64748b;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .proposal-buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .btn-proposal {
+            padding: 8px 4px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #475569;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+            line-height: 1.3;
+        }
+        .btn-proposal.active {
+            background: #2563eb;
+            color: #ffffff;
+            border-color: #2563eb;
+            box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+        }
+        .proposal-description {
+            font-size: 12px;
+            color: #334155;
+            padding: 10px 12px;
+            background: #f8fafc;
+            border-left: 4px solid #2563eb;
+            border-radius: 6px;
+            line-height: 1.5;
+        }
+
+        /* プレビューコンテナ */
+        .preview-wrapper {
+            max-width: 420px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            min-height: 560px;
+            position: relative;
+        }
+
+        /* 各案の表示制御 */
+        .proposal-view {
+            display: none;
+            padding: 16px;
+            padding-bottom: 70px; /* ボトムナビ用に下部余白確保 */
+        }
+        .proposal-view.active {
+            display: block;
+        }
+
+        /* ==========================================================================
+           案 4: ボトムナビゲーション＆FAB (スマートアプリ風)
+           ========================================================================== */
+        .m4-container {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .m4-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 16px;
+        }
+        .m4-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .m4-btn-icon {
+            background: #f1f5f9;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            color: #475569;
+        }
+        .m4-task-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid #f1f5f9;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .m4-task-card.timer {
+            border-left: 4px solid #f59e0b;
+            background: #fffdf5;
+        }
+        .m4-fab {
+            position: absolute;
+            bottom: 70px;
+            right: 20px;
+            width: 52px;
+            height: 52px;
+            border-radius: 26px;
+            background: #2563eb;
+            color: #ffffff;
+            border: none;
+            font-size: 24px;
+            font-weight: 300;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(37,99,235,0.4);
+            cursor: pointer;
+            z-index: 10;
+        }
+        .m4-bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 56px;
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+        }
+        .m4-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            cursor: pointer;
+            gap: 2px;
+        }
+        .m4-nav-item.active {
+            color: #2563eb;
+        }
+        .m4-nav-icon {
+            font-size: 18px;
+        }
+
+        /* ==========================================================================
+           案 5: 初心者最優先シンプル (自然なインライン動線)
+           ========================================================================== */
+        .m5-container {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .m5-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .m5-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .m5-nav-links {
+            display: flex;
+            gap: 8px;
+        }
+        .m5-nav-btn {
+            background: #f1f5f9;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            cursor: pointer;
+        }
+        .m5-task-list {
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            margin-bottom: 16px;
+        }
+        .m5-task-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 4px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .m5-task-item:last-child {
+            border-bottom: none;
+        }
+        .m5-add-card {
+            background: #2563eb;
+            color: #ffffff;
+            border: none;
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 3px 10px rgba(37,99,235,0.25);
+            margin-bottom: 12px;
+        }
+        .m5-btn-edit-subtle {
+            background: transparent;
+            border: none;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+            width: 100%;
+            text-align: center;
+            padding: 8px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* ==========================================================================
+           案 6: クイック入力ボックス (スピード入力＆インライン配置)
+           ========================================================================== */
+        .m6-container {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .m6-tabs {
+            display: flex;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        .m6-tab {
+            flex: 1;
+            text-align: center;
+            padding: 8px 0;
+            font-size: 13px;
+            font-weight: 700;
+            color: #64748b;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .m6-tab.active {
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .m6-quick-add {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .m6-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+        }
+        .m6-btn-add {
+            background: #2563eb;
+            color: #ffffff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .m6-sub-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 0 4px;
+        }
+        .m6-count {
+            font-size: 12px;
+            font-weight: 700;
+            color: #64748b;
+        }
+        .m6-btn-edit-link {
+            background: none;
+            border: none;
+            color: #2563eb;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* 共通バッジ・共通要素用 */
+        .timer-badge {
+            background: #fef3c7;
+            color: #b45309;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+        .task-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            flex-grow: 1;
+        }
+        .task-checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: #2563eb;
+            cursor: pointer;
+        }
+
+        /* ==========================================================================
+           案 1, 案 2, 案 3 (ビジュアルスタイル案)
+           ========================================================================== */
+        .m1-tabs { display: flex; background: #e9eef6; border-radius: 28px; padding: 4px; margin-bottom: 16px; }
+        .m1-tab { flex: 1; padding: 8px 0; text-align: center; font-size: 13px; font-weight: 600; color: #444746; border-radius: 24px; cursor: pointer; }
+        .m1-tab.active { background: #0b57d0; color: #ffffff; }
+        .m1-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .m1-btn-edit { background: #e1e3e1; color: #1d1b20; border: none; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .m1-banner { background: #fce8e6; color: #c5221f; border-radius: 12px; padding: 10px; margin-bottom: 12px; text-align: center; font-size: 12px; font-weight: 700; }
+
+        .m2-tabs { display: flex; border-bottom: 2px solid #e2e8f0; margin-bottom: 16px; }
+        .m2-tab { flex: 1; padding: 8px 0; text-align: center; font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer; }
+        .m2-tab.active { color: #2563eb; border-bottom: 2px solid #2563eb; font-weight: 700; }
+        .m2-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .m2-banner { background: #fef2f2; border: 1px solid #fecdd3; color: #e11d48; border-radius: 10px; padding: 10px; margin-bottom: 12px; text-align: center; font-size: 12px; font-weight: 700; }
+
+        .m3-summary { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: #ffffff; border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+        .m3-summary-title { font-size: 15px; font-weight: 800; }
+    </style>
+</head>
+<body>
+
+    <div class="app-header">
+        <button class="btn-back" onclick="goBackToSettings()">← 開発者設定へ戻る</button>
+        <span class="page-title-badge">レイアウト・デザイン検証</span>
+    </div>
+
+    <!-- デザイン案切り替えコントロール -->
+    <div class="proposal-selector-card">
+        <div class="category-title">📐 レイアウト構造再構築案（初心者対応・配置変更）</div>
+        <div class="proposal-buttons-grid">
+            <button class="btn-proposal active" onclick="switchProposal(4)">案4: ボトムナビ</button>
+            <button class="btn-proposal" onclick="switchProposal(5)">案5: 初心者シンプル</button>
+            <button class="btn-proposal" onclick="switchProposal(6)">案6: クイック入力</button>
+        </div>
+
+        <div class="category-title" style="margin-top: 12px;">🎨 装飾ビジュアルデザイン案（スタイル変更）</div>
+        <div class="proposal-buttons-grid">
+            <button class="btn-proposal" onclick="switchProposal(1)">案1: Material3</button>
+            <button class="btn-proposal" onclick="switchProposal(2)">案2: ミニマル</button>
+            <button class="btn-proposal" onclick="switchProposal(3)">案3: ダッシュボード</button>
+        </div>
+
+        <div id="proposalDesc" class="proposal-description">
+            <strong>案4 (ボトムナビゲーション＆FAB)</strong>: 上部タブを全廃し、画面下にボトムバーを配置。「リストを編集」は右上の `⋮` メニューへ格納し、右下の `＋` ボタンで直感的にタスクを追加できます。
+        </div>
+    </div>
+
+    <!-- プレビュー枠 -->
+    <div class="preview-wrapper">
+
+        <!-- ==========================================================================
+             案 4: ボトムナビゲーション＆FAB (スマートアプリ風)
+             ========================================================================== -->
+        <div id="proposal-4" class="proposal-view active m4-container">
+            <div class="m4-header">
+                <div class="m4-title">デイリータスク</div>
+                <button class="m4-btn-icon" title="メニュー">⋮</button>
+            </div>
+
+            <div class="m4-task-card">
+                <input type="checkbox" class="task-checkbox">
+                <span class="task-text">あ</span>
+            </div>
+            <div class="m4-task-card">
+                <input type="checkbox" class="task-checkbox">
+                <span class="task-text">い</span>
+            </div>
+            <div class="m4-task-card timer">
+                <input type="checkbox" class="task-checkbox">
+                <span class="timer-badge">0秒 / 5秒</span>
+                <span>🔄</span>
+                <span class="task-text">う</span>
+            </div>
+            <div class="m4-task-card timer">
+                <input type="checkbox" class="task-checkbox">
+                <span class="timer-badge">0秒 / 1分</span>
+                <span>🔄</span>
+                <span class="task-text">か</span>
+            </div>
+
+            <button class="m4-fab">＋</button>
+
+            <div class="m4-bottom-nav">
+                <div class="m4-nav-item active">
+                    <span class="m4-nav-icon">📋</span>
+                    <span>タスク</span>
+                </div>
+                <div class="m4-nav-item">
+                    <span class="m4-nav-icon">📜</span>
+                    <span>履歴</span>
+                </div>
+                <div class="m4-nav-item">
+                    <span class="m4-nav-icon">⚙️</span>
+                    <span>設定</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================================================
+             案 5: 初心者最優先シンプル (自然なインライン動線)
+             ========================================================================== -->
+        <div id="proposal-5" class="proposal-view m5-container">
+            <div class="m5-header">
+                <div class="m5-title">デイリータスク</div>
+                <div class="m5-nav-links">
+                    <button class="m5-nav-btn">📜 履歴</button>
+                    <button class="m5-nav-btn">⚙️ 設定</button>
+                </div>
+            </div>
+
+            <div class="m5-task-list">
+                <div class="m5-task-item">
+                    <input type="checkbox" class="task-checkbox">
+                    <span class="task-text">あ</span>
+                </div>
+                <div class="m5-task-item">
+                    <input type="checkbox" class="task-checkbox">
+                    <span class="task-text">い</span>
+                </div>
+                <div class="m5-task-item">
+                    <input type="checkbox" class="task-checkbox">
+                    <span class="timer-badge">0秒 / 5秒</span>
+                    <span>🔄</span>
+                    <span class="task-text">う</span>
+                </div>
+                <div class="m5-task-item">
+                    <input type="checkbox" class="task-checkbox">
+                    <span class="timer-badge">0秒 / 1分</span>
+                    <span>🔄</span>
+                    <span class="task-text">か</span>
+                </div>
+            </div>
+
+            <!-- 自然な順番: タスク一覧 → 「＋ タスクを追加」 → 必要に応じて「✏️ リストを編集」 -->
+            <button class="m5-add-card">
+                <span>＋</span>
+                <span>新しいタスクを追加</span>
+            </button>
+
+            <button class="m5-btn-edit-subtle">✏️ リストの編集・並べ替え</button>
+        </div>
+
+        <!-- ==========================================================================
+             案 6: クイック入力ボックス (スピード入力)
+             ========================================================================== -->
+        <div id="proposal-6" class="proposal-view m6-container">
+            <div class="m6-tabs">
+                <div class="m6-tab active">タスク</div>
+                <div class="m6-tab">履歴</div>
+                <div class="m6-tab">設定</div>
+            </div>
+
+            <div class="m6-quick-add">
+                <input type="text" class="m6-input" placeholder="新しいタスクを入力...">
+                <button class="m6-btn-add">追加</button>
+            </div>
+
+            <div class="m6-sub-header">
+                <span class="m6-count">タスク 4件</span>
+                <button class="m6-btn-edit-link">✏️ リストを編集</button>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="m4-task-card" style="margin-bottom: 0;">
+                    <input type="checkbox" class="task-checkbox">
+                    <span class="task-text">あ</span>
+                </div>
+                <div class="m4-task-card" style="margin-bottom: 0;">
+                    <input type="checkbox" class="task-checkbox">
+                    <span class="task-text">い</span>
+                </div>
+                <div class="m4-task-card timer" style="margin-bottom: 0;">
+                    <input type="checkbox" class="task-checkbox">
+                    <span class="timer-badge">0秒 / 5秒</span>
+                    <span>🔄</span>
+                    <span class="task-text">う</span>
+                </div>
+                <div class="m4-task-card timer" style="margin-bottom: 0;">
+                    <input type="checkbox" class="task-checkbox">
+                    <span class="timer-badge">0秒 / 1分</span>
+                    <span>🔄</span>
+                    <span class="task-text">か</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================================================
+             案 1: Material Design 3
+             ========================================================================== -->
+        <div id="proposal-1" class="proposal-view">
+            <div class="m1-tabs">
+                <div class="m1-tab active">タスク</div>
+                <div class="m1-tab">履歴</div>
+                <div class="m1-tab">設定</div>
+            </div>
+            <div class="m1-header">
+                <span style="font-size: 18px; font-weight: 700;">デイリータスク管理</span>
+                <button class="m1-btn-edit">✏️ リストを編集</button>
+            </div>
+            <div class="m1-banner">✨ タスク登録数上限を解除</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="m4-task-card" style="margin-bottom: 0;"><input type="checkbox" class="task-checkbox"><span class="task-text">あ</span></div>
+                <div class="m4-task-card" style="margin-bottom: 0;"><input type="checkbox" class="task-checkbox"><span class="task-text">い</span></div>
+                <div class="m4-task-card timer" style="margin-bottom: 0;"><input type="checkbox" class="task-checkbox"><span class="timer-badge">0秒 / 5秒</span><span>🔄</span><span class="task-text">う</span></div>
+                <div class="m4-task-card timer" style="margin-bottom: 0;"><input type="checkbox" class="task-checkbox"><span class="timer-badge">0秒 / 1分</span><span>🔄</span><span class="task-text">か</span></div>
+            </div>
+        </div>
+
+        <!-- ==========================================================================
+             案 2: ミニマル＆カード
+             ========================================================================== -->
+        <div id="proposal-2" class="proposal-view">
+            <div class="m2-tabs">
+                <div class="m2-tab active">タスク</div>
+                <div class="m2-tab">履歴</div>
+                <div class="m2-tab">設定</div>
+            </div>
+            <div class="m2-header">
+                <span style="font-size: 18px; font-weight: 800;">デイリータスク管理</span>
+                <button style="padding: 4px 10px; font-size: 12px; border: 1px solid #ccc; border-radius: 6px; background: white;">リストを編集</button>
+            </div>
+            <div class="m2-banner">👑 タスク登録数上限を解除</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="m4-task-card" style="margin-bottom: 0;"><input type="checkbox" class="task-checkbox"><span class="task-text">あ</span></div>
+                <div class="m4-task-card" style="margin-bottom: 0;"><input type="checkbox" class="task-checkbox"><span class="task-text">い</span></div>
+                <div class="m4-task-card timer" style="margin-bottom: 0;"><input type="checkbox" class="task-checkbox"><span class="timer-badge">0秒 / 5秒</span><span>🔄</span><span class="task-text">う</span></div>
+                <div class="m4-task-card timer" style="margin-bottom: 0;"><input type="checkbox" class="task-checkbox"><span class="timer-badge">0秒 / 1分</span><span>🔄</span><span class="task-text">か</span></div>
+            </div>
+        </div>
+
+        <!-- ==========================================================================
+             案 3: ダッシュボード風
+             ========================================================================== -->
+        <div id="proposal-3" class="proposal-view">
+            <div class="m3-summary">
+                <div class="m3-summary-title">デイリータスク</div>
+                <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">進行中: 4 件 / 完了: 0 件</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="m4-task-card" style="margin-bottom: 0;"><input type="checkbox" class="task-checkbox"><span class="task-text">あ</span></div>
+                <div class="m4-task-card" style="margin-bottom: 0;"><input type="checkbox" class="task-checkbox"><span class="task-text">い</span></div>
+                <div class="m4-task-card timer" style="margin-bottom: 0;"><input type="checkbox" class="task-checkbox"><span class="timer-badge">0秒 / 5秒</span><span>🔄</span><span class="task-text">う</span></div>
+                <div class="m4-task-card timer" style="margin-bottom: 0;"><input type="checkbox" class="task-checkbox"><span class="timer-badge">0秒 / 1分</span><span>🔄</span><span class="task-text">か</span></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const descriptions = {
+            4: "<strong>案4 (ボトムナビゲーション＆FAB)</strong>: 上部タブを廃止し、下部に固定ボトムナビを配置。「リストを編集」は右上の `⋮` メニューへ集約。右下の `＋` FABで追加でき、初見ユーザーに迷いを与えないモダンアプリ構造です。",
+            5: "<strong>案5 (初心者最優先シンプル)</strong>: 余計なバナー等を削ぎ落としたシンプルデザイン。動線が「タスク一覧を眺める → 最下部の＋で追加する → 必要ならその下の✏️で編集する」と直感的で自然な順番になっています。",
+            6: "<strong>案6 (クイック入力ボックス)</strong>: ダイアログを開かずにリスト上部で直接「文字入力＋追加」ができるスピード設計。「リストを編集」は小さなリンクとして不快感なく自然な位置に配置されています。",
+            1: "<strong>案1 (Material Design 3)</strong>: Android 14/15 準拠。丸みのあるトナルカラーと親しみやすいセグメントタブが特徴です。",
+            2: "<strong>案2 (ミニマル＆カード)</strong>: 余白とシャドウを活かしたスッキリデザイン。タイマー付きタスク左側のアクセントラインが特徴です。",
+            3: "<strong>案3 (ダッシュボード風)</strong>: 上部にタスク進行サマリーカードを配置した生産性アプリ風レイアウトです。"
+        };
+
+        function switchProposal(num) {
+            // ボタン状態の切り替え
+            document.querySelectorAll('.btn-proposal').forEach((btn) => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 案ビューの切り替え
+            document.querySelectorAll('.proposal-view').forEach((view) => {
+                view.classList.remove('active');
+            });
+            const targetView = document.getElementById(`proposal-${num}`);
+            if (targetView) targetView.classList.add('active');
+
+            // 説明文の切り替え
+            const descEl = document.getElementById('proposalDesc');
+            if (descEl && descriptions[num]) {
+                descEl.innerHTML = descriptions[num];
+            }
+        }
+
+        function goBackToSettings() {
+            location.href = 'developer-settings.html';
+        }
+    </script>
+</body>
+</html>

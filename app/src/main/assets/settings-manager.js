@@ -310,6 +310,7 @@ function adjustSnoozeDuration(delta) {
 
 function loadFloatingSettings() {
     var cScale = localStorage.getItem('floatCollapsedScale') || '1.0';
+    var cFormat = localStorage.getItem('collapsedTimerFormat') || 'default';
     var showEmpty = localStorage.getItem('showWhenEmpty') === 'true';
     var moveC = localStorage.getItem('alwaysMoveCollapsed') === 'true';
     var allowDragC = localStorage.getItem('allowDragCollapsed') !== 'false';
@@ -317,6 +318,7 @@ function loadFloatingSettings() {
     var cY = localStorage.getItem('floatCollapsedY') || '100';
 
     var elCScale = document.getElementById('floatCollapsedScale');
+    var elCFormat = document.getElementById('collapsedTimerFormat');
     var elCScaleVal = document.getElementById('collapsedScaleVal');
     var elShowEmpty = document.getElementById('showWhenEmpty');
     var elMoveC = document.getElementById('alwaysMoveCollapsed');
@@ -325,6 +327,7 @@ function loadFloatingSettings() {
     var elCY = document.getElementById('floatCollapsedY');
 
     if (elCScale) elCScale.value = cScale;
+    if (elCFormat) elCFormat.value = cFormat;
     if (elCScaleVal) elCScaleVal.innerText = cScale;
     if (elShowEmpty) elShowEmpty.checked = showEmpty;
     if (elMoveC) elMoveC.checked = moveC;
@@ -538,6 +541,7 @@ function adjustRecheckInterval(delta) {
 function saveFloatingSettings(targetMode, skipStartWindow) {
     if (skipStartWindow === undefined) skipStartWindow = false;
     var elCScale = document.getElementById('floatCollapsedScale');
+    var elCFormat = document.getElementById('collapsedTimerFormat');
     var elShowEmpty = document.getElementById('showWhenEmpty');
     var elMoveC = document.getElementById('alwaysMoveCollapsed');
     var elAllowDragC = document.getElementById('allowDragCollapsed');
@@ -545,6 +549,7 @@ function saveFloatingSettings(targetMode, skipStartWindow) {
     var elCY = document.getElementById('floatCollapsedY');
 
     if (elCScale) localStorage.setItem('floatCollapsedScale', elCScale.value);
+    if (elCFormat) localStorage.setItem('collapsedTimerFormat', elCFormat.value);
     if (elShowEmpty) localStorage.setItem('showWhenEmpty', elShowEmpty.checked);
     if (elMoveC) localStorage.setItem('alwaysMoveCollapsed', elMoveC.checked);
     if (elAllowDragC) localStorage.setItem('allowDragCollapsed', elAllowDragC.checked);
@@ -675,7 +680,8 @@ function saveFloatingSettings(targetMode, skipStartWindow) {
                 parseInt(localStorage.getItem('menuActionDelay') || "0"),
                 hDelay,
                 localStorage.getItem('expandOnUnlock') === 'true',
-                localStorage.getItem('isFloatingSizeCustomized') === 'true'
+                localStorage.getItem('isFloatingSizeCustomized') === 'true',
+                localStorage.getItem('collapsedTimerFormat') || 'default'
             );
         }
         if (!skipStartWindow && Android.startFloatingWindow) Android.startFloatingWindow();
@@ -712,7 +718,7 @@ function resetFloatingSettings() {
     var defaultHeight = defaults.defaultHeight;
     var setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val; };
     var setChecked = function(id, val) { var el = document.getElementById(id); if (el) el.checked = val; };
-    setVal('floatCollapsedScale', 1.0); setChecked('showWhenEmpty', false); setChecked('alwaysMoveCollapsed', false); setChecked('allowDragCollapsed', true);
+    setVal('floatCollapsedScale', 1.0); setVal('collapsedTimerFormat', 'default'); setChecked('showWhenEmpty', false); setChecked('alwaysMoveCollapsed', false); setChecked('allowDragCollapsed', true);
     setVal('floatCollapsedX', defaultX); setVal('floatCollapsedY', defaultY);
     setVal('floatWidth', defaultWidth); setVal('floatHeight', defaultHeight); setVal('floatExpandedScale', 1.0);
     setChecked('alwaysMoveExpanded', false); setVal('floatExpandedX', defaultX); setVal('floatExpandedY', defaultY);

@@ -130,6 +130,15 @@
             </div>
 
             <div class="setting-item">
+                <label for="collapsedTimerFormat" data-i18n="label_collapsed_timer_format">残り時間の表示形式:</label>
+                <select id="collapsedTimerFormat" onchange="saveFloatingSettings('collapsed')" style="margin-top: 4px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc; width: 100%;">
+                    <option value="default" data-i18n="collapsed_timer_format_default">1.9時間 形式</option>
+                    <option value="unit" data-i18n="collapsed_timer_format_unit">1h59 / 2m01 形式</option>
+                    <option value="colon" data-i18n="collapsed_timer_format_colon">1:59:01 形式</option>
+                </select>
+            </div>
+
+            <div class="setting-item">
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                     <input type="checkbox" id="showWhenEmpty" onchange="saveFloatingSettings('collapsed')">
                     <span data-i18n="label_show_when_zero">未完のタスクがゼロでも表示する</span>

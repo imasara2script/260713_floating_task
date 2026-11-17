@@ -599,7 +599,8 @@ class MainActivity : AppCompatActivity(),
             showHistoryButton: Boolean, navType: String, keepService: Boolean,
             menuActionDelay: Int, checkedHideDelay: Int,
             expandOnUnlock: Boolean,
-            isCustomized: Boolean = true
+            isCustomized: Boolean = true,
+            collapsedTimerFormat: String = "default"
         ) = settingsHandler.updateFloatingSettingsExtended(
             cX, cY, cScale, showEmpty, moveC,
             eX, eY, eScale, moveE,
@@ -610,7 +611,8 @@ class MainActivity : AppCompatActivity(),
             showHistoryButton, navType, keepService,
             menuActionDelay, checkedHideDelay,
             expandOnUnlock,
-            isCustomized
+            isCustomized,
+            collapsedTimerFormat
         )
 
         @JavascriptInterface

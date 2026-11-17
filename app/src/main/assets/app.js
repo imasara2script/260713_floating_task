@@ -454,10 +454,43 @@ function getTotalTimeText(t) {
 }
 window.getTotalTimeText = getTotalTimeText;
 
-function getRemainingTimeText(t) {
+function getRemainingTimeText(t, format) {
     if (!t.durationMs) return '';
     const remaining = (t.startTime + t.durationMs) - Date.now();
-    if (remaining <= 0) return `0${getTranslation('unit_sec')}`;
+    const fmt = format || (typeof localStorage !== 'undefined' ? localStorage.getItem('collapsedTimerFormat') : null) || 'default';
+
+    if (remaining <= 0) {
+        if (fmt === 'colon') return '0:00';
+        if (fmt === 'unit') return '0s';
+        return `0${getTranslation('unit_sec')}`;
+    }
+
+    if (fmt === 'unit') {
+        const totalSecs = Math.floor(remaining / 1000);
+        const hours = Math.floor(totalSecs / 3600);
+        const mins = Math.floor((totalSecs % 3600) / 60);
+        const secs = totalSecs % 60;
+        if (hours >= 1) {
+            return `${hours}h${String(mins).padStart(2, '0')}`;
+        }
+        if (mins >= 1) {
+            return `${mins}m${String(secs).padStart(2, '0')}`;
+        }
+        return `${secs}s`;
+    }
+
+    if (fmt === 'colon') {
+        const totalSecs = Math.floor(remaining / 1000);
+        const hours = Math.floor(totalSecs / 3600);
+        const mins = Math.floor((totalSecs % 3600) / 60);
+        const secs = totalSecs % 60;
+        const mm = String(mins).padStart(2, '0');
+        const ss = String(secs).padStart(2, '0');
+        if (hours >= 1) {
+            return `${hours}:${mm}:${ss}`;
+        }
+        return `${mins}:${ss}`;
+    }
 
     const hoursFloat = remaining / 3600000;
     if (hoursFloat >= 1) {

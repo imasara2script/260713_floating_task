@@ -27,14 +27,16 @@ class WebSettingsHandler(
         showHistoryButton: Boolean, navType: String, keepService: Boolean,
         menuActionDelay: Int, checkedHideDelay: Int,
         expandOnUnlock: Boolean,
-        isCustomized: Boolean = true
+        isCustomized: Boolean = true,
+        collapsedTimerFormat: String = "default"
     ) {
-        android.util.Log.d("WebSettingsHandler", "updateFloatingSettingsExtended: menuActionDelay=$menuActionDelay, checkedHideDelay=$checkedHideDelay, expandOnUnlock=$expandOnUnlock, isCustomized=$isCustomized")
+        android.util.Log.d("WebSettingsHandler", "updateFloatingSettingsExtended: menuActionDelay=$menuActionDelay, checkedHideDelay=$checkedHideDelay, expandOnUnlock=$expandOnUnlock, isCustomized=$isCustomized, collapsedTimerFormat=$collapsedTimerFormat")
         val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         prefs.edit {
             putInt("floatCollapsedX", cX)
             putInt("floatCollapsedY", cY)
             putFloat("floatCollapsedScale", cScale)
+            putString("collapsedTimerFormat", collapsedTimerFormat)
             putBoolean("showWhenEmpty", showEmpty)
             putBoolean("alwaysMoveCollapsed", moveC)
             putBoolean("allowDragCollapsed", allowDragCollapsed)

@@ -24,6 +24,7 @@ function getBackupData() {
         floatHeight: localStorage.getItem('floatHeight'),
         floatScale: localStorage.getItem('floatScale'),
         floatCollapsedScale: localStorage.getItem('floatCollapsedScale'),
+        collapsedTimerFormat: localStorage.getItem('collapsedTimerFormat'),
         floatExpandedScale: localStorage.getItem('floatExpandedScale'),
         showWhenEmpty: localStorage.getItem('showWhenEmpty') === 'true',
         alwaysMoveCollapsed: localStorage.getItem('alwaysMoveCollapsed') === 'true',
@@ -353,7 +354,7 @@ function performRestore(data, options) {
             if (options.float) {
                 const keys = [
                     'floatX', 'floatY', 'floatWidth', 'floatHeight', 'floatScale',
-                    'floatCollapsedScale', 'floatExpandedScale',
+                    'floatCollapsedScale', 'collapsedTimerFormat', 'floatExpandedScale',
                     'floatCollapsedX', 'floatCollapsedY', 'floatExpandedX', 'floatExpandedY',
                     'displayTaskCount', 'scrollTaskCount', 'recheckInterval', 'scrollButtonType', 'navType'
                 ];
