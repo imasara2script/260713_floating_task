@@ -696,7 +696,7 @@ function checkDailyReset() {
                 const alertMsg = getTranslation('msg_system_alarm_missed', missedArray.map(m => m.text).join(', '));
                 setTimeout(() => {
                     if (typeof showModal === 'function') {
-                        showModal(alertMsg, { hideCancel: true });
+                        showModal(alertMsg, { hideCancel: true, icon: 'warning' });
                     }
                 }, 500);
             }
@@ -721,7 +721,7 @@ function checkDailyReset() {
             if (typeof updateCoinDisplay === 'function') updateCoinDisplay();
 
             if (typeof showModal === 'function') {
-                showModal(getTranslation('msg_daily_bonus_earned'), { hideCancel: true });
+                showModal(getTranslation('msg_daily_bonus_earned'), { hideCancel: true, icon: 'coin' });
             }
         }
     }

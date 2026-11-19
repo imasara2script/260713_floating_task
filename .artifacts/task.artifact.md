@@ -1,8 +1,7 @@
-# タスク進捗状況
+# タスク管理
 
-- `[x]` 実装計画の作成・承認
-- `[x]` `FloatingWindowService.kt` への `requestUnlockLimitAd()` ブリッジ追加
-- `[x]` `MainActivity.kt` への自動CM再生トリガーロジック追加 (`onPageFinished`, `onResume`, `onNewIntent`)
-- `[x]` `floating.html` の「CM視聴」選択時のハンドリング更新
-- `[x]` プロジェクトの2つの検証 (`gradle_build`)
-- `[x]` ウォークスルー成果物 (`walkthrough.artifact.md`) の作成
+- `[x]` modal-manager.js の `showModal` 関数にアイコン表示機能（自動判別および明示的指定）を追加する
+- `[x]` app.js の起動時通知（コイン獲得・システムアラーム未作動警告）に適切なアイコン設定を追加する
+- `[x]` system-handler.js のコイン獲得通知にアイコン設定を追加する
+- `[x]` Gradleビルドによるコード検証を実行する
+- `[x]` walkthrough.artifact.md の作成

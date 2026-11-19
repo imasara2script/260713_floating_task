@@ -1,35 +1,35 @@
-# フローティングウィンドウからのCM視聴自動再生 実装計画
+# 実装計画 - 大きなアイコンによる起動時通知の視覚的識別性の向上
 
-フローティングウィンドウの3択/2択メニューで「CM視聴」を選択した際、メインアプリ起動後に自動で「CM読み込み中」を表示し、読み込み完了次第リワード広告（CM）を自動再生する機能を実装します。
+アプリ起動時の「ログインボーナスでコインを獲得しました」と「システム側の問題でアラームが鳴らなかった可能性があります」の通知メッセージが似ていて見落とされてしまう問題を解決するため、それぞれの通知ダイアログに一目で識別できる大き目のアイコン（コイン獲得用 vs 不具合/警告用）を追加します。
 
 ## ユーザーレビュー必須事項
 
 > [!IMPORTANT]
-> **CM自動再生フロー:**
-> 1. ユーザーがフローティングウィンドウで「CM視聴」を選択。
-> 2. `Android.requestUnlockLimitAd()` でトリガーフラグを保存し、`Android.openMainActivity()` でメインアプリを起動。
-> 3. MainActivity 起動後（ページロード完了時）、トリガーフラグを検知して `pendingAction = 'unlock_limit'` を設定し `showRewardedAd()` を実行。
-> 4. 広告がロード中の間は「CM読み込み中」モーダルが表示され、準備完了次第自動的にCMが再生されます。
+> - **視覚デザイン**: コイン獲得通知には、黄色の背景と金色の丸いコインアイコンを表示します。システム側の問題（アラーム未作動）による警告通知には、赤・オレンジ系の背景と警告／アラームアイコンを表示します。
+> - **自動判別および明示的指定の両対応**: `showModal` で明示的に `options.icon`（`'coin'`, `'warning'` など）を指定できるほか、メッセージの内容やキーワード（コイン、ログインボーナス、alarm、アラーム）を自動検出してアイコンを切り替えるフォールバック機能も実装します。
 
 ## 変更予定ファイル
 
-### ネイティブサービスおよびアクティビティ
-#### [MODIFY] [FloatingWindowService.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/FloatingWindowService.kt)
-- `FloatingWebAppInterface` に `@JavascriptInterface fun requestUnlockLimitAd()` を追加。
+### JavaScript / UIロジック
 
-#### [MODIFY] [MainActivity.kt](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/java/com/example/floatingtask/MainActivity.kt)
-- `onPageFinished` 等で `triggerUnlockLimitAd` フラグをチェックし、有効な場合は `pendingAction = 'unlock_limit'` と `showRewardedAd()` を自動実行するロジックを追加。
+#### [MODIFY] [modal-manager.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/modal-manager.js)
+- `showModal(title, options)` を修正し、モーダルタイトルの上部に大き目のアイコンを描画する要素を追加します。
+- `options.icon` によるアイコン指定、またはタイトル文字列からの自動アイコン判別に対応します。
+- アイコンコンテナに影や適切な背景色・枠線を付与し、視認性を高めます。
 
-### フローティングウィンドウ Web UI
-#### [MODIFY] [floating.html](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/floating.html)
-- 「CM視聴」選択時に `Android.requestUnlockLimitAd()` を呼ぶように `handleNavAction('add-task')` を更新。
+#### [MODIFY] [app.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/app.js)
+- `msg_system_alarm_missed` 表示時に `icon: 'warning'`（または `'alarm'`）を明示的に指定します。
+- `msg_daily_bonus_earned` 表示時に `icon: 'coin'` を明示的に指定します。
+
+#### [MODIFY] [system-handler.js](file:///C:/Users/tk6479/AndroidStudioProjects/floatingtask/app/src/main/assets/system-handler.js)
+- コイン獲得報酬や付与モーダル（`msg_coin_earned`, `msg_reward_earned` 等）で `icon: 'coin'` を明示的に指定します。
 
 ## 検証計画
 
 ### 自動テスト
-- Gradle によるビルド確認 (`gradle_build: app:assembleDebug`)。
+- Gradleによるビルドを実行し、構文エラーやリソースの問題がないことを確認します。
 
 ### 手動検証
-- アプリをデバイス/エミュレータにデプロイ。
-- フローティングウィンドウからタスク上限（3件）に達した状態で「CM視聴」を選択。
-- メインアプリが開き、「CM読み込み中」が表示された後、リワード広告が自動再生されることを確認。
+- アプリをエミュレータまたは実機にデプロイし起動します。
+- デイリーログインボーナス獲得状態や、アラーム未作動状態をシミュレート/トリガーして各ダイアログを表示します。
+- コイン獲得通知に大きな金色コインアイコンが表示され、システム側の問題（アラーム未作動）の警告通知には赤・オレンジ系の警告アイコンが表示されて一目で区別できることを確認します。

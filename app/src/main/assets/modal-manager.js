@@ -16,6 +16,38 @@ function showModal(title, options) {
     var cancelBtn = document.getElementById('modalCancelBtn');
     var neutralBtn = document.getElementById('modalNeutralBtn');
     if (!modal || !titleEl || !inputEl || !textareaEl || !confirmBtn || !cancelBtn) return;
+
+    var existingIcon = document.getElementById('customModalIcon');
+    if (existingIcon) existingIcon.remove();
+
+    var iconType = options.icon;
+    if (!iconType && typeof title === 'string') {
+        if (title.includes('コイン') || title.includes('ログインボーナス') || title.includes('coin')) {
+            iconType = 'coin';
+        } else if (title.includes('アラーム') || title.includes('システム側') || title.includes('alarm') || title.includes('warning') || title.includes('不具合')) {
+            iconType = 'warning';
+        }
+    }
+
+    if (iconType) {
+        var iconContainer = document.createElement('div');
+        iconContainer.id = 'customModalIcon';
+        iconContainer.style.cssText = 'text-align: center; margin-bottom: 16px; display: flex; justify-content: center; align-items: center;';
+
+        if (iconType === 'coin') {
+            iconContainer.innerHTML = `<div style="width: 64px; height: 64px; border-radius: 50%; background: #fff9e6; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(255,193,7,0.3); border: 2px solid #ffc107;">
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="#ffc107"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-13c-2.38 0-4.31 1.93-4.31 4.31 0 1.16.45 2.22 1.19 3.01l-1.42 1.42c-.93-1.07-1.5-2.48-1.5-4.03 0-3.31 2.69-6 6-6 1.55 0 2.96.57 4.03 1.5l-1.42 1.42c-.79-.74-1.85-1.19-3.01-1.19z"/></svg>
+            </div>`;
+        } else if (iconType === 'warning' || iconType === 'alarm') {
+            iconContainer.innerHTML = `<div style="width: 64px; height: 64px; border-radius: 50%; background: #fff5f5; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(220,53,69,0.3); border: 2px solid #dc3545;">
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="#dc3545"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            </div>`;
+        } else if (typeof iconType === 'string') {
+            iconContainer.innerHTML = iconType;
+        }
+        titleEl.parentNode.insertBefore(iconContainer, titleEl);
+    }
+
     if (options.useHTML) titleEl.innerHTML = title;
     else titleEl.textContent = title;
     inputEl.style.display = options.showInput ? 'block' : 'none';

@@ -573,7 +573,7 @@ function onRewardEarned(type, remaining) {
             if (history.length > 500) history.pop();
             saveTasks();
         }
-        showModal(getTranslation('msg_coin_earned', remaining), { hideCancel: true });
+        showModal(getTranslation('msg_coin_earned', remaining), { hideCancel: true, icon: 'coin' });
         return;
     }
 
