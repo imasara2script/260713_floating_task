@@ -978,3 +978,24 @@ window.onNativeConfirmResult = function(callbackId, result) {
         delete window._nativeConfirmCallbacks[callbackId];
     }
 };
+
+window._nativeThreeChoiceCallbacks = {};
+
+window.nativeThreeChoice = function(title, message, posText, neuText, negText, onResult) {
+    if (typeof Android === 'undefined' || !Android.showThreeChoiceDialog) {
+        const res = confirm(message);
+        if (onResult) onResult(res ? 'positive' : 'negative');
+        return;
+    }
+    const callbackId = 'choice_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    window._nativeThreeChoiceCallbacks[callbackId] = onResult;
+    Android.showThreeChoiceDialog(title, message, posText, neuText, negText, callbackId);
+};
+
+window.onNativeThreeChoiceResult = function(callbackId, result) {
+    const callback = window._nativeThreeChoiceCallbacks[callbackId];
+    if (callback) {
+        callback(result);
+        delete window._nativeThreeChoiceCallbacks[callbackId];
+    }
+};

@@ -36,6 +36,7 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
     init {
         val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         isAdFree = prefs.getBoolean("isAdFree", false)
+        isLimitUnlockedByReward = prefs.getBoolean("isLimitUnlockedByReward", false)
     }
 
     fun loadRewardedAd() {
@@ -122,6 +123,8 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
                     AppLogger.log(context, "Rewarded ad reward earned: type=$lastRewardType")
                     if (lastRewardType == "limit") {
                         isLimitUnlockedByReward = true
+                        val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+                        prefs.edit { putBoolean("isLimitUnlockedByReward", true) }
                         webView.evaluateJavascript("onRewardEarned('limit');", null)
                     } else if (lastRewardType == "coin") {
                         val remaining = earnCoin()
@@ -231,6 +234,8 @@ class WebAdCoinHandler(private val activity: Activity, private val webView: WebV
     fun unlockLimitByCoin(): Boolean {
         if (consumeCoin()) {
             isLimitUnlockedByReward = true
+            val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            prefs.edit { putBoolean("isLimitUnlockedByReward", true) }
             return true
         }
         return false

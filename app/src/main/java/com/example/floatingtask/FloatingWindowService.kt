@@ -728,6 +728,44 @@ class FloatingWindowService : Service() {
         }
 
         @JavascriptInterface
+        fun showThreeChoiceDialog(title: String, message: String, positiveText: String, neutralText: String, negativeText: String, callbackId: String) {
+            val handler = Handler(Looper.getMainLooper())
+            handler.post {
+                val themedContext = android.view.ContextThemeWrapper(this@FloatingWindowService, androidx.appcompat.R.style.Theme_AppCompat_DayNight_Dialog)
+                val builder = androidx.appcompat.app.AlertDialog.Builder(themedContext)
+                    .setTitle(title)
+                    .setMessage(message)
+                    .setPositiveButton(positiveText) { _, _ ->
+                        val fView = floatingView ?: return@setPositiveButton
+                        val webView: WebView = fView.findViewById(R.id.floatingWebView)
+                        webView.evaluateJavascript("window.onNativeThreeChoiceResult('$callbackId', 'positive');", null)
+                    }
+                    .setNegativeButton(negativeText) { _, _ ->
+                        val fView = floatingView ?: return@setNegativeButton
+                        val webView: WebView = fView.findViewById(R.id.floatingWebView)
+                        webView.evaluateJavascript("window.onNativeThreeChoiceResult('$callbackId', 'negative');", null)
+                    }
+                
+                if (neutralText.isNotEmpty()) {
+                    builder.setNeutralButton(neutralText) { _, _ ->
+                        val fView = floatingView ?: return@setNeutralButton
+                        val webView: WebView = fView.findViewById(R.id.floatingWebView)
+                        webView.evaluateJavascript("window.onNativeThreeChoiceResult('$callbackId', 'neutral');", null)
+                    }
+                }
+
+                val dialog = builder.setOnCancelListener {
+                    val fView = floatingView ?: return@setOnCancelListener
+                    val webView: WebView = fView.findViewById(R.id.floatingWebView)
+                    webView.evaluateJavascript("window.onNativeThreeChoiceResult('$callbackId', 'cancel');", null)
+                }.create()
+
+                dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
+                dialog.show()
+            }
+        }
+
+        @JavascriptInterface
         fun updateFloatingColors(bgColor: String, textColor: String) {
             val handler = Handler(Looper.getMainLooper())
             handler.post {
@@ -987,6 +1025,35 @@ class FloatingWindowService : Service() {
                 val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                 imm.showSoftInput(webView, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
             }
+        }
+
+        @JavascriptInterface
+        fun getCoins(): Int {
+            val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+            return prefs.getInt("coins", 0)
+        }
+
+        @JavascriptInterface
+        fun unlockLimitByCoin(): Boolean {
+            val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+            val coins = prefs.getInt("coins", 0)
+            if (coins > 0) {
+                prefs.edit().putInt("coins", coins - 1).putBoolean("isLimitUnlockedByReward", true).apply()
+                return true
+            }
+            return false
+        }
+
+        @JavascriptInterface
+        fun isAdFree(): Boolean {
+            val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+            return prefs.getBoolean("isAdFree", false) || prefs.getBoolean("isLimitUnlockedByReward", false)
+        }
+
+        @JavascriptInterface
+        fun requestUnlockLimitAd() {
+            val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+            prefs.edit().putBoolean("triggerUnlockLimitAd", true).apply()
         }
 
         @JavascriptInterface

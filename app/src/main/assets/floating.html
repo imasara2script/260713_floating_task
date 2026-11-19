@@ -76,10 +76,61 @@
         let isFloatingExpanded = (urlParams.get('expanded') === 'true');
         let currentFloatingIndex = 0;
         let inputtingCommentForTaskId = null;
+        let isAddingFloatingTask = false;
         let floatingViewMode = 'tasks'; // 'tasks' or 'history'
         let isNavMenuOpen = false;
         let originalHeightPx = 44;
         let currentMenuActionDelay = parseInt(localStorage.getItem('menuActionDelay') || '0');
+
+        function startFloatingAddTask() {
+            isAddingFloatingTask = true;
+            isNavMenuOpen = false;
+            const menuList = document.getElementById('navMenuList');
+            if (menuList) menuList.style.display = 'none';
+            render();
+        }
+
+        function cancelFloatingAddTask() {
+            isAddingFloatingTask = false;
+            restoreOriginalHeight();
+            if (typeof Android !== 'undefined' && Android.setFocusable) Android.setFocusable(isFloatingExpanded);
+            render();
+        }
+
+        function saveFloatingAddTask() {
+            const input = document.getElementById('floatingTaskInputText');
+            const text = input ? input.value.trim() : '';
+            if (!text) {
+                if (input) input.focus();
+                return;
+            }
+
+            const newTask = {
+                id: Date.now(),
+                text: text,
+                note: "",
+                type: "none",
+                referenceDate: "",
+                completed: false,
+                showCommentOnCheck: false,
+                selectedDays: [],
+                melodyMode: "once",
+                audioAttribute: localStorage.getItem('melodyAudioAttribute') || 'alarm',
+                durationMs: 0,
+                startTime: 0,
+                targetTime: null,
+                links: [],
+                reminders: []
+            };
+
+            tasks.push(newTask);
+            saveTasks();
+
+            isAddingFloatingTask = false;
+            restoreOriginalHeight();
+            if (typeof Android !== 'undefined' && Android.setFocusable) Android.setFocusable(isFloatingExpanded);
+            render();
+        }
 
         function initializeV2() {
             console.log("Floating V2 Initialized");
@@ -277,6 +328,56 @@
                     if (fTasks.length > 0) currentFloatingIndex = (currentFloatingIndex + scrollTaskCount) % fTasks.length;
                 }
                 isInternalAction = true;
+            } else if (val === 'add-task') {
+                let isAdFree = (typeof Android !== 'undefined' && Android.isAdFree) ? Android.isAdFree() : true;
+                if (!isAdFree && tasks.length >= 3) {
+                    let coins = (typeof Android !== 'undefined' && Android.getCoins) ? Android.getCoins() : 0;
+                    let msg = getTranslation('msg_ad_confirm');
+                    if (coins > 0) {
+                        window.nativeThreeChoice(
+                            getTranslation('header_title') || 'デイリータスク管理',
+                            msg + "\n\n(保有コイン: " + coins + ")",
+                            "コイン消費",
+                            "CM視聴(メインアプリ)",
+                            "キャンセル",
+                            (choice) => {
+                                if (choice === 'positive') {
+                                    if (typeof Android !== 'undefined' && Android.unlockLimitByCoin()) {
+                                        startFloatingAddTask();
+                                    } else {
+                                        if (typeof Android !== 'undefined' && Android.openMainActivity) Android.openMainActivity();
+                                    }
+                                } else if (choice === 'neutral') {
+                                    if (typeof Android !== 'undefined' && Android.requestUnlockLimitAd) Android.requestUnlockLimitAd();
+                                    if (typeof Android !== 'undefined' && Android.openMainActivity) Android.openMainActivity();
+                                } else {
+                                    // キャンセル: メインアプリに遷移せず単にキャンセル
+                                    console.log("Task addition cancelled.");
+                                }
+                            }
+                        );
+                    } else {
+                        window.nativeThreeChoice(
+                            getTranslation('header_title') || 'デイリータスク管理',
+                            msg,
+                            "CM視聴(メインアプリ)",
+                            "",
+                            "キャンセル",
+                            (choice) => {
+                                if (choice === 'positive') {
+                                    if (typeof Android !== 'undefined' && Android.requestUnlockLimitAd) Android.requestUnlockLimitAd();
+                                    if (typeof Android !== 'undefined' && Android.openMainActivity) Android.openMainActivity();
+                                } else {
+                                    // キャンセル: メインアプリに遷移せず単にキャンセル
+                                    console.log("Task addition cancelled.");
+                                }
+                            }
+                        );
+                    }
+                    return;
+                }
+                startFloatingAddTask();
+                return;
             }
 
             // 内部アクションの場合は即座に再描画してフィードバック
@@ -499,6 +600,28 @@
             }
 
             if (floatingContent) {
+                if (isAddingFloatingTask) {
+                    if (document.getElementById('floatingTaskInputText')) return;
+                    floatingContent.innerHTML = `
+                        <div class="floating-comment-container" style="display: flex; flex-direction: column; width: 100%; height: 100%; padding: 8px; box-sizing: border-box;">
+                            <div style="font-weight: bold; font-size: 13px; margin-bottom: 6px;">${getTranslation('task_modal_add') || '新しいタスクを追加'}</div>
+                            <input type="text" id="floatingTaskInputText" class="floating-comment-textarea" style="height: 36px; min-height: 36px; padding: 6px; box-sizing: border-box; font-size: 14px;" placeholder="${getTranslation('placeholder_task_name') || 'タスク名を入力'}">
+                            <div class="floating-comment-actions" style="margin-top: 8px; display: flex; justify-content: flex-end; gap: 6px;">
+                                <button class="btn btn-tiny" onclick="cancelFloatingAddTask()">${getTranslation('btn_cancel')}</button>
+                                <button class="btn btn-primary btn-tiny" onclick="saveFloatingAddTask()">${getTranslation('btn_add') || '追加'}</button>
+                            </div>
+                        </div>
+                    `;
+                    setTimeout(() => {
+                        const input = document.getElementById('floatingTaskInputText');
+                        if (input) { input.focus(); }
+                        if (typeof Android !== 'undefined' && Android.showKeyboard) Android.showKeyboard();
+                        if (typeof Android !== 'undefined' && Android.requestHeight) Android.requestHeight(150);
+                        if (typeof Android !== 'undefined' && Android.setFocusable) Android.setFocusable(true);
+                    }, 100);
+                    return;
+                }
+
                 if (inputtingCommentForTaskId !== null) {
                     if (document.getElementById('floatingCommentText')) return;
                     const t = tasks.find(x => x.id === inputtingCommentForTaskId);
@@ -540,6 +663,7 @@
                             <button class="nav-menu-trigger" onclick="event.stopPropagation(); toggleNavMenu()">▼</button>
                             <div id="navMenuList" class="nav-menu-list">
                                 <div class="nav-menu-item ${floatingViewMode === 'history' ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('history')">${floatingViewMode === 'history' ? '✓ ' : ''}${getTranslation('nav_menu_history')}</div>
+                                <div class="nav-menu-item" onclick="event.stopPropagation(); handleNavAction('add-task')">${getTranslation('nav_menu_add_task')}</div>
                                 <div class="nav-menu-item ${(floatingViewMode === 'tasks' && taskTypeFilter === 'all') ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('type-all')">${(floatingViewMode === 'tasks' && taskTypeFilter === 'all') ? '✓ ' : ''}${getTranslation('nav_menu_type_all')}</div>
                                 <div class="nav-menu-item ${(floatingViewMode === 'tasks' && taskTypeFilter === 'task') ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('type-task')">${(floatingViewMode === 'tasks' && taskTypeFilter === 'task') ? '✓ ' : ''}${getTranslation('nav_menu_type_task')}</div>
                                 <div class="nav-menu-item ${(floatingViewMode === 'tasks' && taskTypeFilter === 'timer') ? 'active-item' : ''}" onclick="event.stopPropagation(); handleNavAction('type-timer')">${(floatingViewMode === 'tasks' && taskTypeFilter === 'timer') ? '✓ ' : ''}${getTranslation('nav_menu_type_timer')}</div>

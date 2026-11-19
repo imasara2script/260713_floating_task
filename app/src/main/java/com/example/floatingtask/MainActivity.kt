@@ -217,6 +217,7 @@ class MainActivity : AppCompatActivity(),
                 if (url?.contains("index.html") == true) {
                     webView.evaluateJavascript("checkDailyReset();", null)
                 }
+                checkTriggerUnlockLimitAd()
             }
         }
 
@@ -826,6 +827,7 @@ class MainActivity : AppCompatActivity(),
         super.onNewIntent(intent)
         setIntent(intent)
         handleIntent(intent)
+        checkTriggerUnlockLimitAd()
         AppLogger.log(this, "MainActivity onNewIntent")
     }
 
@@ -867,6 +869,20 @@ class MainActivity : AppCompatActivity(),
             } else {
                 adView.visibility = View.VISIBLE
             }
+        }
+        checkTriggerUnlockLimitAd()
+    }
+
+    private fun checkTriggerUnlockLimitAd() {
+        val prefs = getSharedPreferences("prefs", MODE_PRIVATE)
+        if (prefs.getBoolean("triggerUnlockLimitAd", false)) {
+            prefs.edit().putBoolean("triggerUnlockLimitAd", false).apply()
+            val webView: WebView = findViewById(R.id.webView)
+            webView.postDelayed({
+                webView.evaluateJavascript("pendingAction = 'unlock_limit';", null)
+                adCoinHandler.loadRewardedAd()
+                adCoinHandler.showRewardedAdWithType("limit")
+            }, 300)
         }
     }
 
