@@ -438,19 +438,41 @@ function getTaskTimerInfo(t) {
 }
 window.getTaskTimerInfo = getTaskTimerInfo;
 
+function formatDurationMs(ms) {
+    if (ms <= 0) return `0${getTranslation('unit_sec')}`;
+    const totalSecs = Math.floor(ms / 1000);
+    const totalMins = Math.floor(totalSecs / 60);
+    const totalHours = totalMins / 60;
+    const totalDays = totalHours / 24;
+
+    if (totalDays >= 365) {
+        const years = totalDays / 365;
+        return `${years.toFixed(1)}${getTranslation('unit_year')}`.replace('.0', '');
+    }
+    if (totalDays >= 30) {
+        const months = totalDays / 30;
+        return `${months.toFixed(1)}${getTranslation('unit_month')}`.replace('.0', '');
+    }
+    if (totalDays >= 7) {
+        const weeks = totalDays / 7;
+        return `${weeks.toFixed(1)}${getTranslation('unit_week')}`.replace('.0', '');
+    }
+    if (totalDays >= 1) {
+        return `${totalDays.toFixed(1)}${getTranslation('unit_day')}`.replace('.0', '');
+    }
+    if (totalHours >= 1) {
+        return `${totalHours.toFixed(1)}${getTranslation('unit_hour')}`.replace('.0', '');
+    }
+    if (totalMins >= 1) {
+        return `${totalMins}${getTranslation('unit_min')}`;
+    }
+    return `${totalSecs}${getTranslation('unit_sec')}`;
+}
+window.formatDurationMs = formatDurationMs;
+
 function getTotalTimeText(t) {
     if (!t.durationMs) return '';
-    const hoursFloat = t.durationMs / 3600000;
-    if (hoursFloat >= 1) {
-        return `${hoursFloat.toFixed(1)}${getTranslation('unit_hour')}`;
-    }
-    const mins = Math.floor(t.durationMs / 60000);
-    const secs = Math.floor((t.durationMs % 60000) / 1000);
-
-    let res = '';
-    if (mins > 0) res += mins + getTranslation('unit_min');
-    if (secs > 0 || res === '') res += secs + getTranslation('unit_sec');
-    return res;
+    return formatDurationMs(t.durationMs);
 }
 window.getTotalTimeText = getTotalTimeText;
 
@@ -468,6 +490,9 @@ function getRemainingTimeText(t, format) {
     if (fmt === 'unit') {
         const totalSecs = Math.floor(remaining / 1000);
         const hours = Math.floor(totalSecs / 3600);
+        if (hours >= 24) {
+            return formatDurationMs(remaining);
+        }
         const mins = Math.floor((totalSecs % 3600) / 60);
         const secs = totalSecs % 60;
         if (hours >= 1) {
@@ -482,6 +507,9 @@ function getRemainingTimeText(t, format) {
     if (fmt === 'colon') {
         const totalSecs = Math.floor(remaining / 1000);
         const hours = Math.floor(totalSecs / 3600);
+        if (hours >= 24) {
+            return formatDurationMs(remaining);
+        }
         const mins = Math.floor((totalSecs % 3600) / 60);
         const secs = totalSecs % 60;
         const mm = String(mins).padStart(2, '0');
@@ -492,17 +520,7 @@ function getRemainingTimeText(t, format) {
         return `${mins}:${ss}`;
     }
 
-    const hoursFloat = remaining / 3600000;
-    if (hoursFloat >= 1) {
-        return `${hoursFloat.toFixed(1)}${getTranslation('unit_hour')}`;
-    }
-
-    const mins = Math.floor(remaining / 60000);
-    if (mins > 0) {
-        return `${mins}${getTranslation('unit_min')}`;
-    }
-    const secs = Math.floor((remaining % 60000) / 1000);
-    return `${secs}${getTranslation('unit_sec')}`;
+    return formatDurationMs(remaining);
 }
 window.getRemainingTimeText = getRemainingTimeText;
 
@@ -510,19 +528,7 @@ function getRemainingTimeTextDetailed(t) {
     if (!t.durationMs) return '';
     const remaining = (t.startTime + t.durationMs) - Date.now();
     if (remaining <= 0) return `0${getTranslation('unit_sec')}`;
-
-    const hoursFloat = remaining / 3600000;
-    if (hoursFloat >= 1) {
-        return `${hoursFloat.toFixed(1)}${getTranslation('unit_hour')}`;
-    }
-
-    const mins = Math.floor(remaining / 60000);
-    const secs = Math.floor((remaining % 60000) / 1000);
-
-    if (mins > 0) {
-        return `${mins}${getTranslation('unit_min')}${secs}${getTranslation('unit_sec')}`;
-    }
-    return `${secs}${getTranslation('unit_sec')}`;
+    return formatDurationMs(remaining);
 }
 window.getRemainingTimeTextDetailed = getRemainingTimeTextDetailed;
 
@@ -603,7 +609,7 @@ function checkDailyReset() {
         tasks = tasks.map(t => {
             let shouldReset = false;
             // 経過時間タイプ（タイマー設定あり、かつ時刻指定ではないもの）の判定を強化
-            const isDurationType = (t.type === 'duration' || (t.durationMs > 0 && !t.targetTime));
+            const isDurationType = (t.type === 'duration' || t.type === 'period' || t.periodParts || (t.durationMs > 0 && !t.targetTime));
 
             if (t.type === 'biweekly' && t.referenceDate) {
                 // 隔週リセットロジック

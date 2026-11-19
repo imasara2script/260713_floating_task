@@ -93,6 +93,17 @@ function addTask() {
                 showModal(getTranslation('msg_input_timer_val'), { hideCancel: true });
                 return;
             }
+        } else if (unitSelect.value === 'period') {
+            const y = parseInt(currentPeriod.y) || 0;
+            const m = parseInt(currentPeriod.m) || 0;
+            const w = parseInt(currentPeriod.w) || 0;
+            const d = parseInt(currentPeriod.d) || 0;
+            const totalDays = y * 365 + m * 30 + w * 7 + d;
+            durationMs = totalDays * 24 * 3600 * 1000;
+            if (durationMs <= 0) {
+                showModal(getTranslation('msg_input_timer_val'), { hideCancel: true });
+                return;
+            }
         }
 
         targetTask.durationMs = durationMs;
@@ -100,8 +111,13 @@ function addTask() {
         targetTask.targetTime = targetTimeStr;
         if (unitSelect.value === 'duration') {
             targetTask.durationParts = { ...currentDuration };
+            delete targetTask.periodParts;
+        } else if (unitSelect.value === 'period') {
+            targetTask.periodParts = { ...currentPeriod };
+            delete targetTask.durationParts;
         } else {
             delete targetTask.durationParts;
+            delete targetTask.periodParts;
         }
         targetTask.melody = melodySelect ? melodySelect.value : 'default';
         if (targetTask.melody === 'custom') {

@@ -624,17 +624,17 @@ class FloatingWindowService : Service() {
                 val editM = view.findViewById<EditText>(R.id.editMinutes)
                 val editS = view.findViewById<EditText>(R.id.editSeconds)
 
-                editH.setText(h)
-                editM.setText(m)
-                editS.setText(s)
+                editH.setText(if (h == "0") "" else h)
+                editM.setText(if (m == "0") "" else m)
+                editS.setText(if (s == "0") "" else s)
 
                 val dialog = androidx.appcompat.app.AlertDialog.Builder(this@FloatingWindowService)
                     .setTitle(R.string.timer_duration_title)
                     .setView(view)
                     .setPositiveButton(R.string.btn_done) { dialog, which ->
-                        val resH = editH.text.toString()
-                        val resM = editM.text.toString()
-                        val resS = editS.text.toString()
+                        val resH = editH.text.toString().ifEmpty { "0" }
+                        val resM = editM.text.toString().ifEmpty { "0" }
+                        val resS = editS.text.toString().ifEmpty { "0" }
                         
                         val fView = floatingView ?: return@setPositiveButton
                         val webView: android.webkit.WebView = fView.findViewById(R.id.floatingWebView)
@@ -649,6 +649,48 @@ class FloatingWindowService : Service() {
                     .create()
                 
                 // サービスから表示するためにオーバーレイタイプを指定
+                dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
+                dialog.show()
+            }
+        }
+
+        @JavascriptInterface
+        fun showPeriodPicker(y: String, m: String, w: String, d: String) {
+            val handler = android.os.Handler(android.os.Looper.getMainLooper())
+            handler.post {
+                val inflater = LayoutInflater.from(this@FloatingWindowService)
+                val view = inflater.inflate(R.layout.dialog_period_picker, null)
+                val editY = view.findViewById<EditText>(R.id.editYears)
+                val editM = view.findViewById<EditText>(R.id.editMonths)
+                val editW = view.findViewById<EditText>(R.id.editWeeks)
+                val editD = view.findViewById<EditText>(R.id.editDays)
+
+                editY.setText(if (y == "0") "" else y)
+                editM.setText(if (m == "0") "" else m)
+                editW.setText(if (w == "0") "" else w)
+                editD.setText(if (d == "0") "" else d)
+
+                val dialog = androidx.appcompat.app.AlertDialog.Builder(this@FloatingWindowService)
+                    .setTitle(R.string.timer_period_title)
+                    .setView(view)
+                    .setPositiveButton(R.string.btn_done) { dialog, which ->
+                        val resY = editY.text.toString().ifEmpty { "0" }
+                        val resM = editM.text.toString().ifEmpty { "0" }
+                        val resW = editW.text.toString().ifEmpty { "0" }
+                        val resD = editD.text.toString().ifEmpty { "0" }
+                        
+                        val fView = floatingView ?: return@setPositiveButton
+                        val webView: android.webkit.WebView = fView.findViewById(R.id.floatingWebView)
+                        webView.evaluateJavascript("onPeriodSelected('$resY', '$resM', '$resW', '$resD');", null)
+                    }
+                    .setNegativeButton(R.string.cancel, null)
+                    .setOnDismissListener {
+                        val fView = floatingView ?: return@setOnDismissListener
+                        val webView: android.webkit.WebView = fView.findViewById(R.id.floatingWebView)
+                        webView.evaluateJavascript("onPeriodPickerDismissed();", null)
+                    }
+                    .create()
+                
                 dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
                 dialog.show()
             }

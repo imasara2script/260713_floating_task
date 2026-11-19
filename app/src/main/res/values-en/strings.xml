@@ -25,7 +25,12 @@
     <string name="unit_hour">hr</string>
     <string name="unit_min">min</string>
     <string name="unit_sec">sec</string>
+    <string name="unit_year">year</string>
+    <string name="unit_month">month</string>
+    <string name="unit_week">week</string>
+    <string name="unit_day">day</string>
     <string name="timer_duration_title">Set Duration</string>
+    <string name="timer_period_title">Set Period</string>
     <string name="btn_done">Done</string>
     <string name="notification_interval_title">You have pending tasks</string>
     <string name="notification_interval_body">Tap to show the floating window</string>

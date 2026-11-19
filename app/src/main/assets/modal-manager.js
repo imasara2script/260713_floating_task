@@ -296,6 +296,11 @@ function openTaskModal(taskId) {
                 if (timerUnit) timerUnit.value = 'at';
                 if (timeValue) timeValue.value = task.targetTime;
                 if (timerValue) timerValue.value = '';
+            } else if (task.periodParts) {
+                if (timerUnit) timerUnit.value = 'period';
+                currentPeriod = {};
+                for(var k in task.periodParts) currentPeriod[k] = task.periodParts[k];
+                onPeriodSelected(currentPeriod.y, currentPeriod.m, currentPeriod.w, currentPeriod.d);
             } else if (task.durationParts) {
                 if (timerUnit) timerUnit.value = 'duration';
                 currentDuration = {};
@@ -386,7 +391,10 @@ function openTaskModal(taskId) {
         var checks = document.querySelectorAll('.reset-day-check');
         for(var i=0; i<checks.length; i++) checks[i].checked = false;
         currentDuration = { h: "0", m: "0", s: "0" };
+        currentPeriod = { y: "0", m: "0", w: "0", d: "0" };
+        var periodBtn = document.getElementById('periodBtn');
         if (durationBtn) durationBtn.textContent = getTranslation('btn_set_duration');
+        if (periodBtn) periodBtn.textContent = getTranslation('btn_set_period');
         if (typeof renderReminderList === 'function') renderReminderList();
         if (typeof renderHyperlinkList === 'function') renderHyperlinkList();
         if (historyBtn) historyBtn.style.display = 'none';
@@ -552,18 +560,21 @@ function toggleTimerInput(isManualChange) {
     var unit = unitSelect.value;
     var input = document.getElementById('timerValue');
     var durationBtn = document.getElementById('durationBtn');
+    var periodBtn = document.getElementById('periodBtn');
     var timeInput = document.getElementById('timeValue');
     var biweeklyGroup = document.getElementById('biweeklyGroup');
     var melodyGroup = document.getElementById('melodyGroup');
     var isVisible = (unit !== 'none');
     if (input) input.style.display = 'none';
     if (durationBtn) durationBtn.style.display = (unit === 'duration') ? 'inline-block' : 'none';
+    if (periodBtn) periodBtn.style.display = (unit === 'period') ? 'inline-block' : 'none';
     if (timeInput) timeInput.style.display = (unit === 'at') ? 'inline-block' : 'none';
     if (biweeklyGroup) biweeklyGroup.style.display = (unit === 'biweekly') ? 'flex' : 'none';
     if (melodyGroup) melodyGroup.style.display = (isVisible && unit !== 'biweekly') ? 'block' : 'none';
     if (!isManualChange) return;
     if (unit === 'at' && timeInput) setTimeout(function() { timeInput.focus(); }, 50);
     else if (unit === 'duration') requestDurationPicker();
+    else if (unit === 'period') requestPeriodPicker();
 }
 
 function requestDurationPicker() {
@@ -572,7 +583,9 @@ function requestDurationPicker() {
     if (typeof Android !== 'undefined' && Android.showDurationPicker) {
         Android.showDurationPicker(currentDuration.h.toString(), currentDuration.m.toString(), currentDuration.s.toString());
     } else {
-        var h = prompt("時", currentDuration.h); var m = prompt("分", currentDuration.m); var s = prompt("秒", currentDuration.s);
+        var h = prompt("時", (currentDuration.h === "0" ? "" : currentDuration.h));
+        var m = prompt("分", (currentDuration.m === "0" ? "" : currentDuration.m));
+        var s = prompt("秒", (currentDuration.s === "0" ? "" : currentDuration.s));
         if (h !== null && m !== null && s !== null) onDurationSelected(h, m, s);
         onDurationPickerDismissed();
     }
@@ -581,7 +594,7 @@ function requestDurationPicker() {
 function onDurationPickerDismissed() { isDurationPickerRequested = false; }
 
 function onDurationSelected(h, m, s) {
-    currentDuration = { h: h.toString(), m: m.toString(), s: s.toString() };
+    currentDuration = { h: (h || "0").toString(), m: (m || "0").toString(), s: (s || "0").toString() };
     var btn = document.getElementById('durationBtn');
     if (!btn) return;
     var text = "";
@@ -591,6 +604,40 @@ function onDurationSelected(h, m, s) {
     if (hNum > 0) text += hNum + getTranslation('unit_hour');
     if (mNum > 0 || hNum > 0) text += mNum + getTranslation('unit_min');
     text += sNum + getTranslation('unit_sec');
+    btn.textContent = text;
+}
+
+function requestPeriodPicker() {
+    if (isPeriodPickerRequested) return;
+    isPeriodPickerRequested = true;
+    if (typeof Android !== 'undefined' && Android.showPeriodPicker) {
+        Android.showPeriodPicker((currentPeriod.y || "0").toString(), (currentPeriod.m || "0").toString(), (currentPeriod.w || "0").toString(), (currentPeriod.d || "0").toString());
+    } else {
+        var y = prompt("年", (currentPeriod.y === "0" ? "" : currentPeriod.y));
+        var m = prompt("月", (currentPeriod.m === "0" ? "" : currentPeriod.m));
+        var w = prompt("週", (currentPeriod.w === "0" ? "" : currentPeriod.w));
+        var d = prompt("日", (currentPeriod.d === "0" ? "" : currentPeriod.d));
+        if (y !== null && m !== null && w !== null && d !== null) onPeriodSelected(y, m, w, d);
+        onPeriodPickerDismissed();
+    }
+}
+
+function onPeriodPickerDismissed() { isPeriodPickerRequested = false; }
+
+function onPeriodSelected(y, m, w, d) {
+    currentPeriod = { y: (y || "0").toString(), m: (m || "0").toString(), w: (w || "0").toString(), d: (d || "0").toString() };
+    var btn = document.getElementById('periodBtn');
+    if (!btn) return;
+    var text = "";
+    var yNum = parseInt(y) || 0;
+    var mNum = parseInt(m) || 0;
+    var wNum = parseInt(w) || 0;
+    var dNum = parseInt(d) || 0;
+    if (yNum > 0) text += yNum + getTranslation('unit_year');
+    if (mNum > 0) text += mNum + getTranslation('unit_month');
+    if (wNum > 0) text += wNum + getTranslation('unit_week');
+    if (dNum > 0) text += dNum + getTranslation('unit_day');
+    if (!text) text = getTranslation('btn_set_period');
     btn.textContent = text;
 }
 
@@ -808,6 +855,11 @@ window.closeTaskModal = closeTaskModal;
 window.updateTaskModalVisibility = updateTaskModalVisibility;
 window.toggleTimerInput = toggleTimerInput;
 window.requestDurationPicker = requestDurationPicker;
+window.onDurationPickerDismissed = onDurationPickerDismissed;
+window.onDurationSelected = onDurationSelected;
+window.requestPeriodPicker = requestPeriodPicker;
+window.onPeriodPickerDismissed = onPeriodPickerDismissed;
+window.onPeriodSelected = onPeriodSelected;
 window.onDurationPickerDismissed = onDurationPickerDismissed;
 window.onDurationSelected = onDurationSelected;
 window.updateMelodyData = updateMelodyData;

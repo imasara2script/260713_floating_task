@@ -371,6 +371,16 @@ class MainActivity : AppCompatActivity(),
         webView.evaluateJavascript("onDurationPickerDismissed();", null)
     }
 
+    override fun onPeriodSelected(y: String, m: String, w: String, d: String) {
+        val webView: WebView = findViewById(R.id.webView)
+        webView.evaluateJavascript("onPeriodSelected('$y', '$m', '$w', '$d');", null)
+    }
+
+    override fun onPeriodPickerDismissed() {
+        val webView: WebView = findViewById(R.id.webView)
+        webView.evaluateJavascript("onPeriodPickerDismissed();", null)
+    }
+
     override fun onNativeConfirmResult(callbackId: String, result: Boolean) {
         val webView: WebView = findViewById(R.id.webView)
         webView.evaluateJavascript("window.onNativeConfirmResult('$callbackId', $result);", null)
@@ -569,6 +579,10 @@ class MainActivity : AppCompatActivity(),
         @JavascriptInterface
         fun showDurationPicker(h: String, m: String, s: String) =
             uiHandler.showDurationPicker(h, m, s)
+
+        @JavascriptInterface
+        fun showPeriodPicker(y: String, m: String, w: String, d: String) =
+            uiHandler.showPeriodPicker(y, m, w, d)
 
         @JavascriptInterface
         fun showConfirmDialog(title: String, message: String, callbackId: String) =

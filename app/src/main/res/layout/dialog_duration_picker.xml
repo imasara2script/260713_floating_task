@@ -18,6 +18,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="0"
+            android:selectAllOnFocus="true"
             android:autofillHints="none"
             android:inputType="numberDecimal"
             android:textSize="18sp" />
@@ -43,6 +44,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="0"
+            android:selectAllOnFocus="true"
             android:autofillHints="none"
             android:inputType="numberDecimal"
             android:textSize="18sp" />
@@ -67,6 +69,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="0"
+            android:selectAllOnFocus="true"
             android:autofillHints="none"
             android:inputType="numberDecimal"
             android:textSize="18sp" />
