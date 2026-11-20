@@ -370,6 +370,9 @@ function openTaskModal(taskId) {
             if (modeSelect) modeSelect.value = melodyMode;
             if (viewTaskTimer) {
                 var timerText = task.targetTime ? task.targetTime : ((typeof getTotalTimeText === 'function') ? getTotalTimeText(task) : '');
+                if (task.referenceDate) {
+                    timerText += ' (' + getTranslation('label_reference_date') + task.referenceDate + ')';
+                }
                 viewTaskTimer.textContent = getTranslation('label_timer') + " " + timerText;
                 viewTaskTimer.style.display = 'block';
             }
@@ -601,7 +604,7 @@ function toggleTimerInput(isManualChange) {
     if (durationBtn) durationBtn.style.display = (unit === 'duration') ? 'inline-block' : 'none';
     if (periodBtn) periodBtn.style.display = (unit === 'period') ? 'inline-block' : 'none';
     if (timeInput) timeInput.style.display = (unit === 'at') ? 'inline-block' : 'none';
-    if (biweeklyGroup) biweeklyGroup.style.display = (unit === 'biweekly') ? 'flex' : 'none';
+    if (biweeklyGroup) biweeklyGroup.style.display = (unit === 'biweekly' || unit === 'period') ? 'flex' : 'none';
     if (melodyGroup) melodyGroup.style.display = (isVisible && unit !== 'biweekly') ? 'block' : 'none';
     if (!isManualChange) return;
     if (unit === 'at' && timeInput) setTimeout(function() { timeInput.focus(); }, 50);

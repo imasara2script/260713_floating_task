@@ -104,6 +104,13 @@ function addTask() {
                 showModal(getTranslation('msg_input_timer_val'), { hideCancel: true });
                 return;
             }
+            if (referenceDate && typeof calculatePeriodCycle === 'function') {
+                const cycle = calculatePeriodCycle(referenceDate, currentPeriod);
+                if (cycle) {
+                    startTime = cycle.startTime;
+                    durationMs = cycle.durationMs;
+                }
+            }
         }
 
         targetTask.durationMs = durationMs;
@@ -131,7 +138,10 @@ function addTask() {
 
         if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
             const currentAudioAttr = (typeof getEffectiveAudioAttribute === 'function') ? getEffectiveAudioAttribute(targetTask) : (targetTask.audioAttribute || localStorage.getItem('melodyAudioAttribute') || 'alarm');
-            Android.setTimerAlarm(targetTask.id, targetTask.text, durationMs, targetTask.melody || 'default', targetTask.melodyMode || 'once', currentAudioAttr);
+            const alarmDuration = Math.max(0, (startTime + durationMs) - Date.now());
+            if (alarmDuration > 0) {
+                Android.setTimerAlarm(targetTask.id, targetTask.text, alarmDuration, targetTask.melody || 'default', targetTask.melodyMode || 'once', currentAudioAttr);
+            }
         }
     } else {
         targetTask.durationMs = 0;

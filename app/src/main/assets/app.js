@@ -388,6 +388,13 @@ window.checkedHideDelay = checkedHideDelay;
 window.taskTypeFilter = taskTypeFilter;
 window.timerDisplayMode = timerDisplayMode;
 
+function toggleTimerDisplayMode() {
+    timerDisplayMode = (timerDisplayMode === 'countdown') ? 'endtime' : 'countdown';
+    window.timerDisplayMode = timerDisplayMode;
+    if (typeof render === 'function') render();
+}
+window.toggleTimerDisplayMode = toggleTimerDisplayMode;
+
 function saveTasks() {
     localStorage.setItem('tasks', JSON.stringify(tasks));
     localStorage.setItem('taskHistory', JSON.stringify(history));
@@ -535,10 +542,23 @@ window.getRemainingTimeTextDetailed = getRemainingTimeTextDetailed;
 function getEndTimeText(t) {
     if (!t.startTime || !t.durationMs) return '';
     const endTime = new Date(t.startTime + t.durationMs);
+    const now = Date.now();
+    const remaining = endTime.getTime() - now;
+    const oneDayMs = 24 * 60 * 60 * 1000;
+
+    const suffix = currentLang === 'ja' ? '終了' : 'End';
+
+    if (remaining >= oneDayMs) {
+        const yyyy = endTime.getFullYear();
+        const mm = String(endTime.getMonth() + 1).padStart(2, '0');
+        const dd = String(endTime.getDate()).padStart(2, '0');
+        return `${yyyy}/${mm}/${dd} ${suffix}`;
+    }
+
     const hh = String(endTime.getHours()).padStart(2, '0');
-    const mm = String(endTime.getMinutes()).padStart(2, '0');
+    const mmMin = String(endTime.getMinutes()).padStart(2, '0');
     const ss = String(endTime.getSeconds()).padStart(2, '0');
-    return `${hh}:${mm}:${ss} ${currentLang === 'ja' ? '終了' : 'End'}`;
+    return `${hh}:${mmMin}:${ss} ${suffix}`;
 }
 window.getEndTimeText = getEndTimeText;
 
@@ -550,6 +570,47 @@ function isPendingForDisplay(t) {
     return !justUncompleted;
 }
 window.isPendingForDisplay = isPendingForDisplay;
+
+/**
+ * 基準日(refDateStr)と期間(periodParts)から、現在日時に適したサイクルの開始時刻(startTime)と期間(durationMs)を計算する
+ */
+function calculatePeriodCycle(refDateStr, periodParts, targetNow) {
+    if (!refDateStr || !periodParts) return null;
+    const y = parseInt(periodParts.y) || 0;
+    const m = parseInt(periodParts.m) || 0;
+    const w = parseInt(periodParts.w) || 0;
+    const d = parseInt(periodParts.d) || 0;
+
+    if (y <= 0 && m <= 0 && w <= 0 && d <= 0) return null;
+
+    let curStart = new Date(refDateStr + 'T00:00:00');
+    if (isNaN(curStart.getTime())) return null;
+
+    const refNow = targetNow ? new Date(targetNow) : new Date();
+
+    function addPeriodStep(date) {
+        const next = new Date(date.getTime());
+        if (y > 0) next.setFullYear(next.getFullYear() + y);
+        if (m > 0) next.setMonth(next.getMonth() + m);
+        if (w > 0) next.setDate(next.getDate() + w * 7);
+        if (d > 0) next.setDate(next.getDate() + d);
+        return next;
+    }
+
+    let curEnd = addPeriodStep(curStart);
+    if (curEnd.getTime() <= curStart.getTime()) return null;
+
+    while (curEnd.getTime() <= refNow.getTime()) {
+        curStart = curEnd;
+        curEnd = addPeriodStep(curStart);
+    }
+
+    return {
+        startTime: curStart.getTime(),
+        durationMs: curEnd.getTime() - curStart.getTime()
+    };
+}
+window.calculatePeriodCycle = calculatePeriodCycle;
 
 function getVisibleFloatingTasks() {
     const getGroupKey = (t) => {
@@ -909,10 +970,27 @@ function repeatTimerCore(taskId) {
 
     checkAndWarnNotificationPermission();
 
+    if ((task.type === 'period' || task.periodParts) && task.referenceDate) {
+        let targetRefNow = Date.now();
+        if (task.startTime && task.durationMs && (task.startTime + task.durationMs > targetRefNow)) {
+            targetRefNow = task.startTime + task.durationMs + 1000;
+        }
+        const cycle = calculatePeriodCycle(task.referenceDate, task.periodParts, targetRefNow);
+        if (cycle) {
+            task.startTime = cycle.startTime;
+            task.durationMs = cycle.durationMs;
+        } else {
+            task.startTime = Date.now();
+        }
+    } else {
+        task.startTime = Date.now();
+    }
+
     const melody = task.melody || 'default';
     const melodyMode = task.melodyMode || 'once';
-    if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
-        Android.setTimerAlarm(task.id, task.text, task.durationMs, melody, melodyMode, getEffectiveAudioAttribute(task));
+    const alarmDuration = Math.max(0, (task.startTime + task.durationMs) - Date.now());
+    if (typeof Android !== 'undefined' && Android.setTimerAlarm && alarmDuration > 0) {
+        Android.setTimerAlarm(task.id, task.text, alarmDuration, melody, melodyMode, getEffectiveAudioAttribute(task));
     }
 
     history.unshift({
@@ -927,7 +1005,6 @@ function repeatTimerCore(taskId) {
 
     const isCurrentlyAtTop = isPendingForDisplay(task);
 
-    task.startTime = Date.now();
     task.completed = false;
     delete task.justCompletedUntil;
 
