@@ -237,9 +237,10 @@
                     <button id="durationBtn" class="btn btn-secondary" style="display: none; padding: 6px 12px; font-size: 14px;" onclick="requestDurationPicker()" data-i18n="btn_set_duration">時間を設定</button>
                     <button id="periodBtn" class="btn btn-secondary" style="display: none; padding: 6px 12px; font-size: 14px;" onclick="requestPeriodPicker()" data-i18n="btn_set_period">期間を設定</button>
                     <input type="time" id="timeValue" style="display: none; padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;" aria-label="時刻">
-                    <div id="biweeklyGroup" style="display: none; align-items: center; gap: 8px;">
-                        <label for="referenceDate" style="color: #666; font-size: 14px;" data-i18n="label_reference_date">基準日：</label>
+                    <div id="biweeklyGroup" style="display: none; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <label for="referenceDate" id="referenceDateLabel" style="color: #666; font-size: 14px;" data-i18n="label_reference_date">基準日：</label>
                         <input type="date" id="referenceDate" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: white; font-size: 14px;" aria-label="基準日">
+                        <button type="button" id="currentDateTimeBtn" class="btn btn-secondary" style="display: none; padding: 4px 8px; font-size: 12px;" onclick="setReferenceDateCurrentTime()" data-i18n="btn_current_time">現在時刻</button>
                     </div>
                     <div id="melodyGroup" style="margin-top: 12px; display: none;">
                         <label for="melodySelect" style="color: #666; font-size: 14px;" data-i18n="label_melody">メロディ：</label>

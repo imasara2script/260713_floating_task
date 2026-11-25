@@ -332,7 +332,7 @@ function openTaskModal(taskId) {
                 if (timerUnit) timerUnit.value = 'period';
                 currentPeriod = {};
                 for(var k in task.periodParts) currentPeriod[k] = task.periodParts[k];
-                onPeriodSelected(currentPeriod.y, currentPeriod.m, currentPeriod.w, currentPeriod.d);
+                onPeriodSelected(currentPeriod.y, currentPeriod.m, currentPeriod.w, currentPeriod.d, currentPeriod.h);
             } else if (task.durationParts) {
                 if (timerUnit) timerUnit.value = 'duration';
                 currentDuration = {};
@@ -426,7 +426,7 @@ function openTaskModal(taskId) {
         var checks = document.querySelectorAll('.reset-day-check');
         for(var i=0; i<checks.length; i++) checks[i].checked = false;
         currentDuration = { h: "0", m: "0", s: "0" };
-        currentPeriod = { y: "0", m: "0", w: "0", d: "0" };
+        currentPeriod = { y: "0", m: "0", w: "0", d: "0", h: "0" };
         var periodBtn = document.getElementById('periodBtn');
         if (durationBtn) durationBtn.textContent = getTranslation('btn_set_duration');
         if (periodBtn) periodBtn.textContent = getTranslation('btn_set_period');
@@ -598,13 +598,32 @@ function toggleTimerInput(isManualChange) {
     var periodBtn = document.getElementById('periodBtn');
     var timeInput = document.getElementById('timeValue');
     var biweeklyGroup = document.getElementById('biweeklyGroup');
+    var referenceDateInput = document.getElementById('referenceDate');
+    var referenceDateLabel = document.getElementById('referenceDateLabel');
+    var currentDateTimeBtn = document.getElementById('currentDateTimeBtn');
     var melodyGroup = document.getElementById('melodyGroup');
     var isVisible = (unit !== 'none');
     if (input) input.style.display = 'none';
     if (durationBtn) durationBtn.style.display = (unit === 'duration') ? 'inline-block' : 'none';
     if (periodBtn) periodBtn.style.display = (unit === 'period') ? 'inline-block' : 'none';
     if (timeInput) timeInput.style.display = (unit === 'at') ? 'inline-block' : 'none';
-    if (biweeklyGroup) biweeklyGroup.style.display = (unit === 'biweekly' || unit === 'period') ? 'flex' : 'none';
+
+    if (biweeklyGroup) {
+        if (unit === 'duration') {
+            biweeklyGroup.style.display = 'flex';
+            if (referenceDateInput) referenceDateInput.type = 'datetime-local';
+            if (currentDateTimeBtn) currentDateTimeBtn.style.display = 'inline-block';
+            if (referenceDateLabel) referenceDateLabel.textContent = getTranslation('label_reference_datetime');
+        } else if (unit === 'period' || unit === 'biweekly') {
+            biweeklyGroup.style.display = 'flex';
+            if (referenceDateInput) referenceDateInput.type = 'date';
+            if (currentDateTimeBtn) currentDateTimeBtn.style.display = 'none';
+            if (referenceDateLabel) referenceDateLabel.textContent = getTranslation('label_reference_date');
+        } else {
+            biweeklyGroup.style.display = 'none';
+        }
+    }
+
     if (melodyGroup) melodyGroup.style.display = (isVisible && unit !== 'biweekly') ? 'block' : 'none';
     if (!isManualChange) return;
     if (unit === 'at' && timeInput) setTimeout(function() { timeInput.focus(); }, 50);
@@ -675,6 +694,20 @@ function onPeriodSelected(y, m, w, d) {
     if (!text) text = getTranslation('btn_set_period');
     btn.textContent = text;
 }
+window.onPeriodSelected = onPeriodSelected;
+
+function setReferenceDateCurrentTime() {
+    const el = document.getElementById('referenceDate');
+    if (!el) return;
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const h = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    el.value = `${y}-${m}-${d}T${h}:${min}`;
+}
+window.setReferenceDateCurrentTime = setReferenceDateCurrentTime;
 
 function handleMelodyChange(targetId) {
     if (targetId === undefined) targetId = 'main';

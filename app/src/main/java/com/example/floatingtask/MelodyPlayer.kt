@@ -2,6 +2,7 @@ package com.example.floatingtask
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
@@ -23,8 +24,27 @@ object MelodyPlayer {
     }
 
     fun play(context: Context, melody: String, looping: Boolean = false, taskId: Long = -1L, taskText: String = "", audioAttribute: String = "alarm") {
-        Log.d("MelodyPlayer", "play: $melody, looping: $looping, taskId: $taskId, audioAttr: $audioAttribute")
-        AppLogger.log(context, "MelodyPlayer.play: melody=$melody, looping=$looping, audioAttribute=$audioAttribute, taskId=$taskId")
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val alarmVol = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+        val alarmMax = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+        val ringVol = audioManager.getStreamVolume(AudioManager.STREAM_RING)
+        val ringMax = audioManager.getStreamMaxVolume(AudioManager.STREAM_RING)
+        val notifVol = audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION)
+        val notifMax = audioManager.getStreamMaxVolume(AudioManager.STREAM_NOTIFICATION)
+        val musicVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        val musicMax = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+
+        val ringerMode = when (audioManager.ringerMode) {
+            AudioManager.RINGER_MODE_SILENT -> "SILENT"
+            AudioManager.RINGER_MODE_VIBRATE -> "VIBRATE"
+            else -> "NORMAL"
+        }
+
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val isPowerSaveMode = powerManager.isPowerSaveMode
+
+        Log.d("MelodyPlayer", "play: $melody, looping: $looping, taskId: $taskId, audioAttr: $audioAttribute | Volume[Alarm: $alarmVol/$alarmMax, Ring: $ringVol/$ringMax, Notification: $notifVol/$notifMax, Music: $musicVol/$musicMax] | RingerMode: $ringerMode | PowerSaveMode: $isPowerSaveMode")
+        AppLogger.log(context, "MelodyPlayer.play: melody=$melody, looping=$looping, audioAttribute=$audioAttribute, taskId=$taskId | Volume[Alarm: $alarmVol/$alarmMax, Ring: $ringVol/$ringMax, Notification: $notifVol/$notifMax, Music: $musicVol/$musicMax] | RingerMode: $ringerMode | PowerSaveMode: $isPowerSaveMode")
         stop() // 既に再生中の場合は停止
 
         currentTaskId = taskId

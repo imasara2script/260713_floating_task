@@ -93,6 +93,13 @@ function addTask() {
                 showModal(getTranslation('msg_input_timer_val'), { hideCancel: true });
                 return;
             }
+            if (referenceDate && typeof calculateDurationCycle === 'function') {
+                const cycle = calculateDurationCycle(referenceDate, durationMs);
+                if (cycle) {
+                    startTime = cycle.startTime;
+                    durationMs = cycle.durationMs;
+                }
+            }
         } else if (unitSelect.value === 'period') {
             const y = parseInt(currentPeriod.y) || 0;
             const m = parseInt(currentPeriod.m) || 0;

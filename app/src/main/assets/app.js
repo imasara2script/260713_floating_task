@@ -571,6 +571,35 @@ function isPendingForDisplay(t) {
 }
 window.isPendingForDisplay = isPendingForDisplay;
 
+function formatLocalDateTime(date) {
+    const d = new Date(date);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const h = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${day}T${h}:${min}`;
+}
+window.formatLocalDateTime = formatLocalDateTime;
+
+function calculateDurationCycle(refDateStr, durationMs, targetNow) {
+    if (!refDateStr || !durationMs || durationMs <= 0) return null;
+    let curStart = new Date(refDateStr).getTime();
+    if (isNaN(curStart)) return null;
+
+    const refNow = targetNow ? new Date(targetNow) : Date.now();
+
+    while (curStart + durationMs <= refNow) {
+        curStart += durationMs;
+    }
+
+    return {
+        startTime: curStart,
+        durationMs: durationMs
+    };
+}
+window.calculateDurationCycle = calculateDurationCycle;
+
 /**
  * 基準日(refDateStr)と期間(periodParts)から、現在日時に適したサイクルの開始時刻(startTime)と期間(durationMs)を計算する
  */
@@ -584,6 +613,9 @@ function calculatePeriodCycle(refDateStr, periodParts, targetNow) {
     if (y <= 0 && m <= 0 && w <= 0 && d <= 0) return null;
 
     let curStart = new Date(refDateStr + 'T00:00:00');
+    if (isNaN(curStart.getTime())) {
+        curStart = new Date(refDateStr);
+    }
     if (isNaN(curStart.getTime())) return null;
 
     const refNow = targetNow ? new Date(targetNow) : new Date();
@@ -970,7 +1002,20 @@ function repeatTimerCore(taskId) {
 
     checkAndWarnNotificationPermission();
 
-    if ((task.type === 'period' || task.periodParts) && task.referenceDate) {
+    if (task.type === 'duration' && task.referenceDate && task.durationMs) {
+        let targetRefNow = Date.now();
+        if (task.startTime && task.durationMs && (task.startTime + task.durationMs > targetRefNow)) {
+            targetRefNow = task.startTime + task.durationMs + 1000;
+        }
+        const cycle = calculateDurationCycle(task.referenceDate, task.durationMs, targetRefNow);
+        if (cycle) {
+            task.startTime = cycle.startTime;
+            task.durationMs = cycle.durationMs;
+            task.referenceDate = formatLocalDateTime(cycle.startTime);
+        } else {
+            task.startTime = Date.now();
+        }
+    } else if ((task.type === 'period' || task.periodParts) && task.referenceDate) {
         let targetRefNow = Date.now();
         if (task.startTime && task.durationMs && (task.startTime + task.durationMs > targetRefNow)) {
             targetRefNow = task.startTime + task.durationMs + 1000;
@@ -979,6 +1024,7 @@ function repeatTimerCore(taskId) {
         if (cycle) {
             task.startTime = cycle.startTime;
             task.durationMs = cycle.durationMs;
+            task.referenceDate = formatLocalDateTime(cycle.startTime).substring(0, 10);
         } else {
             task.startTime = Date.now();
         }
