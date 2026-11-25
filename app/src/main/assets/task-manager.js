@@ -115,6 +115,7 @@ function addTask() {
 
         targetTask.durationMs = durationMs;
         targetTask.startTime = startTime;
+        targetTask.lastScheduledAt = Date.now();
         targetTask.targetTime = targetTimeStr;
         if (unitSelect.value === 'duration') {
             targetTask.durationParts = { ...currentDuration };

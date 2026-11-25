@@ -1199,5 +1199,38 @@ class FloatingWindowService : Service() {
             json.put("density", dm.density)
             return json.toString()
         }
+
+        @JavascriptInterface
+        fun getAudioVolumeInfo(): String {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+            val json = org.json.JSONObject()
+            json.put("notificationVolume", audioManager.getStreamVolume(android.media.AudioManager.STREAM_NOTIFICATION))
+            json.put("notificationMaxVolume", audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_NOTIFICATION))
+            json.put("alarmVolume", audioManager.getStreamVolume(android.media.AudioManager.STREAM_ALARM))
+            json.put("alarmMaxVolume", audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_ALARM))
+            json.put("mediaVolume", audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC))
+            json.put("mediaMaxVolume", audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC))
+            return json.toString()
+        }
+
+        @JavascriptInterface
+        fun setAudioVolume(streamTypeStr: String, volume: Int): Boolean {
+            return try {
+                val audioManager = getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                val streamType = when (streamTypeStr) {
+                    "notification" -> android.media.AudioManager.STREAM_NOTIFICATION
+                    "alarm" -> android.media.AudioManager.STREAM_ALARM
+                    "media" -> android.media.AudioManager.STREAM_MUSIC
+                    else -> return false
+                }
+                val maxVol = audioManager.getStreamMaxVolume(streamType)
+                val targetVol = volume.coerceIn(0, maxVol)
+                audioManager.setStreamVolume(streamType, targetVol, android.media.AudioManager.FLAG_SHOW_UI)
+                true
+            } catch (e: Exception) {
+                AppLogger.log(this@FloatingWindowService, "Error setting audio volume: ${e.message}")
+                false
+            }
+        }
     }
 }

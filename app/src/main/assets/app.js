@@ -985,6 +985,7 @@ function repeatTimerCore(taskId) {
     } else {
         task.startTime = Date.now();
     }
+    task.lastScheduledAt = Date.now();
 
     const melody = task.melody || 'default';
     const melodyMode = task.melodyMode || 'once';

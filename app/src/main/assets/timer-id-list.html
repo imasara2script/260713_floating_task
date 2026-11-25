@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Task - Timer ID List</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="translations.js"></script>
+    <script src="app.js"></script>
+    <script src="ui-core.js"></script>
+    <script src="modal-manager.js"></script>
+    <script src="system-handler.js"></script>
+    <style>
+        html, body {
+            overflow: auto !important;
+            height: auto !important;
+        }
+        body {
+            background-color: #f8f9fa;
+            padding: 20px 20px 40px 20px;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            color: #333;
+            margin: 0;
+            overflow-x: hidden;
+            display: block;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 20px;
+            margin: 0;
+            text-align: center;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            justify-content: center;
+            position: relative;
+        }
+        .btn-back {
+            position: absolute;
+            left: 0;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 12px;
+            color: #555;
+            border-left: 4px solid #007bff;
+            padding-left: 8px;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .volume-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .volume-item {
+            background: #f8fafc;
+            border: 1px solid #edf2f7;
+            padding: 12px 14px;
+            border-radius: 8px;
+        }
+        .volume-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .volume-label {
+            font-size: 13px;
+            color: #475569;
+            font-weight: bold;
+        }
+        .volume-val-text {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+        .volume-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .vol-btn {
+            background: #e2e8f0;
+            color: #334155;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        .vol-btn:active {
+            background: #cbd5e1;
+        }
+        .vol-slider {
+            flex: 1;
+            height: 6px;
+            accent-color: #3b82f6;
+            cursor: pointer;
+        }
+        #volAlarmRange {
+            accent-color: #8b5cf6;
+        }
+        #volMediaRange {
+            accent-color: #10b981;
+        }
+        .timer-card {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-left: 5px solid #3b82f6;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .timer-card.type-reminder {
+            border-left-color: #8b5cf6;
+        }
+        .timer-card.type-interval {
+            border-left-color: #f59e0b;
+        }
+        .timer-card.expired {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        .timer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .timer-id-badge {
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-family: monospace;
+        }
+        .timer-type-badge {
+            font-size: 11px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: white;
+            background: #3b82f6;
+        }
+        .type-reminder .timer-type-badge {
+            background: #8b5cf6;
+        }
+        .type-interval .timer-type-badge {
+            background: #f59e0b;
+        }
+        .timer-task-text {
+            font-size: 15px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+        .timer-detail-row {
+            display: flex;
+            font-size: 13px;
+            margin-bottom: 4px;
+            color: #475569;
+        }
+        .timer-detail-label {
+            width: 100px;
+            flex-shrink: 0;
+            color: #64748b;
+        }
+        .timer-detail-value {
+            font-weight: 500;
+            word-break: break-all;
+        }
+        .remaining-highlight {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-top: 6px;
+            background: #eff6ff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        .timer-card.expired .remaining-highlight {
+            color: #dc2626;
+            background: #fee2e2;
+        }
+        .empty-msg {
+            text-align: center;
+            padding: 30px 10px;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+        /* Custom Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 450px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-title { font-weight: bold; margin-bottom: 12px; white-space: pre-wrap; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="btn-back" onclick="goBack()">←</button>
+            <h1 data-i18n="timer_id_list_title">タイマーIDリスト</h1>
+        </div>
+
+        <div class="section-title" data-i18n="label_device_volume">現在の端末音量・音量調整</div>
+        <div class="card">
+            <div class="volume-grid">
+                <div class="volume-item">
+                    <div class="volume-header">
+                        <span class="volume-label" id="lblNotifVol" data-i18n="label_notification_volume">通知音量</span>
+                        <span class="volume-val-text" id="volNotifText">-- / --</span>
+                    </div>
+                    <div class="volume-controls">
+                        <button class="vol-btn" onclick="adjustVolume('notification', -1)" aria-label="通知音量を下げる">-</button>
+                        <input type="range" class="vol-slider" id="volNotifRange" aria-labelledby="lblNotifVol" min="0" max="15" value="0"
+                               oninput="onVolumeSliderInput('notification', this.value)"
+                               onchange="onVolumeSliderChange('notification', this.value)"
+                               onmousedown="isUserInteracting = true"
+                               onmouseup="isUserInteracting = false"
+                               ontouchstart="isUserInteracting = true"
+                               ontouchend="isUserInteracting = false">
+                        <button class="vol-btn" onclick="adjustVolume('notification', 1)" aria-label="通知音量を上げる">+</button>
+                    </div>
+                </div>
+
+                <div class="volume-item">
+                    <div class="volume-header">
+                        <span class="volume-label" id="lblAlarmVol" data-i18n="label_alarm_volume">メロディ/アラーム音量</span>
+                        <span class="volume-val-text" id="volAlarmText">-- / --</span>
+                    </div>
+                    <div class="volume-controls">
+                        <button class="vol-btn" onclick="adjustVolume('alarm', -1)" aria-label="アラーム音量を下げる">-</button>
+                        <input type="range" class="vol-slider" id="volAlarmRange" aria-labelledby="lblAlarmVol" min="0" max="15" value="0"
+                               oninput="onVolumeSliderInput('alarm', this.value)"
+                               onchange="onVolumeSliderChange('alarm', this.value)"
+                               onmousedown="isUserInteracting = true"
+                               onmouseup="isUserInteracting = false"
+                               ontouchstart="isUserInteracting = true"
+                               ontouchend="isUserInteracting = false">
+                        <button class="vol-btn" onclick="adjustVolume('alarm', 1)" aria-label="アラーム音量を上げる">+</button>
+                    </div>
+                </div>
+
+                <div class="volume-item">
+                    <div class="volume-header">
+                        <span class="volume-label" id="lblMediaVol" data-i18n="label_media_volume">メディア音量</span>
+                        <span class="volume-val-text" id="volMediaText">-- / --</span>
+                    </div>
+                    <div class="volume-controls">
+                        <button class="vol-btn" onclick="adjustVolume('media', -1)" aria-label="メディア音量を下げる">-</button>
+                        <input type="range" class="vol-slider" id="volMediaRange" aria-labelledby="lblMediaVol" min="0" max="15" value="0"
+                               oninput="onVolumeSliderInput('media', this.value)"
+                               onchange="onVolumeSliderChange('media', this.value)"
+                               onmousedown="isUserInteracting = true"
+                               onmouseup="isUserInteracting = false"
+                               ontouchstart="isUserInteracting = true"
+                               ontouchend="isUserInteracting = false">
+                        <button class="vol-btn" onclick="adjustVolume('media', 1)" aria-label="メディア音量を上げる">+</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">登録中のタイマーID一覧</div>
+        <div id="timerListContainer">
+            <div class="empty-msg" data-i18n="msg_no_active_timers">現在アクティブなタイマーIDはありません</div>
+        </div>
+
+        <button class="btn btn-secondary" style="width: 100%; margin-top: 16px;" onclick="goBack()" data-i18n="btn_close">閉じる</button>
+    </div>
+
+    <!-- Modal overlay -->
+    <div id="customModal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="modalTitle" class="modal-title"></div>
+            <div class="modal-actions">
+                <button id="modalConfirmBtn" class="btn btn-primary" onclick="closeModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isUserInteracting = false;
+        const currentVolumes = { notification: 0, alarm: 0, media: 0 };
+        const maxVolumes = { notification: 15, alarm: 15, media: 15 };
+
+        function goBack() {
+            location.href = 'developer-settings.html';
+        }
+
+        function handleBack() {
+            goBack();
+            return true;
+        }
+
+        function updateVolumeDisplay() {
+            if (isUserInteracting) return;
+            if (typeof Android !== 'undefined' && typeof Android.getAudioVolumeInfo === 'function') {
+                try {
+                    const infoJson = Android.getAudioVolumeInfo();
+                    const info = JSON.parse(infoJson);
+
+                    // Notification
+                    currentVolumes.notification = info.notificationVolume ?? 0;
+                    maxVolumes.notification = info.notificationMaxVolume ?? 15;
+                    const rNotif = document.getElementById('volNotifRange');
+                    if (rNotif) {
+                        rNotif.max = maxVolumes.notification;
+                        rNotif.value = currentVolumes.notification;
+                    }
+                    document.getElementById('volNotifText').textContent = `${currentVolumes.notification} / ${maxVolumes.notification}`;
+
+                    // Alarm
+                    currentVolumes.alarm = info.alarmVolume ?? 0;
+                    maxVolumes.alarm = info.alarmMaxVolume ?? 15;
+                    const rAlarm = document.getElementById('volAlarmRange');
+                    if (rAlarm) {
+                        rAlarm.max = maxVolumes.alarm;
+                        rAlarm.value = currentVolumes.alarm;
+                    }
+                    document.getElementById('volAlarmText').textContent = `${currentVolumes.alarm} / ${maxVolumes.alarm}`;
+
+                    // Media
+                    currentVolumes.media = info.mediaVolume ?? 0;
+                    maxVolumes.media = info.mediaMaxVolume ?? 15;
+                    const rMedia = document.getElementById('volMediaRange');
+                    if (rMedia) {
+                        rMedia.max = maxVolumes.media;
+                        rMedia.value = currentVolumes.media;
+                    }
+                    document.getElementById('volMediaText').textContent = `${currentVolumes.media} / ${maxVolumes.media}`;
+                } catch (e) {
+                    console.error('Error reading volume info:', e);
+                }
+            }
+        }
+
+        function onVolumeSliderInput(type, val) {
+            isUserInteracting = true;
+            const targetVal = parseInt(val) || 0;
+            currentVolumes[type] = targetVal;
+
+            if (type === 'notification') {
+                document.getElementById('volNotifText').textContent = `${targetVal} / ${maxVolumes.notification}`;
+            } else if (type === 'alarm') {
+                document.getElementById('volAlarmText').textContent = `${targetVal} / ${maxVolumes.alarm}`;
+            } else if (type === 'media') {
+                document.getElementById('volMediaText').textContent = `${targetVal} / ${maxVolumes.media}`;
+            }
+
+            if (typeof Android !== 'undefined' && typeof Android.setAudioVolume === 'function') {
+                Android.setAudioVolume(type, targetVal);
+            }
+        }
+
+        function onVolumeSliderChange(type, val) {
+            onVolumeSliderInput(type, val);
+            setTimeout(() => { isUserInteracting = false; }, 300);
+        }
+
+        function adjustVolume(type, delta) {
+            const current = currentVolumes[type] ?? 0;
+            const max = maxVolumes[type] ?? 15;
+            const nextVal = Math.max(0, Math.min(max, current + delta));
+            onVolumeSliderInput(type, nextVal);
+            setTimeout(() => { isUserInteracting = false; }, 300);
+        }
+
+        function formatDateTime(timestamp) {
+            if (!timestamp) return '--';
+            const date = new Date(timestamp);
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            const days = ['日', '月', '火', '水', '木', '金', '土'];
+            const dayStr = days[date.getDay()];
+            const hh = String(date.getHours()).padStart(2, '0');
+            const mm = String(date.getMinutes()).padStart(2, '0');
+            const ss = String(date.getSeconds()).padStart(2, '0');
+            return `${y}/${m}/${d} (${dayStr}) ${hh}:${mm}:${ss}`;
+        }
+
+        function formatRemaining(ms) {
+            if (ms <= 0) return '再生予定時刻を過ぎています';
+            const totalSec = Math.floor(ms / 1000);
+            const days = Math.floor(totalSec / 86400);
+            const hours = Math.floor((totalSec % 86400) / 3600);
+            const mins = Math.floor((totalSec % 3600) / 60);
+            const secs = totalSec % 60;
+
+            let result = '';
+            if (days > 0) result += `${days}日 `;
+            if (hours > 0 || days > 0) result += `${hours}時間 `;
+            result += `${mins}分 ${secs}秒`;
+            return result;
+        }
+
+        function getMelodyDisplayName(melody, melodyName) {
+            if (!melody || melody === 'default') return getTranslation('melody_default');
+            if (melody === 'alarm') return getTranslation('melody_alarm');
+            if (melody === 'chime') return getTranslation('melody_chime');
+            if (melody === 'none') return getTranslation('melody_none');
+            if (melody.startsWith('content://')) {
+                return melodyName ? `端末内: ${melodyName}` : '端末内サウンド';
+            }
+            return melody;
+        }
+
+        function getAudioAttrDisplayName(attr) {
+            const mode = attr || 'alarm';
+            if (mode === 'notification') return '通知 (Notification)';
+            if (mode === 'media') return 'メディア (Media)';
+            return 'アラーム (Alarm)';
+        }
+
+        function handleReschedule(type, taskIdVal, reminderTimeStr) {
+            let taskName = '';
+            const taskIdNum = parseInt(taskIdVal);
+
+            let storedTasks = [];
+            try {
+                const raw = localStorage.getItem('tasks');
+                if (raw) storedTasks = JSON.parse(raw);
+            } catch (e) { console.error(e); }
+
+            const task = storedTasks.find(t => t.id === taskIdNum);
+
+            if (type === 'cycle' && task) {
+                taskName = task.text;
+                if (typeof repeatTimerCore === 'function') {
+                    repeatTimerCore(taskIdNum);
+                } else {
+                    task.startTime = Date.now();
+                    task.lastScheduledAt = Date.now();
+                    if (typeof Android !== 'undefined' && Android.setTimerAlarm) {
+                        const dur = Math.max(0, (task.startTime + task.durationMs) - Date.now());
+                        Android.setTimerAlarm(task.id, task.text, dur, task.melody || 'default', task.melodyMode || 'once', task.audioAttribute || 'alarm');
+                    }
+                    localStorage.setItem('tasks', JSON.stringify(storedTasks));
+                }
+            } else if (type === 'reminder' && task) {
+                taskName = `${task.text}${reminderTimeStr ? ' (' + reminderTimeStr + ')' : ''}`;
+                task.lastScheduledAt = Date.now();
+                if (typeof Android !== 'undefined' && Android.setReminderAlarms) {
+                    const reminders = (task.reminders || []).map(r => ({
+                        time: r.time,
+                        message: r.message,
+                        melody: r.melody || 'default',
+                        melodyName: r.melodyName || '',
+                        melodyMode: r.melodyMode || 'once'
+                    }));
+                    Android.setReminderAlarms(task.id, task.text, JSON.stringify(reminders));
+                }
+                localStorage.setItem('tasks', JSON.stringify(storedTasks));
+            } else if (type === 'interval') {
+                const intervalMins = parseInt(localStorage.getItem('recheckInterval') || '0');
+                if (intervalMins > 0) {
+                    taskName = 'インターバル通知';
+                    localStorage.setItem('intervalLastScheduledAt', Date.now().toString());
+                    if (typeof Android !== 'undefined' && Android.setIntervalAlarm) {
+                        Android.setIntervalAlarm(intervalMins);
+                    }
+                }
+            }
+
+            if (taskName) {
+                showModal(getTranslation('msg_rescheduled_success', taskName), { hideCancel: true });
+            }
+            renderTimerList();
+        }
+
+        function renderTimerList() {
+            const container = document.getElementById('timerListContainer');
+            if (!container) return;
+
+            const now = Date.now();
+            const timerItems = [];
+
+            // 1. tasks から周期タイマー・リマインドタイマーを抽出
+            let storedTasks = [];
+            try {
+                const raw = localStorage.getItem('tasks');
+                if (raw) storedTasks = JSON.parse(raw);
+            } catch (e) {
+                console.error('Error loading tasks:', e);
+            }
+
+            storedTasks.forEach(task => {
+                const lastSched = task.lastScheduledAt || task.startTime || task.id;
+
+                // 周期タイマー
+                if (task.durationMs && task.startTime) {
+                    const scheduledTime = task.startTime + task.durationMs;
+                    const remainingMs = scheduledTime - now;
+                    const reqCode = Math.abs(task.id % 2147483647);
+
+                    const attr = task.audioAttribute || localStorage.getItem('melodyAudioAttribute') || 'alarm';
+
+                    timerItems.push({
+                        type: 'cycle',
+                        typeLabel: '周期 (タイマー)',
+                        idStr: `ID: ${task.id} (ReqCode: ${reqCode})`,
+                        taskText: task.text,
+                        taskId: task.id,
+                        lastScheduledAt: lastSched,
+                        scheduledTime: scheduledTime,
+                        remainingMs: remainingMs,
+                        melody: getMelodyDisplayName(task.melody, task.melodyName),
+                        melodyMode: task.melodyMode === 'loop' ? 'ループ (エンドレス)' : '1回のみ',
+                        audioAttr: getAudioAttrDisplayName(attr),
+                        completed: !!task.completed
+                    });
+                }
+
+                // リマインドタイマー
+                if (Array.isArray(task.reminders)) {
+                    task.reminders.forEach(rem => {
+                        if (rem.time) {
+                            const [h, m] = rem.time.split(':').map(Number);
+                            const schedDate = new Date();
+                            schedDate.setHours(h, m, 0, 0);
+                            if (schedDate.getTime() <= now) {
+                                schedDate.setDate(schedDate.getDate() + 1);
+                            }
+                            const scheduledTime = schedDate.getTime();
+                            const remainingMs = scheduledTime - now;
+                            const reqCode = Math.abs(hashCode(task.id.toString() + rem.time));
+
+                            timerItems.push({
+                                type: 'reminder',
+                                typeLabel: `リマインド (${rem.time})`,
+                                idStr: `ID: ${task.id}_${rem.time} (ReqCode: ${reqCode})`,
+                                taskText: `${task.text}${rem.message ? ' - ' + rem.message : ''}`,
+                                taskId: task.id,
+                                reminderTime: rem.time,
+                                lastScheduledAt: lastSched,
+                                scheduledTime: scheduledTime,
+                                remainingMs: remainingMs,
+                                melody: getMelodyDisplayName(rem.melody, rem.melodyName),
+                                melodyMode: rem.melodyMode === 'loop' ? 'ループ (エンドレス)' : '1回のみ',
+                                audioAttr: getAudioAttrDisplayName(task.audioAttribute || localStorage.getItem('melodyAudioAttribute') || 'alarm'),
+                                completed: !!task.completed
+                            });
+                        }
+                    });
+                }
+            });
+
+            // 2. インターバルアラーム
+            const intervalMins = parseInt(localStorage.getItem('recheckInterval') || '0');
+            if (intervalMins > 0) {
+                const intervalLastSched = parseInt(localStorage.getItem('intervalLastScheduledAt') || '0') || Date.now();
+                timerItems.push({
+                    type: 'interval',
+                    typeLabel: 'インターバル再確認',
+                    idStr: `ID: interval_${intervalMins}m (ReqCode: 2)`,
+                    taskText: `未完了タスクの再確認通知 (${intervalMins}分間隔)`,
+                    taskId: 'system',
+                    lastScheduledAt: intervalLastSched,
+                    scheduledTime: null,
+                    remainingMs: null,
+                    melody: 'システムデフォルト',
+                    melodyMode: '1回のみ',
+                    audioAttr: '通知 (Notification)',
+                    completed: false
+                });
+            }
+
+            if (timerItems.length === 0) {
+                container.innerHTML = `<div class="empty-msg" data-i18n="msg_no_active_timers">${getTranslation('msg_no_active_timers')}</div>`;
+                return;
+            }
+
+            // 残り時間昇順でソート（指定なしは末尾）
+            timerItems.sort((a, b) => {
+                if (a.remainingMs === null) return 1;
+                if (b.remainingMs === null) return -1;
+                return a.remainingMs - b.remainingMs;
+            });
+
+            let html = '';
+            timerItems.forEach(item => {
+                const isExpired = item.remainingMs !== null && item.remainingMs <= 0;
+                const cardClass = `timer-card type-${item.type} ${isExpired ? 'expired' : ''}`;
+
+                html += `
+                    <div class="${cardClass}">
+                        <div class="timer-header">
+                            <span class="timer-id-badge">${item.idStr}</span>
+                            <span class="timer-type-badge">${item.typeLabel}</span>
+                        </div>
+                        <div class="timer-task-text">${escapeHtml(item.taskText)} ${item.completed ? '<span style="color:#10b981; font-size:12px;">(完了済み)</span>' : ''}</div>
+
+                        <div class="timer-detail-row">
+                            <div class="timer-detail-label" data-i18n="label_last_scheduled_time">最終予約日時:</div>
+                            <div class="timer-detail-value">${formatDateTime(item.lastScheduledAt)}</div>
+                        </div>
+
+                        ${item.scheduledTime ? `
+                        <div class="timer-detail-row">
+                            <div class="timer-detail-label" data-i18n="label_scheduled_time">再生予定日時:</div>
+                            <div class="timer-detail-value">${formatDateTime(item.scheduledTime)}</div>
+                        </div>
+                        ` : ''}
+
+                        <div class="timer-detail-row">
+                            <div class="timer-detail-label">メロディ/属性:</div>
+                            <div class="timer-detail-value">${item.melody} / ${item.melodyMode} (${item.audioAttr})</div>
+                        </div>
+
+                        ${item.remainingMs !== null ? `
+                        <div class="remaining-highlight">
+                            ⏳ 残り時間: ${formatRemaining(item.remainingMs)}
+                        </div>
+                        ` : ''}
+
+                        <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
+                            <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 12px;" onclick="handleReschedule('${item.type}', '${item.taskId}', '${item.reminderTime || ''}')" data-i18n="btn_reschedule">
+                                🔄 再予約
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function hashCode(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = (hash << 5) - hash + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return hash;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applyLanguage();
+            updateVolumeDisplay();
+            renderTimerList();
+
+            // 1秒ごとにカウントダウンと音量をリアルタイム更新
+            setInterval(() => {
+                updateVolumeDisplay();
+                renderTimerList();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

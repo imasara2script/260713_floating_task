@@ -149,6 +149,37 @@ class WebSettingsHandler(
         prefs.edit { putString(key, value) }
     }
 
+    fun getAudioVolumeInfo(): String {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+        val json = JSONObject()
+        json.put("notificationVolume", audioManager.getStreamVolume(android.media.AudioManager.STREAM_NOTIFICATION))
+        json.put("notificationMaxVolume", audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_NOTIFICATION))
+        json.put("alarmVolume", audioManager.getStreamVolume(android.media.AudioManager.STREAM_ALARM))
+        json.put("alarmMaxVolume", audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_ALARM))
+        json.put("mediaVolume", audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC))
+        json.put("mediaMaxVolume", audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC))
+        return json.toString()
+    }
+
+    fun setAudioVolume(streamTypeStr: String, volume: Int): Boolean {
+        return try {
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+            val streamType = when (streamTypeStr) {
+                "notification" -> android.media.AudioManager.STREAM_NOTIFICATION
+                "alarm" -> android.media.AudioManager.STREAM_ALARM
+                "media" -> android.media.AudioManager.STREAM_MUSIC
+                else -> return false
+            }
+            val maxVol = audioManager.getStreamMaxVolume(streamType)
+            val targetVol = volume.coerceIn(0, maxVol)
+            audioManager.setStreamVolume(streamType, targetVol, android.media.AudioManager.FLAG_SHOW_UI)
+            true
+        } catch (e: Exception) {
+            AppLogger.log(context, "Error setting audio volume: ${e.message}")
+            false
+        }
+    }
+
     private fun sha256(input: String): String {
         val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
         return bytes.joinToString("") { "%02x".format(it) }

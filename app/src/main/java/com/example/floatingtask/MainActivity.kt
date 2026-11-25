@@ -638,6 +638,12 @@ class MainActivity : AppCompatActivity(),
         fun getDisplayMetrics(): String = settingsHandler.getDisplayMetrics()
 
         @JavascriptInterface
+        fun getAudioVolumeInfo(): String = settingsHandler.getAudioVolumeInfo()
+
+        @JavascriptInterface
+        fun setAudioVolume(streamTypeStr: String, volume: Int): Boolean = settingsHandler.setAudioVolume(streamTypeStr, volume)
+
+        @JavascriptInterface
         fun backupData(jsonData: String, type: String) = mediaHandler.backupData(jsonData, type)
 
         @JavascriptInterface
